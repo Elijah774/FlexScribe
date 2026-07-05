@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>FlexScribe - Web</title>
+    <meta name="description" content="FlexScribe - simple subscription and wallet manager."/>
+    <link rel="styles/index.css" href="index.css"/>
+</head>
+<body>
+<div class="layout">
+    <aside class="sidebar">
+        <h2>FlexScribe</h2>
+        <a href="#dashboard">Dashboard</a>
+        <a href="#wallet">Wallet</a>
+        <a href="#subscriptions">Subscriptions</a>
+        <a href="#goals">Financial Goals</a>
+        <a href="#reports">Reports</a>
+        <a href="#notifications">Notifications</a>
+        <a href="#dependants">Dependants</a>
+        <a href="#profile">Profile</a>
+        <hr/>
+        <a href="login.html">Login / Register</a>
+        <a href="mobile.html">Mobile App</a>
+    </aside>
+    <main class="main">
+        <div class="topbar">
+            <div class="small">Web Application</div>
+            <button class="secondary" onclick="toggleTheme()">Toggle Light/Dark</button>
+        </div>
+        <div id="view"></div>
+    </main>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

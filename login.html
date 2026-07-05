@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>FlexScribe - Login / Register</title>
+    <link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+<div style="max-width:800px;margin:40px auto;padding:20px">
+    <h1>FlexScribe</h1>
+    <div class="grid2">
+        <div class="card">
+            <h3>Login</h3>
+            <label>Email</label><input id="lEmail"/>
+            <label>Password</label><input id="lPass" type="password"/>
+            <button onclick="doLogin()">Login</button>
+        </div>
+        <div class="card">
+            <h3>Register</h3>
+            <label>First Name</label><input id="rFirst"/>
+            <label>Surname</label><input id="rSur"/>
+            <label>Email</label><input id="rEmail"/>
+            <label>Password</label><input id="rPass" type="password"/>
+            <button onclick="doRegister()">Register</button>
+        </div>
+    </div>
+    <div class="card"><a href="index.html">Skip to Web App</a> · <a href="mobile.html">Mobile App</a></div>
+</div>
+<script>
+    const LS_KEY="flexscribe_data_v1";
+    function load(){try{return JSON.parse(localStorage.getItem(LS_KEY))||{}}catch(e){return{}}}
+    function save(d){localStorage.setItem(LS_KEY,JSON.stringify(d))}
+    function doLogin(){
+        const d=load(); const u=d.user||{};
+        if(document.getElementById("lEmail").value===u.email && document.getElementById("lPass").value===u.password){
+            location.href="index.html";
+        } else alert("Invalid credentials (demo user is loaded automatically)");
+    }
+    function doRegister(){
+        const d=load();
+        d.user={
+            firstName:document.getElementById("rFirst").value,
+            surname:document.getElementById("rSur").value,
+            email:document.getElementById("rEmail").value,
+            password:document.getElementById("rPass").value,
+        };
+        save(d);
+        alert("Registered! You can now login.");
+    }
+</script>
+</body>
+</html>
