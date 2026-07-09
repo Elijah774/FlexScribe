@@ -1,0 +1,16 @@
+:root {
+    --bg: #0F1115;
+    --surface: #1B1F22;
+    --card: #22272C;
+
+    --text: #F5F5F5;
+    --text-secondary: #9097A1;
+
+    --primary: #FF8A34;
+    --primary-hover: #FF9C4F;
+
+    --border: #343A42;
+    *{
+        font-family: "Inter", sans-serif;
+    }
+}

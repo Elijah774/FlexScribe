@@ -1,30 +1,359 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <title>FlexScribe - Manage subscriptions and your wallet</title>
-    <meta name="description" content="FlexScribe helps you manage subscriptions, wallet, goals, and payment reminders."/>
-    <link rel="stylesheet" href="styles.css"/>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>FlexScribe</title>
+
+    <link rel="stylesheet" href="styles/landing.css">
+
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+          rel="stylesheet">
+
 </head>
+
 <body>
-<div style="max-width:900px;margin:40px auto;padding:20px">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-        <h1>FlexScribe</h1>
-        <button class="secondary" onclick="document.body.classList.toggle('dark')">Toggle Theme</button>
+
+<!-- ========================= -->
+<!-- Navigation -->
+<!-- ========================= -->
+
+<header>
+
+    <div class="logo">
+
+        <div class="left-logo">
+            <img src="images/smallLogo.png" alt="FlexScribe Logo">
+        </div>
+
+        <div class="right-logo">
+            <h2>
+                Flex<span>Scribe</span>
+            </h2>
+
+            <p>Manage. Track. Save. Smarter.</p>
+        </div>
+
     </div>
-    <p>A simple app to manage your subscriptions, virtual wallet, financial goals and payment reminders.</p>
-    <div class="row">
-        <div class="card"><h3>Manage Subscriptions</h3><p>Track all your monthly subscriptions in one place.</p></div>
-        <div class="card"><h3>Virtual Wallet</h3><p>Deposit, withdraw and transfer funds.</p></div>
-        <div class="card"><h3>Financial Goals</h3><p>Set goals and monitor progress.</p></div>
-        <div class="card"><h3>Reminders</h3><p>Never miss a payment.</p></div>
+    <nav>
+
+        <a href="#">Home</a>
+        <a href="#">Features</a>
+        <a href="#">How It Works</a>
+        <a href="#">Pricing</a>
+        <a href="#">About</a>
+
+    </nav>
+
+    <div class="nav-buttons">
+
+        <a href="login.html" class="login-btn">Log In</a>
+
+        <a href="register.html" class="primary-btn">
+            Create Account
+        </a>
+
     </div>
-    <div class="card">
-        <a class="btn" href="login.html">Get Started</a>
-        <a class="btn secondary" href="index.html">Open Web App</a>
-        <a class="btn secondary" href="mobile.html">Open Mobile App</a>
+
+</header>
+
+
+<!-- ========================= -->
+<!-- HERO -->
+<!-- ========================= -->
+
+<section class="hero">
+
+    <div class="hero-left">
+
+        <h1>
+
+            Manage.<br>
+            Track.<br>
+            Save.<br>
+
+            <span>Smarter.</span>
+
+        </h1>
+
+        <p>
+
+            FlexScribe helps you take control of your subscriptions,
+            wallet and financial goals from one place.
+
+        </p>
+
+        <div class="hero-buttons">
+
+            <button class="primary-btn">
+
+                Get Started
+
+            </button>
+
+            <button class="secondary-btn">
+
+                Explore Features
+
+            </button>
+
+        </div>
+
+        <div class="hero-info">
+
+            <span><i class="fa-solid fa-circle-check"></i> Free Forever</span>
+
+            <span><i class="fa-solid fa-credit-card"></i> No Card Required</span>
+
+        </div>
+
     </div>
-</div>
+
+    <div class="hero-right">
+
+        <img src="images/dashboardPreview.png"
+             alt="Dashboard Preview">
+
+    </div>
+
+</section>
+
+
+<!-- ========================= -->
+<!-- FEATURES -->
+<!-- ========================= -->
+
+<section class="features">
+
+    <h4>FEATURES</h4>
+<br>
+    <h2>Everything you need to stay in control</h2>
+<br>
+    <p>
+
+        Powerful tools to manage subscriptions,
+        spending and financial goals.
+
+    </p>
+
+    <div class="feature-grid">
+
+        <div class="feature-card">
+
+            <i class="fa-solid fa-wallet"></i>
+
+            <h3>Smart Virtual Wallet</h3>
+
+            <p>
+                Deposit funds, track spending and manage transactions.
+            </p>
+
+        </div>
+
+        <div class="feature-card">
+
+            <i class="fa-solid fa-calendar-days"></i>
+
+            <h3>Subscriptions</h3>
+
+            <p>
+                Never miss a payment again.
+            </p>
+
+        </div>
+
+        <div class="feature-card">
+
+            <i class="fa-solid fa-bullseye"></i>
+
+            <h3>Financial Goals</h3>
+
+            <p>
+                Save towards goals with progress tracking.
+            </p>
+
+        </div>
+
+        <div class="feature-card">
+
+            <i class="fa-solid fa-chart-line"></i>
+
+            <h3>Analytics</h3>
+
+            <p>
+                View spending reports and charts.
+            </p>
+
+        </div>
+
+        <div class="feature-card">
+
+            <i class="fa-solid fa-users"></i>
+
+            <h3>Dependants</h3>
+
+            <p>
+                Manage subscriptions for the whole family.
+            </p>
+
+        </div>
+    </div>
+</section>
+
+
+<!-- ========================= -->
+<!-- PHONE SECTION -->
+<!-- ========================= -->
+
+<section class="phone-section">
+
+    <div class="phone-text">
+
+        <h4>ALL IN ONE PLACE</h4>
+
+        <h2>Your finances simplified.</h2>
+
+        <p>
+
+            Wallet, subscriptions,
+            dependants and financial goals together.
+
+        </p>
+
+        <div class="store-buttons">
+
+            <img src="images/AndroidStore.jpg">
+
+        </div>
+
+    </div>
+
+    <div class="phone-image">
+
+        <div class="phone-glow"></div>
+
+        <img src="images/phoneDisplay.png" alt="Phone">
+
+    </div>
+    <div class="security-card">
+
+
+        <i class="fa-solid fa-shield-halved"></i>
+
+        <div class="security-content">
+
+            <h3>Secure & Private</h3>
+
+            <p>
+                Your financial information is protected.
+            </p>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- ========================= -->
+<!-- Statistics -->
+<!-- ========================= -->
+
+<section class="stats">
+
+    <div class="stat">
+
+        <h2>2500+</h2>
+
+        <p>Happy Users</p>
+
+    </div>
+
+    <div class="stat">
+
+        <h2>8000+</h2>
+
+        <p>Subscriptions Managed</p>
+
+    </div>
+
+    <div class="stat">
+
+        <h2>R2.4M+</h2>
+
+        <p>Saved by Users</p>
+
+    </div>
+
+    <div class="stat">
+
+        <h2>4.9/5</h2>
+
+        <p>User Rating</p>
+
+    </div>
+
+</section>
+
+
+<!-- ========================= -->
+<!-- Footer -->
+<!-- ========================= -->
+
+<footer>
+
+    <div class="logo">
+
+        <div class="left-logo">
+        </div>
+
+        <div class="right-logo">
+            <h2>
+                Flex<span>Scribe</span>
+            </h2>
+
+            <p>Manage. Track. Save. Smarter.</p>
+        </div>
+
+    </div>
+
+        <h4>Company</h4>
+
+        <a href="#">About</a>
+        <a href="#">Careers</a>
+        <a href="#">Blog</a>
+
+    </div>
+
+    <div>
+
+        <h4>Support</h4>
+
+        <a href="#">Help Centre</a>
+        <a href="#">Privacy</a>
+        <a href="#">Security</a>
+
+    </div>
+
+    <div>
+
+        <h4>Follow Us</h4>
+
+        <i class="fa-brands fa-facebook"></i>
+        <i class="fa-brands fa-instagram"></i>
+        <i class="fa-brands fa-linkedin"></i>
+
+    </div>
+
+</footer>
+
 </body>
+
 </html>

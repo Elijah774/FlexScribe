@@ -1,0 +1,349 @@
+/* ===========================
+   GENERAL PAGE STYLING
+=========================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+/* ICON STYLING  */
+.login-container .fa-lock{
+
+    display:block;
+
+    font-size:48px;
+
+    color:#FF8A34;
+
+    text-align:center;
+
+    margin-bottom:20px;
+
+}
+body {
+    font-family: "Inter", sans-serif;
+    font-weight:400;
+    background-color: #0F1115;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    color: #F5F5F5;
+}
+
+/* ===========================
+   LOGIN CARD
+=========================== */
+
+.login-container {
+    width: 450px;
+    background: #1B1F22;
+    padding: 45px;
+    border-radius: 18px;
+    border: 1px solid #2C3137;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+}
+
+/* ===========================
+   HEADINGS
+=========================== */
+
+.login-container h2 {
+    text-align: center;
+    margin-bottom: 10px;
+    color: #F5F5F5;
+}
+
+.login-container p {
+    text-align: center;
+    color: #9097A1;
+    margin-bottom: 30px;
+    font-size: 16px;
+}
+
+/* ===========================
+   SIGN IN / CREATE ACCOUNT
+=========================== */
+
+.login-switch {
+    display: flex;
+    background: #131619;
+    border-radius: 12px;
+    padding: 5px;
+    margin-bottom: 30px;
+}
+
+.login-switch button {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 16px;
+    border-radius: 8px;
+    transition: 0.3s;
+    color: #9097A1;
+}
+
+.login-switch button:hover {
+    color: #F5F5F5;
+}
+
+.login-switch .active {
+    background: #0F1115;
+    color: #F5F5F5;
+    font-weight: bold;
+}
+
+/* ===========================
+   LABELS
+=========================== */
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    margin-top: 15px;
+    font-weight: 600;
+    color: #F5F5F5;
+}
+
+/* ===========================
+   INPUT BOXES
+=========================== */
+
+input[type="text"],
+input[type="email"],
+input[type="password"] {
+
+    width: 100%;
+    padding: 15px;
+    background: #0E1114;
+    color: #F5F5F5;
+    border: 1px solid #343A42;
+    border-radius: 10px;
+    font-size: 15px;
+    margin-bottom: 15px;
+    outline: none;
+    transition: 0.3s;
+}
+
+input::placeholder {
+    color: #9097A1;
+}
+
+input[type="email"]:focus,
+input[type="password"]:focus {
+
+    border-color: #FF8A34;
+}/* ===========================
+   INPUT GROUP
+=========================== */
+
+.input-group{
+
+    position:relative;
+
+    margin-bottom:18px;
+
+}
+
+.input-group i{
+
+    position:absolute;
+
+    left:15px;
+
+    top:50%;
+
+    transform:translateY(-50%);
+
+    color:#9097A1;
+
+    font-size:16px;
+}
+
+.input-group input{
+
+    width:100%;
+}
+/* ===========================
+   REMEMBER ME
+=========================== */
+
+.remember{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:15px;
+    margin-bottom:25px;
+}
+
+.remember-left{
+    display:flex;
+    align-items:center;
+    gap:8px;
+}
+
+.remember-left input{
+    width:16px;
+    height:16px;
+}
+
+.remember-left label{
+    margin:0;
+    color:#C8CDD4;
+    font-size:14px;
+}
+
+/* ===========================
+   LINKS
+=========================== */
+
+a {
+
+    text-decoration: none;
+    color: #FF8A34;
+    font-size: 14px;
+    transition: 0.3s;
+}
+
+a:hover {
+
+    color: #FF9C4F;
+}
+
+/* ===========================
+   LOGIN BUTTON
+=========================== */
+
+.login-btn{
+
+    width:100%;
+
+    padding:16px;
+
+    border-radius:14px;
+
+    font-size:17px;
+
+    font-weight:600;
+}
+.login-btn:hover {
+
+    background: #FF9C4F;
+}
+/* ===========================
+   SOCIAL LOGIN
+=========================== */
+
+.social-login{
+
+    display:flex;
+
+    gap:15px;
+
+    margin-top:30px;
+
+    margin-bottom:25px;
+}
+
+.social-login button{
+
+    flex:1;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    gap:10px;
+
+    padding:14px;
+
+    background:#22272C;
+
+    border:1px solid #343A42;
+
+    border-radius:10px;
+
+    color:#F5F5F5;
+
+    font-size:15px;
+
+    cursor:pointer;
+
+    transition:0.3s;
+}
+
+.social-login button:hover{
+
+    background:#2C3137;
+
+    border-color:#FF8A34;
+
+}
+
+/* ===========================
+   BACK HOME LINK
+=========================== */
+
+.back-home {
+
+    display: block;
+    text-align: center;
+    margin-top: 30px;
+    color: #9097A1;
+    transition: 0.3s;
+}
+
+.back-home:hover {
+
+    color: #FF8A34;
+}/* ===========================
+   DIVIDER
+=========================== */
+
+.divider{
+
+    display:flex;
+
+    align-items:center;
+
+    margin:30px 0 20px;
+}
+
+.divider::before,
+.divider::after{
+
+    content:"";
+
+    flex:1;
+
+    height:1px;
+
+    background:#343A42;
+}
+
+.divider span{
+
+    padding:0 15px;
+
+    color:#9097A1;
+
+    font-size:13px;
+}
+/*=========SUCCESS MESSAGE==========*/
+.success-message{
+
+    display:none;
+
+    margin-top:18px;
+
+    color:#C7F464;
+
+    font-size:14px;
+
+    text-align:center;
+}
