@@ -7,7 +7,7 @@ themeToggle.addEventListener('click', () => {
 const pageTitles = {
     dashboard: { title: "Dashboard", heading: "Welcome, INSERTNAME ", sub: "Good day, here's a snapshot of your money." },
     wallet: { title: "Wallet", heading: "Wallet", sub: "Manage your balance, virtual card and transactions." },
-    subscription: { title: "Subscriptions", heading: "Subscriptions", sub: "NUMBER OF services, AMOUNT active monthly" },
+    subscription: { title: "Subscriptions", heading: "Manage and track all your recurring subscriptions." },
     goals: { title: "Goals", heading: "Goals", sub: "Set targets and watch your savings grow." },
     analytics: { title: "Analytics", heading: "Analytics", sub: "Interactive charts powered by your wallet activity." },
     timeline: { title: "Timeline", heading: "Billing Timeline", sub: "Virtualize money flowing out of your wallet for the next 30 days." },
@@ -32,6 +32,8 @@ function loadPage(pageName) {
             document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
             document.querySelector(`.nav-item[data-page="${pageName}"]`).classList.add('active');
         });
+    document.getElementById("page-style").href =
+        `../styles/${pageName}.css`;
 }
 
 document.querySelectorAll('.nav-item').forEach(item => {
