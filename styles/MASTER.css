@@ -320,4 +320,207 @@ body {
     color: var(--orange);
     font-size: 13px;
     text-decoration: none;
+}/* =====================================================
+                    DARK MODE
+===================================================== */
+
+/* Body */
+body.dark-mode{
+    background: var(--background);
+    color: var(--text);
+}
+
+/* Master Layout */
+body.dark-mode .master-container{
+    background: var(--background);
+}
+
+/* ==========================================
+   HEADER
+========================================== */
+
+body.dark-mode .top-header{
+    background: var(--section);
+    border-bottom:1px solid var(--border);
+}
+
+body.dark-mode .page-title{
+    color:var(--text);
+}
+
+/* ==========================================
+   LOGO AREA
+========================================== */
+
+body.dark-mode .logo-area{
+    background:var(--section);
+    border-right:1px solid var(--border);
+    border-bottom:1px solid var(--border);
+}
+
+body.dark-mode .logo-text{
+    color:var(--text);
+}
+
+body.dark-mode .logo-subtext{
+    color:var(--text-light);
+}
+
+/* ==========================================
+   SIDEBAR
+========================================== */
+
+body.dark-mode .sidebar-nav{
+    background:var(--section);
+    border-right:1px solid var(--border);
+}
+
+body.dark-mode .sidebar-bottom{
+    border-top:1px solid var(--border);
+}
+
+body.dark-mode .nav-item{
+    color:var(--text-light);
+}
+
+body.dark-mode .nav-item:hover{
+    background:#20262E;
+    color:var(--text);
+}
+
+body.dark-mode .nav-item.active{
+    background:rgba(255,138,52,.15);
+    color:var(--orange);
+}
+
+/* ==========================================
+   MAIN CONTENT
+========================================== */
+
+body.dark-mode .main-content{
+    background:var(--background);
+}
+
+body.dark-mode .page-heading-title{
+    color:var(--text);
+}
+
+body.dark-mode .page-heading-subtext{
+    color:var(--text-light);
+}
+
+/* ==========================================
+   BUTTONS
+========================================== */
+
+body.dark-mode .icon-btn{
+    color:var(--text);
+}
+
+body.dark-mode .icon-btn:hover{
+    background:#20262E;
+}
+
+body.dark-mode .primary-btn{
+    background:var(--orange);
+    color:white;
+}
+
+body.dark-mode .primary-btn:hover{
+    background:var(--orange-hover);
+}
+
+body.dark-mode .secondary-btn{
+    background:transparent;
+    color:var(--text);
+    border:1px solid var(--border);
+}
+
+/* ==========================================
+   CARDS
+========================================== */
+
+body.dark-mode .card,
+body.dark-mode .panel,
+body.dark-mode .subscription-card,
+body.dark-mode .stat-card,
+body.dark-mode .table-card{
+    background:var(--card);
+    border:1px solid var(--border);
+    color:var(--text);
+}
+
+/* ==========================================
+   TABLES
+========================================== */
+
+body.dark-mode table{
+    color:var(--text);
+}
+
+body.dark-mode thead{
+    background:#20262E;
+}
+
+body.dark-mode tbody tr{
+    border-bottom:1px solid var(--border);
+}
+
+body.dark-mode tbody tr:hover{
+    background:#20262E;
+}
+
+/* ==========================================
+   INPUTS
+========================================== */
+
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea{
+    background:#13171C;
+    color:var(--text);
+    border:1px solid var(--border);
+}
+
+body.dark-mode input::placeholder{
+    color:var(--text-light);
+}
+
+body.dark-mode input:focus,
+body.dark-mode select:focus,
+body.dark-mode textarea:focus{
+    border-color:var(--orange);
+    outline:none;
+}
+
+/* ==========================================
+   BUTTONS
+========================================== */
+
+body.dark-mode button{
+    color:var(--text);
+}
+
+/* ==========================================
+   LINKS
+========================================== */
+
+body.dark-mode a{
+    color:var(--text-light);
+}
+
+body.dark-mode a:hover{
+    color:var(--orange);
+}
+
+/* ==========================================
+   ICONS
+========================================== */
+
+body.dark-mode svg{
+    stroke:var(--text);
+}
+
+body.dark-mode .nav-item.active svg{
+    stroke:var(--orange);
 }

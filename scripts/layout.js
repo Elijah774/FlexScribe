@@ -1,13 +1,23 @@
-const themeToggle = document.getElementById('theme-toggle');
+const themeToggle = document.getElementById("theme-toggle");
 
-themeToggle.addEventListener('click', () => {
-    document.body.classList.toggle('dark-mode');
-})
+themeToggle.addEventListener("click", () => {
+
+    document.body.classList.toggle("dark-mode");
+
+    localStorage.setItem(
+        "theme",
+        document.body.classList.contains("dark-mode") ? "dark" : "light"
+    );
+});
+
+if(localStorage.getItem("theme") === "dark"){
+    document.body.classList.add("dark-mode");
+}
 
 const pageTitles = {
     dashboard: { title: "Dashboard", heading: "Welcome, INSERTNAME ", sub: "Good day, here's a snapshot of your money." },
     wallet: { title: "Wallet", heading: "Wallet", sub: "Manage your balance, virtual card and transactions." },
-    subscription: { title: "Subscriptions", heading: "Manage and track all your recurring subscriptions." },
+    subscription: { title: "Subscriptions\nManage and track all your recurring subscriptions."},
     goals: { title: "Goals", heading: "Goals", sub: "Set targets and watch your savings grow." },
     analytics: { title: "Analytics", heading: "Analytics", sub: "Interactive charts powered by your wallet activity." },
     timeline: { title: "Timeline", heading: "Billing Timeline", sub: "Virtualize money flowing out of your wallet for the next 30 days." },
