@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FlexScribe</title>
+    <link rel="stylesheet" href="../styles/MASTER.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div class="master-container">
+
+
+    <div class="logo-area">
+        <img src="../images/smallLogo.png" alt="FlexScribe Logo">
+
+        <div class="logo-text-wrap">
+            <h1 class="logo-text">Flex<span id="Scribe">Scribe</span></h1>
+            <p class="logo-subtext">Manage. Track. Save. Smarter.</p>
+        </div>
+    </div>
+
+
+    <header class="top-header" id="MH">
+        <h1 class="page-title"></h1>
+        <div class="header-actions">
+            <button id="theme-toggle" class="icon-btn">
+                <i data-lucide="moon"></i>
+            </button>
+
+            <i data-lucide="circle-user-round"></i>
+        </div>
+    </header>
+
+
+    <nav class="sidebar-nav">
+        <ul>
+            <li>
+                <a href="dashboard.html" class="nav-item active" data-page="dashboard">
+                    <i data-lucide="home"></i>
+                Dashboard
+                </a>
+            </li>
+            <li>
+                <a href="wallet.html" class="nav-item" data-page="wallet">
+                    <i data-lucide="wallet"></i>
+                    Wallet
+                </a>
+            </li>
+
+            <li>
+                <a href="subscriptions.html" class="nav-item" data-page="subscription">
+                    <i data-lucide="banknote-arrow-up"></i>
+                    Subscription
+                </a>
+            </li>
+
+            <li>
+                <a href="goals.html" class="nav-item" data-page="goals">
+                    <i data-lucide="target"></i>
+                    Goals
+                </a>
+            </li>
+            <li>
+                <a href="analytics.html" class="nav-item" data-page="analytics">
+                    <i data-lucide="line-chart"></i>
+                    Analytics
+                </a>
+            </li>
+            <li>
+                <a href="timeline.html" class="nav-item" data-page="timeline">
+                    <i data-lucide="history"></i>
+                    Timeline
+                </a>
+            </li>
+            <li>
+                <a href="dependants.html" class="nav-item" data-page="dependants">
+                    <i data-lucide="users"></i>
+                    Dependants
+                </a>
+            </li>
+            <li>
+                <a href="notifications.html" class="nav-item" data-page="notifications">
+                    <i data-lucide="bell"></i>
+                    Notifications
+                </a>
+            </li>
+            <li>
+                <a href="reports.html" class="nav-item" data-page="reports">
+                    <i data-lucide="file-text"></i>
+                    Reports
+                </a>
+            </li>
+        </ul>
+
+
+        <div class="sidebar-bottom">
+            <ul>
+                <li>
+                    <a href="signout.html" class="nav-item" data-page="signout">
+                        <i data-lucide="log-out"></i>
+                        Sign out
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <hr class="sidebar-divider">
+
+    <main class="main-content" id="MC">
+        <section class="page-heading">
+            <h1 class="page-heading-title"></h1>
+            <p class="page-heading-subtext"></p>
+        </section>
+
+        <div class="page-body">
+
+        </div>
+    </main>
+
+</div>
+</body>
+</html>
+<script>
+    lucide.createIcons();
+</script>
+<script src="../scripts/layout.js"></script>

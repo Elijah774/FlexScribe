@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>FlexScribe — Subscriptions</title>
+    <link rel="stylesheet" href="../styles/MASTER.css">
+    <link rel="stylesheet" href="../styles/subscriptions.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+<div class="master-container">
+
+    <div class="logo-area">
+        <img src="../images/smallLogo.png" alt="FlexScribe Logo">
+        <div class="logo-text-wrap">
+            <h1 class="logo-text">Flex<span id="Scribe">Scribe</span></h1>
+            <p class="logo-subtext">Manage. Track. Save. Smarter.</p>
+        </div>
+    </div>
+
+    <header class="top-header" id="MH">
+        <h1 class="page-title"></h1>
+        <div class="header-actions">
+            <button id="theme-toggle" class="icon-btn">
+                <i data-lucide="bell"></i>
+                <span class="badge">3</span>
+            </button>
+            <div class="header-profile">
+                <img src="../images/avatar.png" alt="Sarah M.">
+                <span>Sarah M.</span>
+                <i data-lucide="chevron-down"></i>
+            </div>
+        </div>
+    </header>
+
+    <nav class="sidebar-nav">
+        <ul>
+            <li><a href="dashboard.html" class="nav-item" data-page="dashboard"><i data-lucide="home"></i>Dashboard</a></li>
+            <li><a href="wallet.html" class="nav-item" data-page="wallet"><i data-lucide="wallet"></i>Wallet</a></li>
+            <li><a href="subscriptions.html" class="nav-item active" data-page="subscription"><i data-lucide="banknote-arrow-up"></i>Subscriptions</a></li>
+            <li><a href="goals.html" class="nav-item" data-page="goals"><i data-lucide="target"></i>Goals</a></li>
+            <li><a href="analytics.html" class="nav-item" data-page="analytics"><i data-lucide="line-chart"></i>Analytics</a></li>
+            <li><a href="timeline.html" class="nav-item" data-page="timeline"><i data-lucide="history"></i>Timeline</a></li>
+            <li><a href="dependants.html" class="nav-item" data-page="dependants"><i data-lucide="users"></i>Dependants</a></li>
+            <li><a href="notifications.html" class="nav-item" data-page="notifications"><i data-lucide="bell"></i>Notifications</a></li>
+            <li><a href="reports.html" class="nav-item" data-page="reports"><i data-lucide="file-text"></i>Reports</a></li>
+        </ul>
+
+        <div class="sidebar-bottom">
+            <div class="upgrade-card">
+                <div class="upgrade-icon"><i data-lucide="crown"></i></div>
+                <h3>Upgrade to Premium</h3>
+                <p>Unlock exclusive features and insights.</p>
+                <button>Upgrade Now</button>
+            </div>
+            <ul>
+                <li><a href="signout.html" class="nav-item" data-page="signout"><i data-lucide="log-out"></i>Sign out</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="main-content" id="MC">
+
+        <section class="page-heading sub-heading-row">
+            <div>
+                <h1 class="page-heading-title">Subscriptions</h1>
+                <p class="page-heading-subtext">Manage and track all your recurring subscriptions.</p>
+            </div>
+            <div class="heading-actions">
+                <button class="add-sub-btn"><i data-lucide="plus"></i>Add Subscription</button>
+                <button class="icon-btn"><i data-lucide="more-vertical"></i></button>
+            </div>
+        </section>
+
+        <div class="page-body">
+
+            <!-- stat cards -->
+            <div class="stat-row">
+                <div class="card stat-card">
+                    <div class="card-icon icon-green"><i data-lucide="layers"></i></div>
+                    <div>
+                        <p class="card-label">Active Subscriptions</p>
+                        <p class="card-value">5</p>
+                    </div>
+                </div>
+                <div class="card stat-card">
+                    <div class="card-icon icon-orange"><i data-lucide="wallet"></i></div>
+                    <div>
+                        <p class="card-label">Monthly Total</p>
+                        <p class="card-value">R905.99</p>
+                    </div>
+                </div>
+                <div class="card stat-card">
+                    <div class="card-icon icon-purple"><i data-lucide="calendar"></i></div>
+                    <div>
+                        <p class="card-label">Annual Total</p>
+                        <p class="card-value">R10,871.88</p>
+                    </div>
+                </div>
+                <div class="card stat-card">
+                    <div class="card-icon icon-blue"><i data-lucide="piggy-bank"></i></div>
+                    <div>
+                        <p class="card-label">Potential Savings</p>
+                        <p class="card-value">R2,180.00</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- upcoming payments + category donut -->
+            <div class="mid-row">
+
+                <div class="card panel">
+                    <div class="panel-header">
+                        <h2>Upcoming Payments</h2>
+                        <a href="#" class="card-link">View all upcoming</a>
+                    </div>
+                    <div class="upcoming-list">
+                        <div class="upcoming-item">
+                            <div class="compact-logo netflix"><i data-lucide="clapperboard"></i></div>
+                            <span class="upcoming-name">Netflix</span>
+                            <span class="upcoming-amount">R199.00</span>
+                            <span class="upcoming-date">May 18, 2025</span>
+                        </div>
+                        <div class="upcoming-item">
+                            <div class="compact-logo spotify"><i data-lucide="music"></i></div>
+                            <span class="upcoming-name">Spotify</span>
+                            <span class="upcoming-amount">R59.99</span>
+                            <span class="upcoming-date">May 16, 2025</span>
+                        </div>
+                        <div class="upcoming-item">
+                            <div class="compact-logo youtube"><i data-lucide="play"></i></div>
+                            <span class="upcoming-name">YouTube Premium</span>
+                            <span class="upcoming-amount">R79.00</span>
+                            <span class="upcoming-date">May 20, 2025</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card panel">
+                    <div class="panel-header">
+                        <h2>Top Categories</h2>
+                    </div>
+                    <div class="donut-wrap">
+                        <div class="donut">
+                            <div class="donut-center">
+                                <span class="donut-total">R905.99</span>
+                                <span class="donut-sub">/month</span>
+                            </div>
+                        </div>
+                        <ul class="donut-legend">
+                            <li><i class="dot dot-entertainment"></i>Entertainment<span>44%</span></li>
+                            <li><i class="dot dot-music"></i>Music<span>22%</span></li>
+                            <li><i class="dot dot-shopping"></i>Shopping<span>17%</span></li>
+                            <li><i class="dot dot-productivity"></i>Productivity<span>12%</span></li>
+                            <li><i class="dot dot-other"></i>Other<span>5%</span></li>
+                        </ul>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- all subscriptions -->
+            <div class="card panel">
+                <div class="panel-header">
+                    <h2>All Subscriptions</h2>
+                </div>
+                <div class="compact-list">
+                    <div class="compact-row">
+                        <div class="compact-primary">
+                            <div class="compact-logo netflix"><i data-lucide="clapperboard"></i></div>
+                            <span class="compact-name">Netflix</span>
+                        </div>
+                        <span class="compact-category">Entertainment</span>
+                        <span class="compact-amount">R199.00<small>/ month</small></span>
+                        <span class="compact-date">May 18, 2025</span>
+                        <label class="toggle">
+                            <input type="checkbox" checked>
+                            <span class="toggle-track"></span>
+                        </label>
+                        <button class="row-icon-btn"><i data-lucide="more-vertical"></i></button>
+                    </div>
+
+                    <div class="compact-row">
+                        <div class="compact-primary">
+                            <div class="compact-logo spotify"><i data-lucide="music"></i></div>
+                            <span class="compact-name">Spotify</span>
+                        </div>
+                        <span class="compact-category">Music</span>
+                        <span class="compact-amount">R59.99<small>/ month</small></span>
+                        <span class="compact-date">May 16, 2025</span>
+                        <label class="toggle">
+                            <input type="checkbox" checked>
+                            <span class="toggle-track"></span>
+                        </label>
+                        <button class="row-icon-btn"><i data-lucide="more-vertical"></i></button>
+                    </div>
+
+                    <div class="compact-row">
+                        <div class="compact-primary">
+                            <div class="compact-logo disney"><i data-lucide="sparkles"></i></div>
+                            <span class="compact-name">Disney+</span>
+                        </div>
+                        <span class="compact-category">Entertainment</span>
+                        <span class="compact-amount">R89.00<small>/ month</small></span>
+                        <span class="compact-date">May 24, 2025</span>
+                        <label class="toggle">
+                            <input type="checkbox" checked>
+                            <span class="toggle-track"></span>
+                        </label>
+                        <button class="row-icon-btn"><i data-lucide="more-vertical"></i></button>
+                    </div>
+
+                    <div class="compact-row">
+                        <div class="compact-primary">
+                            <div class="compact-logo amazon"><i data-lucide="package"></i></div>
+                            <span class="compact-name">Amazon Prime</span>
+                        </div>
+                        <span class="compact-category">Shopping</span>
+                        <span class="compact-amount">R79.00<small>/ month</small></span>
+                        <span class="compact-date">May 22, 2025</span>
+                        <label class="toggle">
+                            <input type="checkbox" checked>
+                            <span class="toggle-track"></span>
+                        </label>
+                        <button class="row-icon-btn"><i data-lucide="more-vertical"></i></button>
+                    </div>
+                </div>
+
+                <a href="#" class="view-all-link">View all subscriptions <i data-lucide="chevron-right"></i></a>
+            </div>
+
+        </div>
+    </main>
+
+</div>
+</body>
+</html>
+<script>
+    lucide.createIcons();
+</script>
+<script src="../scripts/layout.js"></script>
