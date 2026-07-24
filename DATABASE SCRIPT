@@ -1,0 +1,285 @@
+CREATE DATABASE ProjectDB;
+GO
+
+RUN QUERY
+
+-- ── HERE IM CREATING AND USING THE DATABASE ─────────────────────────
+
+USE FlexScribeDB;
+GO
+
+
+-- ── HERE I AM MAKING THE TABLES IN DEPENDENCY ORDER ────────────────────────────
+
+CREATE TABLE SubscriptionCategory (
+    categoryID      INT             NOT NULL IDENTITY(1,1),
+    categoryName    VARCHAR(100)    NOT NULL,
+
+    CONSTRAINT PK_SubscriptionCategory PRIMARY KEY (categoryID)
+);
+GO
+
+CREATE TABLE Subscriber (
+    subscriberID    INT             NOT NULL IDENTITY(1,1),
+    firstName       VARCHAR(100)    NOT NULL,
+    lastName        VARCHAR(100)    NOT NULL,
+    prefferedName   VARCHAR(100)        NULL,
+    email           VARCHAR(255)    NOT NULL,
+    passwordHash    VARCHAR(255)    NOT NULL,
+    userType        VARCHAR(50)         NULL,   -- e.g. 'MainMember' / 'Dependant'
+
+    CONSTRAINT PK_Subscriber PRIMARY KEY (subscriberID),
+    CONSTRAINT UQ_Subscriber_Email UNIQUE (email)
+);
+GO
+
+-- MainMember  (specialisation of Subscriber)
+CREATE TABLE MainMember (
+    mainMemberID    INT             NOT NULL,   -- same value as subscriberID
+    monthlyIncome   DECIMAL(18,2)       NULL,
+    planType        VARCHAR(50)         NULL,
+    riskFlagStatus  VARCHAR(50)         NULL,
+
+    CONSTRAINT PK_MainMember   PRIMARY KEY (mainMemberID),
+    CONSTRAINT FK_MainMember_Subscriber
+        FOREIGN KEY (mainMemberID) REFERENCES Subscriber(subscriberID)
+);
+GO
+
+-- Dependant  (specialisation of Subscriber)
+CREATE TABLE Dependant (
+    dependantID     INT             NOT NULL,   -- same value as subscriberID
+    mainMemberID    INT             NOT NULL,
+    age             INT                 NULL,
+    relationship    VARCHAR(100)        NULL,
+    availableBal    DECIMAL(18,2)       NULL,
+
+    CONSTRAINT PK_Dependant   PRIMARY KEY (dependantID),
+    CONSTRAINT FK_Dependant_Subscriber
+        FOREIGN KEY (dependantID)  REFERENCES Subscriber(subscriberID),
+    CONSTRAINT FK_Dependant_MainMember
+        FOREIGN KEY (mainMemberID) REFERENCES MainMember(mainMemberID)
+);
+GO
+
+-- VirtualWallet  (belongs to Subscriber, 1-to-1)
+CREATE TABLE VirtualWallet (
+    walletIDNum     INT             NOT NULL IDENTITY(1,1),
+    subscriberID    INT             NOT NULL,
+    balance         DECIMAL(18,2)   NOT NULL DEFAULT 0,
+    availableBal    DECIMAL(18,2)       NULL,
+    amtDueAtDate    DECIMAL(18,2)       NULL,
+    lastTopUpDate   DATE                NULL,
+    totalDeposits   DECIMAL(18,2)       NULL,
+    firstName       VARCHAR(100)        NULL,
+    lastName        VARCHAR(100)        NULL,
+
+    CONSTRAINT PK_VirtualWallet PRIMARY KEY (walletIDNum),
+    CONSTRAINT FK_VirtualWallet_Subscriber
+        FOREIGN KEY (subscriberID) REFERENCES Subscriber(subscriberID),
+    CONSTRAINT UQ_VirtualWallet_Subscriber UNIQUE (subscriberID)   -- enforces 1-to-1
+);
+GO
+
+-- Subscription
+-- Depends on Subscriber and SubscriptionCategory.
+CREATE TABLE Subscription (
+    subscriptionID  INT             NOT NULL IDENTITY(1,1),
+    subscriberID    INT             NOT NULL,
+    categoryID      INT             NOT NULL,
+    serviceName     VARCHAR(200)    NOT NULL,
+    billingAmount   DECIMAL(18,2)   NOT NULL,
+    billingDate     DATE                NULL,
+    subStatus       VARCHAR(50)         NULL,
+    autoRenew       BIT                 NULL,
+    amtDueAtDate    DECIMAL(18,2)       NULL,
+    planType        VARCHAR(50)         NULL,
+    subPriority     INT                 NULL,
+
+    CONSTRAINT PK_Subscription PRIMARY KEY (subscriptionID),
+    CONSTRAINT FK_Subscription_Subscriber
+        FOREIGN KEY (subscriberID)    REFERENCES Subscriber(subscriberID),
+    CONSTRAINT FK_Subscription_Category
+        FOREIGN KEY (categoryID)  REFERENCES SubscriptionCategory(categoryID)
+);
+GO
+
+-- FinancialGoal
+-- Depends on Subscriber.
+CREATE TABLE FinancialGoal (
+    goalID          INT             NOT NULL IDENTITY(1,1),
+    subscriberID    INT             NOT NULL,
+    goalName        VARCHAR(200)    NOT NULL,
+    targetAmount    DECIMAL(18,2)   NOT NULL,
+    currentProgress DECIMAL(18,2)   NOT NULL DEFAULT 0,
+    deadLine        DATE                NULL,
+    lastTopUpDate   DATE                NULL,
+    riskFlagStatus  VARCHAR(50)         NULL,
+
+    CONSTRAINT PK_FinancialGoal PRIMARY KEY (goalID),
+    CONSTRAINT FK_FinancialGoal_Subscriber
+        FOREIGN KEY (subscriberID) REFERENCES Subscriber(subscriberID)
+);
+GO
+
+-- SpendingReport
+-- Depends on Subscriber.
+CREATE TABLE SpendingReport (
+    spendingReportID        INT             NOT NULL IDENTITY(1,1),
+    subscriberID            INT             NOT NULL,
+    reportDateGenerate      DATE                NULL,
+    startDate               DATE                NULL,
+    endDate                 DATE                NULL,
+    totalSubscriptionCost   DECIMAL(18,2)       NULL,
+    totalSpending           DECIMAL(18,2)       NULL,
+    spendingPerCategory     VARCHAR(MAX)        NULL,   -- JSON or delimited string
+    subscriptionBreakdown   VARCHAR(MAX)        NULL,
+    transactionList         VARCHAR(MAX)        NULL,
+
+    CONSTRAINT PK_SpendingReport PRIMARY KEY (spendingReportID),
+    CONSTRAINT FK_SpendingReport_Subscriber
+        FOREIGN KEY (subscriberID) REFERENCES Subscriber(subscriberID)
+);
+GO
+
+-- ScribeScore
+-- No FK dependencies (FKs point TO it from other tables).
+CREATE TABLE ScribeScore (
+    scoreID         INT             NOT NULL IDENTITY(1,1),
+    subscriberID    INT             NOT NULL,
+    scoreValue      DECIMAL(10,4)       NULL,
+    generateDate    DATE                NULL,
+
+    CONSTRAINT PK_ScribeScore PRIMARY KEY (scoreID),
+    CONSTRAINT FK_ScribeScore_Subscriber
+        FOREIGN KEY (subscriberID) REFERENCES Subscriber(subscriberID)
+);
+GO
+
+-- BankStatement
+-- Depends on Subscriber.
+CREATE TABLE BankStatement (
+    statementID     INT             NOT NULL IDENTITY(1,1),
+    subscriberID    INT             NOT NULL,
+    uploadDate      DATE                NULL,
+    fileReference   VARCHAR(500)        NULL,
+
+    CONSTRAINT PK_BankStatement PRIMARY KEY (statementID),
+    CONSTRAINT FK_BankStatement_Subscriber
+        FOREIGN KEY (subscriberID) REFERENCES Subscriber(subscriberID)
+);
+GO
+
+-- FinancialReport
+-- References MainMember and ScribeScore.
+CREATE TABLE FinancialReport (
+    reportID                INT             NOT NULL IDENTITY(1,1),
+    mainMemberID            INT                 NULL,
+    scoreID                 INT                 NULL,
+    startDate               DATE                NULL,
+    endDate                 DATE                NULL,
+    totalSubscriptionCost   DECIMAL(18,2)       NULL,
+    totalWithdrawals        DECIMAL(18,2)       NULL,
+    remainingBalance        DECIMAL(18,2)       NULL,
+    riskLevel               VARCHAR(50)         NULL,
+    income                  DECIMAL(18,2)       NULL,
+    expenses                DECIMAL(18,2)       NULL,
+    savings                 DECIMAL(18,2)       NULL,
+    planType                VARCHAR(50)         NULL,
+    riskFlagStatus          VARCHAR(50)         NULL,
+
+    CONSTRAINT PK_FinancialReport PRIMARY KEY (reportID),
+    CONSTRAINT FK_FinancialReport_MainMember
+        FOREIGN KEY (mainMemberID) REFERENCES MainMember(mainMemberID),
+    CONSTRAINT FK_FinancialReport_ScribeScore
+        FOREIGN KEY (scoreID) REFERENCES ScribeScore(scoreID)
+);
+GO
+
+-- UserAnalytics
+-- Depends on Subscriber and ScribeScore.
+CREATE TABLE UserAnalytics (
+    userAnalyticsID INT             NOT NULL IDENTITY(1,1),
+    subscriberID    INT             NOT NULL,
+    scoreID         INT                 NULL,
+    riskScore       DECIMAL(10,4)       NULL,
+    memberType      VARCHAR(50)         NULL,
+
+    CONSTRAINT PK_UserAnalytics PRIMARY KEY (userAnalyticsID),
+    CONSTRAINT FK_UserAnalytics_Subscriber
+        FOREIGN KEY (subscriberID)  REFERENCES Subscriber(subscriberID),
+    CONSTRAINT FK_UserAnalytics_ScribeScore
+        FOREIGN KEY (scoreID)       REFERENCES ScribeScore(scoreID)
+);
+GO
+
+-- WalletTransaction
+-- Depends on VirtualWallet, Subscription, SpendingReport, and ScribeScore.
+CREATE TABLE WalletTransaction (
+    transactionID       INT             NOT NULL IDENTITY(1,1),
+    walletIDNum         INT             NOT NULL,
+    subscriptionID      INT                 NULL,
+    spendingReportID    INT                 NULL,
+    scoreID             INT                 NULL,
+    transactionType     VARCHAR(100)        NULL,
+    transactionDate     DATETIME            NULL,
+    transactionAmount   DECIMAL(18,2)       NULL,
+
+    CONSTRAINT PK_WalletTransaction PRIMARY KEY (transactionID),
+    CONSTRAINT FK_WalletTransaction_Wallet
+        FOREIGN KEY (walletIDNum)       REFERENCES VirtualWallet(walletIDNum),
+    CONSTRAINT FK_WalletTransaction_Subscription
+        FOREIGN KEY (subscriptionID)    REFERENCES Subscription(subscriptionID),
+    CONSTRAINT FK_WalletTransaction_SpendingReport
+        FOREIGN KEY (spendingReportID)  REFERENCES SpendingReport(spendingReportID),
+    CONSTRAINT FK_WalletTransaction_ScribeScore
+        FOREIGN KEY (scoreID)           REFERENCES ScribeScore(scoreID)
+);
+GO
+
+-- Notification
+-- Depends on WalletTransaction, Subscriber, and Subscription.
+CREATE TABLE Notification (
+    notificationID      INT             NOT NULL IDENTITY(1,1),
+    transactionID       INT             NOT NULL,
+    subscriberID        INT                 NULL,
+    subscriptionID      INT                 NULL,
+    notificationMessage VARCHAR(MAX)        NULL,
+    notificationDate    DATETIME            NULL,
+    notificationStatus  VARCHAR(50)         NULL,
+    riskFlagStatus      VARCHAR(50)         NULL,
+
+    CONSTRAINT PK_Notification PRIMARY KEY (notificationID),
+    CONSTRAINT FK_Notification_WalletTransaction
+        FOREIGN KEY (transactionID)  REFERENCES WalletTransaction(transactionID),
+    CONSTRAINT FK_Notification_Subscriber
+        FOREIGN KEY (subscriberID)   REFERENCES Subscriber(subscriberID),
+    CONSTRAINT FK_Notification_Subscription
+        FOREIGN KEY (subscriptionID) REFERENCES Subscription(subscriptionID)
+);
+GO
+
+-- PaymentSchedule
+-- Depends on Subscription.
+CREATE TABLE PaymentSchedule (
+    scheduleID          INT             NOT NULL IDENTITY(1,1),
+    subscriptionID      INT             NOT NULL,
+    nextPaymentDate     DATE                NULL,
+    amountDue           DECIMAL(18,2)       NULL,
+    scheduleStatus              VARCHAR(50)         NULL,
+
+    CONSTRAINT PK_PaymentSchedule PRIMARY KEY (scheduleID),
+    CONSTRAINT FK_PaymentSchedule_Subscription
+        FOREIGN KEY (subscriptionID) REFERENCES Subscription(subscriptionID)
+);
+GO
+
+
+-- ── TO VERIFY: list all created tables ──────────────────────
+--SELECT
+--    TABLE_NAME,
+--    TABLE_TYPE
+--FROM INFORMATION_SCHEMA.TABLES
+--WHERE TABLE_CATALOG = 'FlexScribeDB'
+--ORDER BY TABLE_NAME;
+--GO
