@@ -1,0 +1,323 @@
+/* ===========================================================
+   dashboard.css — page-specific content only.
+   No :root block here on purpose: this file is swapped in via
+   #page-style, and a local :root would override master.css's
+   shared theme variables for the WHOLE document (that was the
+   bug — this file used to define its own --text, --bg, --panel
+   which clobbered master.css's light/dark theme globally).
+
+   Header/topbar/user-chip/dropdown rules also removed — those
+   already live in master.html + master.css since the header is
+   part of the persistent shell, not page content.
+=========================================================== */
+
+/* ---------- Stat cards ---------- */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    margin-bottom: 22px;
+}
+
+.stat-card {
+    /* background/border/color come from master.css's shared .stat-card rule */
+    position: relative;
+}
+
+.stat-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 30px;
+}
+.stat-icon.orange {
+    background: var(--orange-tint);
+    color: var(--orange);
+}
+
+.stat-label {
+    color: var(--text-light);
+    font-size: 13.5px;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.stat-value {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.4px;
+    margin-bottom: 10px;
+}
+
+.stat-foot {
+    color: var(--text-light);
+    font-size: 12.5px;
+}
+
+.stat-foot.link {
+    color: var(--text-light);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.stat-foot.link span { color: var(--orange); font-size: 14px; }
+
+.stat-foot.accent-text {
+    color: var(--orange);
+    font-weight: 600;
+}
+
+.progress-track {
+    width: 100%;
+    height: 4px;
+    background: var(--hover);
+    border-radius: 3px;
+    margin-top: 14px;
+    overflow: hidden;
+}
+.progress-fill {
+    height: 100%;
+    background: var(--orange);
+    border-radius: 3px;
+}
+
+/* ---------- Content grid ---------- */
+.content-grid {
+    display: grid;
+    grid-template-columns: 1.7fr 1fr;
+    gap: 20px;
+    align-items: start;
+}
+
+.col-left, .col-right {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.panel {
+    /* background/border/color come from master.css's shared .panel rule */
+    padding: 22px 24px;
+}
+
+.panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+    position: relative;
+}
+
+.panel-head h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.subtext {
+    color: var(--text-light);
+    font-size: 12.5px;
+}
+
+.view-all {
+    color: var(--orange);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.dropdown-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--hover);
+    border: 1px solid var(--border);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    cursor: pointer;
+}
+.dropdown-btn svg { width: 14px; height: 14px; color: var(--text-light); }
+
+/* ---------- Spending overview ---------- */
+.spend-body {
+    display: flex;
+    align-items: center;
+    gap: 40px;
+    padding: 6px 0 20px;
+}
+
+.donut-wrap {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    flex-shrink: 0;
+}
+.donut { width: 100%; height: 100%; }
+
+.donut-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.donut-value { font-size: 20px; font-weight: 800; color: var(--text); }
+.donut-label { font-size: 12px; color: var(--text-light); margin-top: 2px; }
+
+.legend {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.legend li {
+    display: grid;
+    grid-template-columns: 14px 1fr auto 44px;
+    align-items: center;
+    gap: 10px;
+    font-size: 13.5px;
+}
+
+.dot { width: 9px; height: 9px; border-radius: 50%; }
+.dot.orange { background: var(--orange); }
+.dot.green { background: var(--green); }
+.dot.blue { background: var(--blue); }
+.dot.purple { background: var(--purple); }
+.dot.yellow { background: var(--yellow); }
+
+.leg-name { color: var(--text); }
+.leg-amt { color: var(--text); font-weight: 500; text-align: right; }
+.leg-pct { color: var(--text-light); text-align: right; }
+
+.panel-foot.center {
+    text-align: center;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.link-btn {
+    color: var(--orange);
+    font-size: 13.5px;
+    font-weight: 600;
+}
+
+/* ---------- Transactions ---------- */
+.tx-list { display: flex; flex-direction: column; gap: 4px; }
+
+.tx-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 13px 0;
+    border-bottom: 1px solid var(--border);
+}
+.tx-row:last-child { border-bottom: none; padding-bottom: 0; }
+
+.tx-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.tx-icon.green { background: rgba(95, 161, 11, 0.15); color: var(--green); }
+.tx-icon.blue { background: rgba(59, 130, 246, 0.15); color: var(--blue); }
+.tx-icon.dark { background: #000; color: #fff; }
+.netflix-n { font-weight: 800; font-size: 16px; color: #e50914; }
+
+.tx-info { flex: 1; min-width: 0; }
+.tx-title { font-weight: 600; font-size: 14px; margin-bottom: 3px; color: var(--text); }
+.tx-sub { color: var(--text-light); font-size: 12px; }
+
+.tx-amount { text-align: right; }
+.pos { color: var(--green); font-weight: 700; margin-bottom: 3px; }
+.neg { color: var(--danger); font-weight: 700; margin-bottom: 3px; }
+
+/* ---------- Upcoming payments ---------- */
+.pay-list { display: flex; flex-direction: column; gap: 4px; }
+
+.pay-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+}
+.pay-row:last-child { border-bottom: none; padding-bottom: 0; }
+
+.pay-logo {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-weight: 800;
+    font-size: 16px;
+}
+.pay-logo.netflix { background: #000; color: #e50914; }
+.pay-logo.spotify { background: #0d2818; color: var(--green); }
+.pay-logo.disney { background: #0a1e3d; color: #5ea1f0; }
+
+.pay-info { flex: 1; min-width: 0; }
+.pay-title { font-weight: 600; font-size: 14px; margin-bottom: 3px; color: var(--text); }
+.pay-sub { color: var(--text-light); font-size: 12px; }
+
+.pay-amount { text-align: right; }
+.pay-price { font-weight: 700; margin-bottom: 3px; color: var(--text); }
+
+/* ---------- Goals ---------- */
+.goal-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+}
+.goal-item:last-child { border-bottom: none; padding-bottom: 0; }
+
+.goal-img {
+    width: 46px;
+    height: 46px;
+    border-radius: 10px;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.goal-info { flex: 1; min-width: 0; }
+.goal-title { font-weight: 600; font-size: 14px; margin-bottom: 2px; color: var(--text); }
+.goal-sub { color: var(--text-light); font-size: 12px; margin-bottom: 8px; }
+
+.goal-track {
+    width: 100%;
+    height: 5px;
+    background: var(--hover);
+    border-radius: 3px;
+    overflow: hidden;
+}
+.goal-fill.green { height: 100%; background: var(--green); border-radius: 3px; }
+
+.goal-stats { text-align: right; flex-shrink: 0; }
+.goal-amt { font-weight: 700; font-size: 13.5px; margin-bottom: 3px; color: var(--text); }
+.goal-pct { color: var(--text-light); font-size: 12px; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1180px) {
+    .content-grid { grid-template-columns: 1fr; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 860px) {
+    .stats-grid { grid-template-columns: 1fr; }
+    .spend-body { flex-direction: column; }
+}

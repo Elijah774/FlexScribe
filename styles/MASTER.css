@@ -1,3 +1,6 @@
+/* Inter font — used across the entire app */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -5,71 +8,202 @@
 }
 
 /* ===========================================================
-   THEME VARIABLES
-   :root = light theme (default).
-   body.dark-mode redefines the SAME variable names to dark
-   values — every rule below that uses var(--x) then switches
-   automatically. No need to duplicate selectors per theme.
+   DESIGN TOKENS
+   Single source of truth for the entire app.
+   The app runs in dark mode by default (body has no extra
+   class needed). Light mode uses body.light-mode if ever
+   needed. All component CSS reads var(--x) exclusively —
+   never hardcoded hex values.
 =========================================================== */
 
-:root{
-    --background:#F7F8FA;
-    --section:#FFFFFF;
-    --card:#FFFFFF;
+:root {
+    /* ── Surfaces ── */
+    --background: #090B10;
+    --section:    #11151B;
+    --card:       #181D24;
 
-    --border:#E4E7EC;
+    /* ── Borders ── */
+    --border:     #272D35;
 
-    --text:#14171F;
-    --text-light:#6B7280;
+    /* ── Typography ── */
+    --text:       #F5F5F5;
+    --text-light: #A3ABB8;
 
-    --orange:#FF6A1A;
-    --orange-hover:#FF7E3D;
+    /* ── Brand ── */
+    --orange:       #FF8A34;
+    --orange-hover: #FF9B54;
+    --orange-tint:  rgba(255, 138, 52, 0.12);
+    --orange-glow:  rgba(255, 138, 52, 0.20);
 
-    --green:#5FA10B;
-    --purple:#7C4DFF;
-    --blue:#3B82F6;
-    --yellow:#F5B83D;
-    --orange-tint: rgba(255, 106, 26, 0.15);
+    /* ── Semantic colours ── */
+    --green:  #B9F15B;
+    --purple: #A77CFF;
+    --blue:   #3B82F6;
+    --yellow: #FACC15;
+    --danger: #F87171;
 
-    --hover:#F1F2F4;
-    --input-bg:#FFFFFF;
-    --danger:#D92D2D;
+    /* ── Interactive states ── */
+    --hover:    #1E2530;
+    --input-bg: #0D1117;
 
-    --shadow: 0 4px 12px rgba(20, 23, 31, 0.06);
+    /* ── Shadows ── */
+    --shadow:       0 4px 24px rgba(0, 0, 0, 0.35);
+    --shadow-hover: 0 8px 32px rgba(255, 138, 52, 0.12);
+    --shadow-card:  0 2px 12px rgba(0, 0, 0, 0.25);
+
+    /* ── Transitions ── */
+    --t-fast: 150ms ease;
+    --t-med:  250ms ease;
+    --t-slow: 400ms ease;
+
+    /* ── Radius ── */
+    --radius-sm:   8px;
+    --radius-md:  10px;
+    --radius-lg:  14px;
+    --radius-xl:  16px;
+    --radius-2xl: 20px;
+    --radius-pill: 999px;
 }
 
-body.dark-mode{
-    --background:#0A0B0F;
-    --section:#11151B;
-    --card:#181D24;
-
-    --border:#242A32;
-
-    --text:#F5F5F5;
-    --text-light:#8A93A3;
-
-    --orange:#FF6A1A;
-    --orange-hover:#FF7E3D;
-
-    --green:#B9F15B;
-    --purple:#A77CFF;
-    --blue:#3B82F6;
-    --yellow:#F5B83D;
-    --orange-tint: rgba(255, 106, 26, 0.15);
-
-    --hover:#20262E;
-    --input-bg:#13171C;
-    --danger:#FF5C5C;
-
-    --shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+/* Legacy light theme (kept for backward compat with theme-toggle) */
+body.light-mode {
+    --background: #F7F8FA;
+    --section:    #FFFFFF;
+    --card:       #FFFFFF;
+    --border:     #E4E7EC;
+    --text:       #14171F;
+    --text-light: #6B7280;
+    --orange:       #FF8A34;
+    --orange-hover: #FF9B54;
+    --orange-tint:  rgba(255, 138, 52, 0.12);
+    --orange-glow:  rgba(255, 138, 52, 0.15);
+    --green:  #5FA10B;
+    --purple: #7C4DFF;
+    --blue:   #3B82F6;
+    --yellow: #F5B83D;
+    --danger: #D92D2D;
+    --hover:    #F1F2F4;
+    --input-bg: #FFFFFF;
+    --shadow:       0 4px 12px rgba(20, 23, 31, 0.06);
+    --shadow-hover: 0 8px 24px rgba(255, 138, 52, 0.10);
+    --shadow-card:  0 2px 8px rgba(20, 23, 31, 0.08);
 }
+
+/* dark-mode class still supported for theme toggle */
+body.dark-mode {
+    --background: #090B10;
+    --section:    #11151B;
+    --card:       #181D24;
+    --border:     #272D35;
+    --text:       #F5F5F5;
+    --text-light: #A3ABB8;
+    --orange:       #FF8A34;
+    --orange-hover: #FF9B54;
+    --orange-tint:  rgba(255, 138, 52, 0.12);
+    --orange-glow:  rgba(255, 138, 52, 0.20);
+    --green:  #B9F15B;
+    --purple: #A77CFF;
+    --blue:   #3B82F6;
+    --yellow: #FACC15;
+    --danger: #F87171;
+    --hover:    #1E2530;
+    --input-bg: #0D1117;
+    --shadow:       0 4px 24px rgba(0, 0, 0, 0.45);
+    --shadow-hover: 0 8px 32px rgba(255, 138, 52, 0.15);
+    --shadow-card:  0 2px 12px rgba(0, 0, 0, 0.35);
+}
+
+/* ===========================================================
+   GLOBAL RESET & BASE
+=========================================================== */
 
 body {
-    font-family: Arial, Helvetica, sans-serif;
-    height: 100vh;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
     background-color: var(--background);
     color: var(--text);
-    transition: background-color 0.2s ease, color 0.2s ease;
+    transition: background-color var(--t-med), color var(--t-med);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ===========================================================
+   GLOBAL FOCUS RING — visible on keyboard nav only
+=========================================================== */
+*:focus { outline: none; }
+*:focus-visible {
+    outline: 2px solid rgba(255, 138, 52, 0.7);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* ===========================================================
+   GLOBAL UTILITY CLASSES
+=========================================================== */
+.text-muted   { color: var(--text-light); }
+.text-accent  { color: var(--orange); }
+.text-danger  { color: var(--danger); }
+.text-success { color: var(--green); }
+
+.flex-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Screen-reader only */
+.sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Card hover lift */
+.card-hover {
+    transition: transform var(--t-fast), box-shadow var(--t-fast), border-color var(--t-fast);
+}
+.card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+    border-color: var(--orange-glow);
+}
+
+/* Skeleton loader */
+.skeleton {
+    background: linear-gradient(90deg,
+        var(--card) 25%,
+        var(--hover) 50%,
+        var(--card) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.4s ease infinite;
+    border-radius: var(--radius-sm);
+}
+@keyframes skeleton-shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Scroll-reveal base state (JS adds .revealed) */
+.reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity var(--t-slow), transform var(--t-slow);
+}
+.reveal.revealed {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Panel transition */
+.panel-entering {
+    animation: panel-fade-in 200ms ease forwards;
+}
+@keyframes panel-fade-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
 a {
@@ -220,28 +354,28 @@ a:hover {
     transition: opacity 0.25s ease, transform 0.35s ease;
 }
 
-/* Default (light mode): show sun */
-#theme-toggle .icon-sun {
+/* Default (dark mode — the app's baseline): show moon */
+#theme-toggle .icon-moon {
     opacity: 1;
     transform: rotate(0) scale(1);
-    color: var(--orange);
+    color: var(--text);
 }
 
-#theme-toggle .icon-moon {
-    opacity: 0;
-    transform: rotate(90deg) scale(0.6);
-}
-
-/* Dark mode: show moon */
-body.dark-mode #theme-toggle .icon-sun {
+#theme-toggle .icon-sun {
     opacity: 0;
     transform: rotate(-90deg) scale(0.6);
 }
 
-body.dark-mode #theme-toggle .icon-moon {
+/* Light mode: show sun, hide moon */
+body.light-mode #theme-toggle .icon-moon {
+    opacity: 0;
+    transform: rotate(90deg) scale(0.6);
+}
+
+body.light-mode #theme-toggle .icon-sun {
     opacity: 1;
     transform: rotate(0) scale(1);
-    color: var(--text);
+    color: var(--orange);
 }
 
 /* ---------- notifications ---------- */
@@ -500,7 +634,7 @@ body.dark-mode #theme-toggle .icon-moon {
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background-color: rgba(255, 106, 26, 0.15);
+    background-color: var(--orange-tint);
     color: var(--orange);
     display: flex;
     align-items: center;
@@ -577,7 +711,7 @@ body.dark-mode #theme-toggle .icon-moon {
     width: 40px;
     height: 40px;
     border-radius: 10px;
-    background-color: rgba(255, 106, 26, 0.15);
+    background-color: var(--orange-tint);
     color: var(--orange);
     display: flex;
     align-items: center;
@@ -665,4 +799,35 @@ select:focus,
 textarea:focus {
     border-color: var(--orange);
     outline: none;
+}
+
+/* ===========================================================
+   PAGE PANELS — show/hide routing (replaces fetch approach)
+=========================================================== */
+
+/* All panels are hidden by default via the HTML `hidden`
+   attribute. When JS removes it, the panel becomes a block. */
+.page-panel {
+    display: block;
+}
+
+.page-panel[hidden] {
+    display: none !important;
+}
+
+/* Coming-soon placeholder used for unbuilt pages */
+.coming-soon-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 320px;
+    text-align: center;
+    color: var(--text-light);
+}
+
+.coming-soon-panel h3 {
+    font-size: 22px;
+    color: var(--text);
+    margin-bottom: 6px;
 }

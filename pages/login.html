@@ -1,213 +1,247 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>FlexScribe - Login</title>
-
-    <link rel="stylesheet" href="../styles/login.css">
-
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
-
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlexScribe — Sign In</title>
+<link rel="stylesheet" href="../styles/login.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
-
 <body>
 
-<div class="login-container">
+<div class="login-container" id="login-container">
 
-    <i class="fa-solid fa-lock lock-icon"></i>
-
-    <h2>Welcome to FlexScribe</h2>
-
-    <p>Manage every subscription from one wallet.</p>
-
-    <!-- ============================= -->
-    <!-- Login / Register Switch -->
-    <!-- ============================= -->
-
-    <div class="login-switch">
-
-        <button id="loginBtn" class="active">
-            Sign In
-        </button>
-
-        <button id="registerBtn">
-            Create Account
-        </button>
-
+  <!-- ── Logo ── -->
+  <div style="text-align:center;margin-bottom:24px">
+    <img src="../images/smallLogo.png" alt="FlexScribe" width="48" height="48"
+         style="border-radius:12px;margin-bottom:8px">
+    <div style="font-size:22px;font-weight:800;color:var(--text)">
+      Flex<span style="color:var(--orange)">Scribe</span>
     </div>
+  </div>
 
-    <!-- ============================= -->
-    <!-- SIGN IN FORM -->
-    <!-- ============================= -->
+  <!-- ── Tab switcher ── -->
+  <div class="login-switch" role="tablist" aria-label="Authentication mode">
+    <button id="tab-login"    role="tab" aria-selected="true"
+            aria-controls="panel-login"    class="active">Sign In</button>
+    <button id="tab-register" role="tab" aria-selected="false"
+            aria-controls="panel-register">Create Account</button>
+  </div>
 
-    <div id="loginForm">
+  <!-- ── Global error banner ── -->
+  <div class="auth-error" id="auth-error" role="alert"></div>
 
-        <label>Email Address</label>
+  <!-- ══════════════════════════════════════
+       SIGN IN PANEL
+  ══════════════════════════════════════ -->
+  <div id="panel-login" role="tabpanel" aria-labelledby="tab-login">
 
-        <div class="input-group">
+    <form id="login-form" novalidate>
 
-            <input
-                    type="email"
-                    placeholder="you@company.com">
-
+      <!-- Forgot password inline panel -->
+      <div class="forgot-panel" id="forgot-panel">
+        <label for="forgot-email">Enter your email to reset your password</label>
+        <div class="input-group" style="margin-top:6px">
+          <input type="email" id="forgot-email" placeholder="you@email.com" autocomplete="email">
         </div>
-
-        <label>Password</label>
-
-        <div class="input-group">
-
-            <input
-                    type="password"
-                    placeholder="Enter your password">
-
-        </div>
-
-        <div class="remember">
-
-            <div class="remember-left">
-
-                <input
-                        type="checkbox"
-                        id="remember">
-
-                <label for="remember">
-                    Remember me
-                </label>
-
-            </div>
-
-            <a href="#">
-                Forgot Password?
-            </a>
-
-        </div>
-
-        <button class="login-btn">
-
-            Sign In
-
+        <button type="button" class="forgot-send-btn" id="forgot-send-btn">
+          Send Reset Link
         </button>
-
-    </div>
-
-    <!-- ============================= -->
-    <!-- CREATE ACCOUNT FORM -->
-    <!-- ============================= -->
-
-    <div id="registerForm" style="display:none;">
-
-        <label>First Name</label>
-
-        <div class="input-group">
-
-            <input
-                    type="text"
-                    placeholder="John " required>
-
-        </div>
- <label>Last Name</label>
-
-        <div class="input-group">
-
-            <input
-                    type="text"
-                    placeholder=" Smith" required>
-
-        </div>
-
-        <label>Email Address</label>
-
-        <div class="input-group">
-
-            <input
-                    type="email"
-                    placeholder="john@email.com" required>
-
-        </div>
-
-        <label>Password</label>
-
-        <div class="input-group">
-
-            <input
-                    type="password"
-                    placeholder="Create password" required>
-
-        </div>
-
-        <label>Confirm Password</label>
-
-        <div class="input-group">
-
-            <input
-                    type="password"
-                    placeholder="Confirm password" required>
-
-        </div>
-
-        <button class="login-btn">
-
-            Create Account
-
-        </button>
-
-        <p class="success-message">
-
-            🎉 Success! 500 Scribe Points will be awarded after registration.
-
+        <p class="forgot-success" id="forgot-success">
+          <i class="fa-solid fa-check-circle"></i> Reset link sent — check your inbox.
         </p>
+      </div>
 
-    </div>
+      <label for="login-email">Email Address</label>
+      <div class="input-group">
+        <input type="email" id="login-email" placeholder="you@email.com"
+               autocomplete="email" aria-required="true">
+      </div>
+      <span class="field-error" id="login-email-error"></span>
 
-    <!-- ============================= -->
-    <!-- SOCIAL LOGIN -->
-    <!-- ============================= -->
-    <div class="divider">
+      <label for="login-password">Password</label>
+      <div class="input-group">
+        <input type="password" id="login-password" placeholder="Enter your password"
+               autocomplete="current-password" aria-required="true">
+        <button type="button" class="input-icon" id="toggle-login-pw"
+                aria-label="Show password">
+          <i class="fa-regular fa-eye" id="login-pw-icon"></i>
+        </button>
+      </div>
+      <span class="field-error" id="login-password-error"></span>
 
-        <span>OR CONTINUE WITH</span>
+      <div class="remember">
+        <div class="remember-left">
+          <input type="checkbox" id="remember-me">
+          <label for="remember-me">Remember me</label>
+        </div>
+        <a href="#" class="forgot-link" id="forgot-trigger">Forgot Password?</a>
+      </div>
 
-    </div>
+      <button type="submit" class="login-btn primary-btn" id="login-submit"
+              style="margin-top:4px">
+        <span class="btn-text"><i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In</span>
+        <span class="btn-spinner" aria-hidden="true"></span>
+        <span class="btn-check" aria-hidden="true"><i class="fa-solid fa-check"></i></span>
+      </button>
+
+    </form>
+
+    <!-- Social -->
+    <div class="divider"><span>OR CONTINUE WITH</span></div>
     <div class="social-login">
-
-        <button>
-
-            <i class="fa-brands fa-google"></i>
-
-            Google
-
-        </button>
-
-        <button>
-
-            <i class="fa-brands fa-apple"></i>
-
-            Apple
-
-        </button>
-
+      <button type="button" class="social-btn" aria-label="Sign in with Google"
+              onclick="UIUtils?.toast('Google sign-in coming soon.','info')">
+        <i class="fa-brands fa-google"></i> Google
+      </button>
+      <button type="button" class="social-btn" aria-label="Sign in with Apple"
+              onclick="UIUtils?.toast('Apple sign-in coming soon.','info')">
+        <i class="fa-brands fa-apple"></i> Apple
+      </button>
+      <button type="button" class="social-btn" aria-label="Sign in with Microsoft"
+              onclick="UIUtils?.toast('Microsoft sign-in coming soon.','info')">
+        <i class="fa-brands fa-microsoft"></i> Microsoft
+      </button>
     </div>
 
-    <a class="back-home" href="index.html">
+  </div><!-- /panel-login -->
 
-        ← Back to Home
+  <!-- ══════════════════════════════════════
+       REGISTER PANEL
+  ══════════════════════════════════════ -->
+  <div id="panel-register" role="tabpanel" aria-labelledby="tab-register" hidden>
 
-    </a>
+    <form id="register-form" novalidate>
 
-</div>
-<p class="success-message">
-<!--  JavaScript -->
-    <script src="../scripts/login.js"></script>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label for="reg-firstname">First Name</label>
+          <div class="input-group">
+            <input type="text" id="reg-firstname" placeholder="Jane"
+                   autocomplete="given-name" aria-required="true">
+          </div>
+          <span class="field-error" id="reg-firstname-error"></span>
+        </div>
+        <div>
+          <label for="reg-lastname">Last Name</label>
+          <div class="input-group">
+            <input type="text" id="reg-lastname" placeholder="Smith"
+                   autocomplete="family-name" aria-required="true">
+          </div>
+          <span class="field-error" id="reg-lastname-error"></span>
+        </div>
+      </div>
 
+      <label for="reg-email">Email Address</label>
+      <div class="input-group">
+        <input type="email" id="reg-email" placeholder="jane@email.com"
+               autocomplete="email" aria-required="true">
+        <span class="input-icon" id="reg-email-status" aria-hidden="true"></span>
+      </div>
+      <span class="field-error" id="reg-email-error"></span>
+
+      <label for="reg-phone">Phone Number</label>
+      <div class="input-group">
+        <input type="tel" id="reg-phone" placeholder="+27 71 234 5678"
+               autocomplete="tel">
+      </div>
+
+      <label for="reg-password">Password</label>
+      <div class="input-group">
+        <input type="password" id="reg-password" placeholder="Create a strong password"
+               autocomplete="new-password" aria-required="true">
+        <button type="button" class="input-icon" id="toggle-reg-pw"
+                aria-label="Show password">
+          <i class="fa-regular fa-eye" id="reg-pw-icon"></i>
+        </button>
+      </div>
+      <!-- Strength meter -->
+      <div class="strength-meter" id="strength-meter" aria-hidden="true">
+        <div class="strength-bar"></div>
+        <div class="strength-bar"></div>
+        <div class="strength-bar"></div>
+        <div class="strength-bar"></div>
+      </div>
+      <div class="strength-label" id="strength-label"></div>
+      <span class="field-error" id="reg-password-error"></span>
+
+      <label for="reg-confirm">Confirm Password</label>
+      <div class="input-group">
+        <input type="password" id="reg-confirm" placeholder="Repeat your password"
+               autocomplete="new-password" aria-required="true">
+        <span class="input-icon" id="match-indicator" aria-hidden="true"></span>
+      </div>
+      <span class="field-error" id="reg-confirm-error"></span>
+
+      <div class="checkbox-field">
+        <input type="checkbox" id="reg-terms" aria-required="true">
+        <label for="reg-terms">
+          I agree to the <a href="#">Terms of Service</a> and
+          <a href="#">Privacy Policy</a>
+        </label>
+      </div>
+      <span class="field-error" id="reg-terms-error"></span>
+
+      <div class="checkbox-field">
+        <input type="checkbox" id="reg-marketing">
+        <label for="reg-marketing">
+          Send me product updates and offers (optional)
+        </label>
+      </div>
+
+      <button type="submit" class="login-btn primary-btn" id="register-submit"
+              style="margin-top:20px">
+        <span class="btn-text"><i class="fa-solid fa-user-plus"></i> Create Account</span>
+        <span class="btn-spinner" aria-hidden="true"></span>
+        <span class="btn-check" aria-hidden="true"><i class="fa-solid fa-check"></i></span>
+      </button>
+
+    </form>
+
+    <!-- Social -->
+    <div class="divider"><span>OR CONTINUE WITH</span></div>
+    <div class="social-login">
+      <button type="button" class="social-btn"
+              onclick="UIUtils?.toast('Google sign-in coming soon.','info')">
+        <i class="fa-brands fa-google"></i> Google
+      </button>
+      <button type="button" class="social-btn"
+              onclick="UIUtils?.toast('Apple sign-in coming soon.','info')">
+        <i class="fa-brands fa-apple"></i> Apple
+      </button>
+      <button type="button" class="social-btn"
+              onclick="UIUtils?.toast('Microsoft sign-in coming soon.','info')">
+        <i class="fa-brands fa-microsoft"></i> Microsoft
+      </button>
+    </div>
+
+  </div><!-- /panel-register -->
+
+  <!-- ══════════════════════════════════════
+       SUCCESS SCREEN (shared, hidden until triggered)
+  ══════════════════════════════════════ -->
+  <div class="success-screen" id="success-screen" hidden>
+    <div class="success-icon">
+      <i class="fa-solid fa-circle-check"></i>
+    </div>
+    <h3 id="success-title">Welcome to FlexScribe!</h3>
+    <p id="success-msg">Your account has been created successfully.</p>
+    <div class="success-points" id="success-points" hidden>
+      🎉 500 Scribe Points awarded!
+    </div>
+    <p class="success-redirect">
+      Redirecting to dashboard in <span id="success-countdown">3</span>s…
+    </p>
+  </div>
+
+  <a class="back-home" href="../landing.html">← Back to Home</a>
+
+</div><!-- /login-container -->
+
+<script src="../scripts/ui-utils.js" defer></script>
+<script src="../scripts/api.js" defer></script>
+<script src="../scripts/login.js" defer></script>
 </body>
-
 </html>
