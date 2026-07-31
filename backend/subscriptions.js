@@ -45,6 +45,166 @@ const SubscriptionStore = (() => {
     };
 
     /* ----------------------------------------------------------
+       PROVIDERS LIBRARY  (recommendation engine source data)
+    ---------------------------------------------------------- */
+    const PROVIDERS = [
+        {
+            id: 'prov_netflix',
+            name: 'Netflix',
+            monthlyCost: 199.00,
+            category: 'Entertainment',
+            description: 'Stream movies, series & documentaries in 4K.',
+            rating: 4.5,
+            logoClass: 'netflix',
+            logoText: 'N',
+            benefits: ['4K Ultra HD streaming', 'Watch on 4 devices', 'Downloads for offline'],
+        },
+        {
+            id: 'prov_spotify',
+            name: 'Spotify',
+            monthlyCost: 59.99,
+            category: 'Music',
+            description: 'Millions of songs and podcasts on demand.',
+            rating: 4.6,
+            logoClass: 'spotify',
+            logoText: 'S',
+            benefits: ['Ad-free listening', 'Offline downloads', 'High quality audio'],
+        },
+        {
+            id: 'prov_disney',
+            name: 'Disney+',
+            monthlyCost: 89.00,
+            category: 'Entertainment',
+            description: 'Disney, Pixar, Marvel, Star Wars & more.',
+            rating: 4.3,
+            logoClass: 'disney',
+            logoText: 'D+',
+            benefits: ['Exclusive originals', '4K streaming included', 'Download for offline'],
+        },
+        {
+            id: 'prov_showmax',
+            name: 'Showmax',
+            monthlyCost: 99.00,
+            category: 'Entertainment',
+            description: 'Local & international shows, sport, and movies.',
+            rating: 4.0,
+            logoClass: 'default',
+            logoText: 'S',
+            benefits: ['Local SA content', 'Live sport streaming', 'Download to watch offline'],
+        },
+        {
+            id: 'prov_youtube',
+            name: 'YouTube Premium',
+            monthlyCost: 79.00,
+            category: 'Entertainment',
+            description: 'Ad-free videos, background play & YouTube Music.',
+            rating: 4.4,
+            logoClass: 'youtube',
+            logoText: '▶',
+            benefits: ['No ads on any video', 'Background play', 'YouTube Music included'],
+        },
+        {
+            id: 'prov_apple_music',
+            name: 'Apple Music',
+            monthlyCost: 59.99,
+            category: 'Music',
+            description: 'Over 100 million songs with spatial audio.',
+            rating: 4.5,
+            logoClass: 'apple',
+            logoText: '♫',
+            benefits: ['Spatial Audio with Dolby', 'Lossless audio quality', '100M+ songs'],
+        },
+        {
+            id: 'prov_prime',
+            name: 'Amazon Prime',
+            monthlyCost: 99.00,
+            category: 'Shopping',
+            description: 'Free delivery, Prime Video & exclusive deals.',
+            rating: 4.4,
+            logoClass: 'prime',
+            logoText: 'P',
+            benefits: ['Free next-day delivery', 'Prime Video included', 'Exclusive deals'],
+        },
+        {
+            id: 'prov_microsoft365',
+            name: 'Microsoft 365',
+            monthlyCost: 149.00,
+            category: 'Productivity',
+            description: 'Word, Excel, PowerPoint, 1TB OneDrive cloud.',
+            rating: 4.5,
+            logoClass: 'microsoft',
+            logoText: 'M',
+            benefits: ['All Office apps', '1TB OneDrive storage', 'Advanced security'],
+        },
+        {
+            id: 'prov_adobe',
+            name: 'Adobe CC',
+            monthlyCost: 599.00,
+            category: 'Productivity',
+            description: 'Photoshop, Illustrator, Premiere & 20+ apps.',
+            rating: 4.3,
+            logoClass: 'default',
+            logoText: 'A',
+            benefits: ['20+ creative apps', '100GB cloud storage', 'Adobe Fonts included'],
+        },
+        {
+            id: 'prov_chatgpt',
+            name: 'ChatGPT Plus',
+            monthlyCost: 349.00,
+            category: 'Productivity',
+            description: 'GPT-4o access, DALL-E, plugins & priority.',
+            rating: 4.7,
+            logoClass: 'default',
+            logoText: 'C',
+            benefits: ['GPT-4o access', 'DALL-E image generation', 'Priority access'],
+        },
+        {
+            id: 'prov_canva',
+            name: 'Canva Pro',
+            monthlyCost: 149.00,
+            category: 'Productivity',
+            description: 'Premium templates, brand kits & magic tools.',
+            rating: 4.6,
+            logoClass: 'default',
+            logoText: 'C',
+            benefits: ['Premium templates', 'Brand kit', 'Magic resize'],
+        },
+        {
+            id: 'prov_github',
+            name: 'GitHub Pro',
+            monthlyCost: 74.00,
+            category: 'Productivity',
+            description: 'Advanced code review, CI minutes & insights.',
+            rating: 4.4,
+            logoClass: 'default',
+            logoText: 'G',
+            benefits: ['Advanced code review', '3000 CI minutes', 'Required reviewers'],
+        },
+        {
+            id: 'prov_dropbox',
+            name: 'Dropbox',
+            monthlyCost: 199.00,
+            category: 'Utilities',
+            description: '2TB cloud storage with smart sync & sharing.',
+            rating: 4.1,
+            logoClass: 'default',
+            logoText: 'D',
+            benefits: ['2TB cloud storage', 'Smart sync', 'File recovery'],
+        },
+        {
+            id: 'prov_nordvpn',
+            name: 'NordVPN',
+            monthlyCost: 89.00,
+            category: 'Utilities',
+            description: 'Fast & secure VPN with threat protection.',
+            rating: 4.5,
+            logoClass: 'default',
+            logoText: 'N',
+            benefits: ['5500+ servers', 'Threat protection', '6 simultaneous devices'],
+        },
+    ];
+
+    /* ----------------------------------------------------------
        SEED DATA  (used only when localStorage is empty)
     ---------------------------------------------------------- */
     const SEED = [
@@ -258,7 +418,8 @@ const SubscriptionStore = (() => {
     ---------------------------------------------------------- */
     /**
      * @param {Object} fields  { name, category, amount, billingCycle,
-     *                           nextPaymentDate, notes, logoClass?, logoText? }
+     *                           nextPaymentDate, notes, logoClass?, logoText?,
+     *                           customLogo?, colourTag?, reminderDays?, providerUrl? }
      * @returns {Object} newly created subscription
      */
     function add(fields) {
@@ -274,10 +435,17 @@ const SubscriptionStore = (() => {
             logoText:        fields.logoText  || (fields.name || '?').charAt(0).toUpperCase(),
             notes:           (fields.notes   || '').trim(),
             createdAt:       new Date().toISOString().slice(0, 10),
+            customLogo:      fields.customLogo  || '',
+            colourTag:       fields.colourTag   || '',
+            reminderDays:    fields.reminderDays ? parseInt(fields.reminderDays, 10) : null,
+            providerUrl:     (fields.providerUrl || '').trim(),
         };
 
         if (!sub.name) throw new Error('Subscription name is required.');
         if (sub.amount <= 0) throw new Error('Amount must be greater than zero.');
+        if (sub.reminderDays !== null && (sub.reminderDays < 1 || sub.reminderDays > 30)) {
+            sub.reminderDays = null;
+        }
 
         _subs.unshift(sub);
         _notify();
@@ -305,6 +473,13 @@ const SubscriptionStore = (() => {
         if (fields.notes           !== undefined) sub.notes           = fields.notes.trim();
         if (fields.logoClass       !== undefined) sub.logoClass       = fields.logoClass;
         if (fields.logoText        !== undefined) sub.logoText        = fields.logoText;
+        if (fields.customLogo      !== undefined) sub.customLogo      = fields.customLogo;
+        if (fields.colourTag       !== undefined) sub.colourTag       = fields.colourTag;
+        if (fields.reminderDays    !== undefined) {
+            const rd = fields.reminderDays ? parseInt(fields.reminderDays, 10) : null;
+            sub.reminderDays = (rd && rd >= 1 && rd <= 30) ? rd : null;
+        }
+        if (fields.providerUrl     !== undefined) sub.providerUrl     = (fields.providerUrl || '').trim();
 
         _notify();
         return sub;
@@ -387,6 +562,24 @@ const SubscriptionStore = (() => {
     }
 
     /* ----------------------------------------------------------
+       RECOMMENDATIONS — exclude already-subscribed providers
+    ---------------------------------------------------------- */
+    function getProviders() {
+        return [...PROVIDERS];
+    }
+
+    /**
+     * Returns providers NOT already in the user's subscription list.
+     * Matching is done by normalised name comparison.
+     */
+    function getRecommendations() {
+        const subscribedNames = new Set(
+            _subs.map(s => s.name.toLowerCase().trim())
+        );
+        return PROVIDERS.filter(p => !subscribedNames.has(p.name.toLowerCase().trim()));
+    }
+
+    /* ----------------------------------------------------------
        PUBLIC API
     ---------------------------------------------------------- */
     // Initialise on first require
@@ -398,6 +591,8 @@ const SubscriptionStore = (() => {
         getActive,
         getById,
         getStats,
+        getProviders,
+        getRecommendations,
         // Mutations
         add,
         edit,
@@ -413,6 +608,7 @@ const SubscriptionStore = (() => {
         CATEGORIES,
         BILLING_CYCLES,
         CATEGORY_COLORS,
+        PROVIDERS,
         // Utility (exposed for UI layer)
         fmtDate:     _fmtDate,
         fmtCurrency: _fmtCurrency,

@@ -1,10 +1,247 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Title</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlexScribe — Signed Out</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+    --background: #090B10;
+    --card: #181D24;
+    --border: #272D35;
+    --text: #F5F5F5;
+    --text-light: #A3ABB8;
+    --text-muted: #6B7280;
+    --orange: #FF8A34;
+    --orange-hover: #FF9B54;
+    --green: #3ECF6E;
+    --shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--background);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    padding: 16px;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    top: -200px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(255, 138, 52, 0.06) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.signout-container {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 440px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 48px 32px;
+    box-shadow: var(--shadow);
+    text-align: center;
+}
+
+.logo {
+    margin-bottom: 28px;
+}
+.logo img {
+    border-radius: 12px;
+    margin-bottom: 6px;
+}
+.logo-text {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text);
+}
+.logo-text span { color: var(--orange); }
+
+/* Animated checkmark */
+.checkmark-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(62, 207, 110, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+    animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes popIn {
+    0% { transform: scale(0); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.checkmark-icon {
+    width: 36px;
+    height: 36px;
+    position: relative;
+}
+.checkmark-icon::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 12px;
+    height: 22px;
+    border: solid var(--green);
+    border-width: 0 3.5px 3.5px 0;
+    transform: translate(-50%, -60%) rotate(45deg);
+    animation: drawCheck 0.3s 0.3s ease forwards;
+    opacity: 0;
+}
+
+@keyframes drawCheck {
+    0% { opacity: 0; height: 0; }
+    50% { opacity: 1; height: 10px; }
+    100% { opacity: 1; height: 22px; }
+}
+
+.signout-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--text);
+}
+
+.signout-msg {
+    font-size: 14px;
+    color: var(--text-light);
+    margin-bottom: 6px;
+}
+
+.countdown-text {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 28px;
+}
+.countdown-text .count {
+    font-weight: 700;
+    color: var(--orange);
+    font-size: 15px;
+}
+
+.signin-btn {
+    display: inline-block;
+    padding: 14px 32px;
+    background: var(--orange);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.1s;
+    font-family: inherit;
+}
+.signin-btn:hover {
+    background: var(--orange-hover);
+}
+.signin-btn:active {
+    transform: scale(0.97);
+}
+
+.back-link {
+    display: block;
+    margin-top: 20px;
+    color: var(--text-muted);
+    font-size: 13px;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+.back-link:hover { color: var(--orange); }
+
+/* Progress bar */
+.progress-bar {
+    width: 100%;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-bottom: 28px;
+    overflow: hidden;
+}
+.progress-bar-fill {
+    height: 100%;
+    background: var(--orange);
+    border-radius: 2px;
+    width: 100%;
+    animation: shrink 3s linear forwards;
+}
+@keyframes shrink {
+    0% { width: 100%; }
+    100% { width: 0%; }
+}
+</style>
 </head>
 <body>
 
+<div class="signout-container">
+
+    <!-- Logo -->
+    <div class="logo">
+        <img src="../images/smallLogo.png" alt="FlexScribe" width="48" height="48">
+        <div class="logo-text">Flex<span>Scribe</span></div>
+    </div>
+
+    <!-- Animated check -->
+    <div class="checkmark-circle">
+        <div class="checkmark-icon"></div>
+    </div>
+
+    <h1 class="signout-title">You've been signed out</h1>
+    <p class="signout-msg">Thanks for using FlexScribe. See you next time!</p>
+    <p class="countdown-text">Redirecting to login in <span class="count" id="countdown">3</span>s...</p>
+
+    <!-- Progress bar -->
+    <div class="progress-bar">
+        <div class="progress-bar-fill"></div>
+    </div>
+
+    <a href="login.html" class="signin-btn">Sign in again</a>
+
+    <a href="MASTER.html" class="back-link">&larr; Back to Dashboard</a>
+
+</div>
+
+<script>
+(function() {
+    // Store logout timestamp
+    localStorage.setItem('flexscribe_last_logout', new Date().toISOString());
+
+    // Countdown
+    let seconds = 3;
+    const countEl = document.getElementById('countdown');
+
+    const interval = setInterval(() => {
+        seconds--;
+        countEl.textContent = seconds;
+        if (seconds <= 0) {
+            clearInterval(interval);
+            window.location.href = 'login.html';
+        }
+    }, 1000);
+})();
+</script>
 </body>
 </html>

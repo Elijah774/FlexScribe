@@ -6,6 +6,11 @@
     <link rel="stylesheet" href="../styles/MASTER.css">
     <link rel="stylesheet" href="../styles/dashboard.css">
     <link rel="stylesheet" href="../styles/subscription.css">
+    <link rel="stylesheet" href="../styles/wallet.css">
+    <link rel="stylesheet" href="../styles/goals.css">
+    <link rel="stylesheet" href="../styles/analytics.css">
+    <link rel="stylesheet" href="../styles/dependants.css">
+    <link rel="stylesheet" href="../styles/profile-panel.css">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
@@ -23,6 +28,13 @@
     <!-- ── Top header ── -->
     <header class="top-header" id="MH">
         <h1 class="page-title"></h1>
+
+        <!-- Search bar -->
+        <div class="header-search">
+            <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <input type="text" id="global-search" placeholder="Search anything..." autocomplete="off">
+        </div>
+
         <div class="header-actions">
 
             <button id="theme-toggle" class="icon-btn" aria-label="Toggle dark mode">
@@ -37,22 +49,22 @@
                 </button>
                 <div class="dropdown-menu notif-menu" id="notif-menu" hidden>
                     <div class="dropdown-menu-header">Notifications</div>
-                    <ul class="notif-list">
-                        <li class="notif-item">
+                    <ul class="notif-list" id="notif-dropdown-list">
+                        <li class="notif-item" data-notif-id="notif-1" onclick="navigateToNotification('notif-1')">
                             <span class="notif-dot"></span>
                             <div>
                                 <p class="notif-title">Netflix payment due tomorrow</p>
                                 <p class="notif-time">2h ago</p>
                             </div>
                         </li>
-                        <li class="notif-item">
+                        <li class="notif-item" data-notif-id="notif-2" onclick="navigateToNotification('notif-2')">
                             <span class="notif-dot"></span>
                             <div>
                                 <p class="notif-title">You're close to your Vacation goal</p>
                                 <p class="notif-time">1d ago</p>
                             </div>
                         </li>
-                        <li class="notif-item">
+                        <li class="notif-item" data-notif-id="notif-3" onclick="navigateToNotification('notif-3')">
                             <span class="notif-dot"></span>
                             <div>
                                 <p class="notif-title">Scribe Score increased to 560</p>
@@ -60,7 +72,7 @@
                             </div>
                         </li>
                     </ul>
-                    <a href="notifications.html" class="dropdown-menu-footer">View all notifications</a>
+                    <a href="#" class="dropdown-menu-footer" onclick="loadPage('notifications');document.getElementById('notif-menu').hidden=true;return false">View all notifications</a>
                 </div>
             </div>
 
@@ -69,8 +81,7 @@
                 <span>Sarah M.</span>
                 <i data-lucide="chevron-down" class="chevron"></i>
                 <div class="dropdown-menu user-menu" id="user-menu" hidden>
-                    <a href="profile.html"   class="dropdown-menu-item"><i data-lucide="user"></i> Profile</a>
-                    <a href="settings.html"  class="dropdown-menu-item"><i data-lucide="settings"></i> Account Settings</a>
+                    <a href="#" class="dropdown-menu-item" onclick="ProfilePanel.open();return false"><i data-lucide="user"></i> Profile</a>
                     <a href="signout.html"   class="dropdown-menu-item danger"><i data-lucide="log-out"></i> Sign out</a>
                 </div>
             </div>
@@ -93,6 +104,7 @@
         </ul>
         <div class="sidebar-bottom">
             <ul>
+                <li><a href="#" class="nav-item" data-page="settings"><i data-lucide="settings"></i> Settings</a></li>
                 <li><a href="signout.html" class="nav-item" data-page="signout"><i data-lucide="log-out"></i> Sign out</a></li>
             </ul>
         </div>
@@ -110,141 +122,93 @@
         <div class="page-body">
 
             <!-- ═══════════════════ DASHBOARD PANEL ═══════════════════ -->
-            <div id="panel-dashboard" class="page-panel" hidden>
-
-                <section class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon orange"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="7" width="18" height="12" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3 10h18" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="14" r="1.2" fill="currentColor"/></svg></div>
-                        <p class="stat-label">Wallet Balance</p>
-                        <p class="stat-value">R1,250.10</p>
-                        <p class="stat-foot">Available balance</p>
+<div id="panel-dashboard" class="page-panel" hidden>
+    <div class="dash-new-grid">
+        <!-- ROW 1 -->
+        <div class="dash-cell dash-flexcard-cell" id="dash-flexcard-cell">
+            <div class="dash-flipcard" id="dash-flipcard" onclick="this.classList.toggle('flipped');setTimeout(()=>{loadPage('wallet')},600)">
+                <div class="dash-flipcard-inner">
+                    <div class="dash-flipcard-front">
+                        <div class="dash-fc-top"><span class="dash-fc-brand">FlexScribe</span><svg class="dash-fc-contactless" viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M8.5 16.5a5 5 0 010-9M5 19a9 9 0 010-14M12 16.5a5 5 0 000-9M15.5 19a9 9 0 000-14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+                        <div class="dash-fc-chip"><svg viewBox="0 0 50 40" width="36" height="28"><rect x="1" y="1" width="48" height="38" rx="5" fill="url(#cg2)" stroke="#C9A23B" stroke-width="1"/><line x1="1" y1="14" x2="49" y2="14" stroke="#B8912E" stroke-width="0.8"/><line x1="1" y1="26" x2="49" y2="26" stroke="#B8912E" stroke-width="0.8"/><line x1="17" y1="1" x2="17" y2="40" stroke="#B8912E" stroke-width="0.8"/><line x1="33" y1="1" x2="33" y2="40" stroke="#B8912E" stroke-width="0.8"/><defs><linearGradient id="cg2" x1="0" y1="0" x2="50" y2="40"><stop offset="0%" stop-color="#E8D078"/><stop offset="50%" stop-color="#F0E4A0"/><stop offset="100%" stop-color="#C8A83E"/></linearGradient></defs></svg></div>
+                        <p class="dash-fc-number" id="dash-fc-number">4291 •••• •••• 4291</p>
+                        <div class="dash-fc-bottom"><div><span class="dash-fc-label">Card Holder</span><p class="dash-fc-name" id="dash-fc-name">SARAH MITCHELL</p></div><div><span class="dash-fc-label">Expires</span><p class="dash-fc-name">09/27</p></div><svg viewBox="0 0 80 26" width="50" height="16"><text x="0" y="22" font-family="Arial,sans-serif" font-size="26" font-weight="bold" font-style="italic" fill="#FFF">VISA</text></svg></div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-icon orange"><svg viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 0114-5.3M20 12a8 8 0 01-14 5.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M18 3v4h-4M6 21v-4h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-                        <p class="stat-label">Active Subscriptions</p>
-                        <p class="stat-value">6</p>
-                        <p class="stat-foot link">View all <span>›</span></p>
+                    <div class="dash-flipcard-back">
+                        <p class="dash-fc-back-label">Balance</p>
+                        <p class="dash-fc-back-balance" id="dash-fc-balance">R12,450.00</p>
+                        <p class="dash-fc-back-hint">Tap to open Wallet →</p>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-icon orange"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3 10h18M8 3v4M16 3v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-                        <p class="stat-label">Upcoming Payments</p>
-                        <p class="stat-value">3</p>
-                        <p class="stat-foot link">Next 7 days <span>›</span></p>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon orange"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.9-6.2 3.9 1.6-7L2 9.2l7.1-.6L12 2z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
-                        <p class="stat-label">Scribe Score</p>
-                        <p class="stat-value">560</p>
-                        <p class="stat-foot accent-text">Keep it up!</p>
-                        <div class="progress-track"><div class="progress-fill" style="width:56%"></div></div>
-                    </div>
-                </section>
+                </div>
+            </div>
+        </div>
 
-                <section class="content-grid">
-                    <div class="col-left">
-                        <div class="panel">
-                            <div class="panel-head">
-                                <div><h3>Spending Overview</h3><span class="subtext">This month</span></div>
-                                <button class="dropdown-btn">This Month <svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-                            </div>
-                            <div class="spend-body">
-                                <div class="donut-wrap">
-                                    <svg viewBox="0 0 200 200" class="donut">
-                                        <circle cx="100" cy="100" r="72" fill="none" stroke="#2a2a2a" stroke-width="30"/>
-                                        <circle cx="100" cy="100" r="72" fill="none" stroke="#ff6a1a" stroke-width="30" stroke-dasharray="194.7 452.4" stroke-dashoffset="0"      transform="rotate(-90 100 100)"/>
-                                        <circle cx="100" cy="100" r="72" fill="none" stroke="#3ecf6e" stroke-width="30" stroke-dasharray="99.5 452.4"  stroke-dashoffset="-194.7" transform="rotate(-90 100 100)"/>
-                                        <circle cx="100" cy="100" r="72" fill="none" stroke="#3b82f6" stroke-width="30" stroke-dasharray="72.4 452.4"  stroke-dashoffset="-294.2" transform="rotate(-90 100 100)"/>
-                                        <circle cx="100" cy="100" r="72" fill="none" stroke="#8b5cf6" stroke-width="30" stroke-dasharray="49.8 452.4"  stroke-dashoffset="-366.6" transform="rotate(-90 100 100)"/>
-                                        <circle cx="100" cy="100" r="72" fill="none" stroke="#f5b83d" stroke-width="30" stroke-dasharray="36.2 452.4"  stroke-dashoffset="-416.4" transform="rotate(-90 100 100)"/>
-                                    </svg>
-                                    <div class="donut-center"><span class="donut-value">R2,890.50</span><span class="donut-label">Total Spent</span></div>
-                                </div>
-                                <ul class="legend">
-                                    <li><span class="dot orange"></span><span class="leg-name">Entertainment</span><span class="leg-amt">R1,250.00</span><span class="leg-pct">43%</span></li>
-                                    <li><span class="dot green"></span><span class="leg-name">Lifestyle</span><span class="leg-amt">R650.00</span><span class="leg-pct">22%</span></li>
-                                    <li><span class="dot blue"></span><span class="leg-name">Utilities</span><span class="leg-amt">R450.00</span><span class="leg-pct">16%</span></li>
-                                    <li><span class="dot purple"></span><span class="leg-name">Education</span><span class="leg-amt">R320.00</span><span class="leg-pct">11%</span></li>
-                                    <li><span class="dot yellow"></span><span class="leg-name">Other</span><span class="leg-amt">R220.50</span><span class="leg-pct">8%</span></li>
-                                </ul>
-                            </div>
-                            <div class="panel-foot center"><a href="#" class="link-btn">View full analytics</a></div>
-                        </div>
+        <div class="dash-cell dash-score-cell">
+            <div class="dash-score-rings" id="dash-score-rings">
+                <svg viewBox="0 0 160 160" class="dash-score-svg">
+                    <circle cx="80" cy="80" r="70" fill="none" stroke="var(--border)" stroke-width="10"/>
+                    <circle cx="80" cy="80" r="70" fill="none" stroke="var(--green)" stroke-width="10" stroke-dasharray="440" stroke-dashoffset="132" stroke-linecap="round" transform="rotate(-90 80 80)" class="dash-ring-outer"/>
+                    <circle cx="80" cy="80" r="52" fill="none" stroke="var(--border)" stroke-width="8"/>
+                    <circle cx="80" cy="80" r="52" fill="none" stroke="var(--orange)" stroke-width="8" stroke-dasharray="327" stroke-dashoffset="131" stroke-linecap="round" transform="rotate(-90 80 80)" class="dash-ring-inner"/>
+                </svg>
+                <div class="dash-score-center">
+                    <span class="dash-score-value" id="dash-score-value">560</span>
+                    <span class="dash-score-label">Scribe Score</span>
+                </div>
+            </div>
+            <div class="dash-score-legend">
+                <span class="dash-score-leg"><span class="dash-dot green"></span>Financial Health 70%</span>
+                <span class="dash-score-leg"><span class="dash-dot orange"></span>Scribe Score 60%</span>
+            </div>
+            <button class="dash-link-btn" onclick="loadPage('analytics')">View Breakdown →</button>
+        </div>
 
-                        <div class="panel">
-                            <div class="panel-head">
-                                <h3>Recent Transactions</h3>
-                                <a href="#" class="view-all">View all</a>
-                            </div>
-                            <ul class="tx-list">
-                                <li class="tx-row">
-                                    <span class="tx-icon green"><svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M6 13l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-                                    <div class="tx-info"><p class="tx-title">Added Funds</p><p class="tx-sub">May 17, 2025 – 10:23 AM</p></div>
-                                    <div class="tx-amount"><p class="pos">+R500.00</p><p class="tx-sub">Wallet</p></div>
-                                </li>
-                                <li class="tx-row">
-                                    <span class="tx-icon dark"><span class="netflix-n">N</span></span>
-                                    <div class="tx-info"><p class="tx-title">Netflix Payment</p><p class="tx-sub">May 16, 2025 – 08:15 PM</p></div>
-                                    <div class="tx-amount"><p class="neg">-R199.00</p><p class="tx-sub">Entertainment</p></div>
-                                </li>
-                                <li class="tx-row">
-                                    <span class="tx-icon green"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M7 15c2-1.5 8-1.5 10 0M8 12c1.5-1 6.5-1 8 0M9 9c1-.6 5-.6 6 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
-                                    <div class="tx-info"><p class="tx-title">Spotify Payment</p><p class="tx-sub">May 16, 2025 – 07:42 PM</p></div>
-                                    <div class="tx-amount"><p class="neg">-R59.99</p><p class="tx-sub">Entertainment</p></div>
-                                </li>
-                                <li class="tx-row">
-                                    <span class="tx-icon blue"><svg viewBox="0 0 24 24" fill="none"><path d="M17 2l4 4-4 4M21 6H8M7 22l-4-4 4-4M3 18h13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
-                                    <div class="tx-info"><p class="tx-title">Transfer to Goal: New Laptop</p><p class="tx-sub">May 15, 2025 – 11:11 AM</p></div>
-                                    <div class="tx-amount"><p class="neg">-R100.00</p><p class="tx-sub">Goals</p></div>
-                                </li>
-                            </ul>
-                        </div>
-                    </div><!-- /col-left -->
+        <div class="dash-cell dash-timeline-cell">
+            <div class="dash-timeline-head"><h4>Spending Timeline</h4><div class="dash-timeline-tabs"><button class="dash-tt-btn active" data-range="week">W</button><button class="dash-tt-btn" data-range="month">M</button><button class="dash-tt-btn" data-range="year">Y</button></div></div>
+            <div class="dash-timeline-chart" id="dash-timeline-chart"></div>
+        </div>
 
-                    <div class="col-right">
-                        <div class="panel">
-                            <div class="panel-head"><h3>Upcoming Payments</h3><a href="#" class="view-all">View all</a></div>
-                            <ul class="pay-list">
-                                <li class="pay-row">
-                                    <span class="pay-logo netflix">N</span>
-                                    <div class="pay-info"><p class="pay-title">Netflix</p><p class="pay-sub">Premium Plan</p></div>
-                                    <div class="pay-amount"><p class="pay-price">R199.00</p><p class="pay-sub">Tomorrow</p></div>
-                                </li>
-                                <li class="pay-row">
-                                    <span class="pay-logo spotify"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M7 15c2-1.5 8-1.5 10 0M8 12c1.5-1 6.5-1 8 0M9 9c1-.6 5-.6 6 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
-                                    <div class="pay-info"><p class="pay-title">Spotify</p><p class="pay-sub">Premium Plan</p></div>
-                                    <div class="pay-amount"><p class="pay-price">R59.99</p><p class="pay-sub">May 18, 2025</p></div>
-                                </li>
-                                <li class="pay-row">
-                                    <span class="pay-logo disney"><svg viewBox="0 0 24 24" fill="none"><path d="M4 14c4-6 12-6 16 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="14" r="2" fill="currentColor"/></svg></span>
-                                    <div class="pay-info"><p class="pay-title">Disney+</p><p class="pay-sub">Standard Plan</p></div>
-                                    <div class="pay-amount"><p class="pay-price">R89.00</p><p class="pay-sub">May 24, 2025</p></div>
-                                </li>
-                            </ul>
-                        </div>
+        <!-- ROW 2 -->
+        <div class="dash-cell dash-actions-cell">
+            <h4 class="dash-cell-title">Quick Actions</h4>
+            <div class="dash-qa-grid">
+                <button class="dash-qa-btn" onclick="loadPage('subscription')"><div class="dash-qa-icon"><svg viewBox="0 0 24 24" fill="none" width="22" height="22"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div><span>Add Subs</span></button>
+                <button class="dash-qa-btn" onclick="loadPage('wallet')"><div class="dash-qa-icon"><svg viewBox="0 0 24 24" fill="none" width="22" height="22"><rect x="3" y="7" width="18" height="12" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3 10h18" stroke="currentColor" stroke-width="2"/></svg></div><span>Load Wallet</span></button>
+                <button class="dash-qa-btn" onclick="loadPage('goals')"><div class="dash-qa-icon"><svg viewBox="0 0 24 24" fill="none" width="22" height="22"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/></svg></div><span>Create Goal</span></button>
+                <button class="dash-qa-btn" onclick="loadPage('dependants')"><div class="dash-qa-icon"><svg viewBox="0 0 24 24" fill="none" width="22" height="22"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M8.5 3a4 4 0 110 8 4 4 0 010-8zM20 8v6M23 11h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div><span>Invite Family</span></button>
+            </div>
+        </div>
 
-                        <div class="panel">
-                            <div class="panel-head"><h3>Goals Progress</h3><a href="#" class="view-all">View all</a></div>
-                            <div class="goal-item">
-                                <img src="https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=100&h=100&fit=crop" class="goal-img" alt="New Laptop">
-                                <div class="goal-info">
-                                    <p class="goal-title">New Laptop</p><p class="goal-sub">R8,000.00 goal</p>
-                                    <div class="goal-track"><div class="goal-fill green" style="width:40%"></div></div>
-                                </div>
-                                <div class="goal-stats"><p class="goal-amt">R3,200.00</p><p class="goal-pct">40%</p></div>
-                            </div>
-                            <div class="goal-item">
-                                <img src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=100&h=100&fit=crop" class="goal-img" alt="Vacation">
-                                <div class="goal-info">
-                                    <p class="goal-title">Vacation</p><p class="goal-sub">R15,000.00 goal</p>
-                                    <div class="goal-track"><div class="goal-fill green" style="width:45%"></div></div>
-                                </div>
-                                <div class="goal-stats"><p class="goal-amt">R6,750.00</p><p class="goal-pct">45%</p></div>
-                            </div>
-                        </div>
-                    </div><!-- /col-right -->
-                </section>
+        <div class="dash-cell dash-upcoming-cell dash-span-2">
+            <div class="dash-cell-header"><h4 class="dash-cell-title">Upcoming Payments</h4><button class="dash-link-btn" onclick="loadPage('timeline')">View all →</button></div>
+            <div class="dash-upcoming-grid" id="dash-upcoming-list"></div>
+        </div>
 
-            </div><!-- /panel-dashboard -->
+        <!-- ROW 3 -->
+        <div class="dash-cell dash-ai-cell">
+            <div class="dash-ai-header"><div class="dash-ai-star"><svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.9-6.2 3.9 1.6-7L2 9.2l7.1-.6L12 2z" stroke="currentColor" stroke-width="1.5" fill="var(--orange)" opacity="0.2"/></svg><div class="dash-ai-pulse"></div></div><h4>AI Insights</h4></div>
+            <p class="dash-ai-body" id="dash-ai-body">Analyzing your spending patterns...</p>
+            <button class="dash-link-btn dash-ai-rec-btn" id="dash-ai-rec-btn">See Recommendations →</button>
+        </div>
+
+        <div class="dash-cell dash-goals-cell">
+            <div class="dash-cell-header"><h4 class="dash-cell-title">Goals Progress</h4><button class="dash-link-btn" onclick="loadPage('goals')">View goals →</button></div>
+            <div class="dash-goals-list" id="dash-goals-list"></div>
+        </div>
+
+        <div class="dash-cell dash-txn-cell">
+            <div class="dash-cell-header"><h4 class="dash-cell-title">Recent Transactions</h4><button class="dash-link-btn" onclick="loadPage('wallet')">View all →</button></div>
+            <div class="dash-txn-list" id="dash-txn-list"></div>
+        </div>
+    </div>
+
+    <!-- AI Recommendations Popup -->
+    <div class="dash-ai-popup-overlay" id="dash-ai-popup-overlay" hidden></div>
+    <div class="dash-ai-popup" id="dash-ai-popup" hidden>
+        <div class="dash-ai-popup-header"><h3>AI Recommendations</h3><button class="icon-btn" id="dash-ai-popup-close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></div>
+        <div class="dash-ai-popup-body" id="dash-ai-popup-body"></div>
+    </div>
+</div><!-- /panel-dashboard -->
 
             <!-- ═══════════════════ SUBSCRIPTIONS PANEL ═══════════════════ -->
             <div id="panel-subscription" class="page-panel" hidden>
@@ -287,58 +251,6 @@
                     </div>
                 </div>
 
-                <!-- Stat cards -->
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon green"><svg viewBox="0 0 24 24" fill="none" width="20" height="20"><rect x="3" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/><rect x="14" y="14" width="7" height="7" rx="1" stroke="currentColor" stroke-width="2"/></svg></div>
-                        <p class="stat-label">Active Subscriptions</p>
-                        <p class="stat-value" id="sub-stat-active">—</p>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon orange"><svg viewBox="0 0 24 24" fill="none" width="20" height="20"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-                        <p class="stat-label">Monthly Total</p>
-                        <p class="stat-value" id="sub-stat-monthly">—</p>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon blue"><svg viewBox="0 0 24 24" fill="none" width="20" height="20"><rect x="2" y="7" width="20" height="13" rx="2" stroke="currentColor" stroke-width="2"/><path d="M2 10h20" stroke="currentColor" stroke-width="2"/><circle cx="17" cy="15" r="1.5" fill="currentColor"/></svg></div>
-                        <p class="stat-label">Annual Total</p>
-                        <p class="stat-value" id="sub-stat-annual">—</p>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon purple"><svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M19 8c0-3.31-3.13-6-7-6S5 4.69 5 8c0 2.76 1.86 5.15 4.5 6.2V18H9a1 1 0 000 2h6a1 1 0 000-2h-.5v-3.8C17.14 13.15 19 10.76 19 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></div>
-                        <p class="stat-label">Potential Savings</p>
-                        <p class="stat-value" id="sub-stat-savings">—</p>
-                    </div>
-                </div>
-
-                <!-- Top content grid: upcoming payments + donut chart -->
-                <div class="content-grid">
-                    <div class="panel">
-                        <div class="panel-head"><h3>Upcoming Payments</h3></div>
-                        <ul class="pay-list" id="sub-upcoming-list">
-                            <!-- Rendered by SubscriptionsUI -->
-                        </ul>
-                    </div>
-                    <div class="panel">
-                        <div class="panel-head"><h3>Spending by Category</h3></div>
-                        <div class="spend-body">
-                            <div class="donut-wrap">
-                                <svg id="sub-donut-svg" viewBox="0 0 200 200" class="donut" aria-hidden="true">
-                                    <circle cx="100" cy="100" r="72" fill="none" stroke="var(--border)" stroke-width="30"/>
-                                    <!-- Dynamic slices injected by SubscriptionsUI -->
-                                </svg>
-                                <div class="donut-center">
-                                    <span class="donut-value" id="sub-donut-value">—</span>
-                                    <span class="donut-label">/month</span>
-                                </div>
-                            </div>
-                            <ul class="legend" id="sub-donut-legend">
-                                <!-- Rendered by SubscriptionsUI -->
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Category filter chips -->
                 <div class="sub-cat-filter">
                     <button class="filter-cat-btn filter-btn--active" data-cat="all">All</button>
@@ -352,15 +264,27 @@
                     <button class="filter-cat-btn" data-cat="Other">Other</button>
                 </div>
 
-                <!-- All subscriptions list -->
+                <!-- All subscriptions list (current/active subs at top) -->
                 <div class="panel sub-list-panel">
                     <div class="panel-head">
-                        <h3>All Subscriptions</h3>
+                        <h3>Your Subscriptions</h3>
                     </div>
                     <ul class="sub-list" id="sub-list" aria-label="Subscriptions list">
                         <!-- Rendered by SubscriptionsUI -->
                     </ul>
                 </div>
+
+                <!-- Recommended For You (auto-scrolling marquee) -->
+                <section class="rec-section" aria-label="Recommended subscriptions">
+                    <div class="panel-head">
+                        <h3>Recommended For You</h3>
+                    </div>
+                    <div class="rec-marquee-wrapper">
+                        <div class="rec-marquee" id="rec-strip" role="list" aria-label="Recommended subscription providers">
+                            <!-- Rendered by SubscriptionsUI — cards duplicated for infinite scroll -->
+                        </div>
+                    </div>
+                </section>
 
                 <!-- FAB (mobile + desktop) -->
                 <button class="sub-fab" id="sub-fab" aria-label="Add subscription">
@@ -371,30 +295,204 @@
 
             <!-- ═══════════════════ WALLET PANEL ═══════════════════ -->
             <div id="panel-wallet" class="page-panel" hidden>
-                <div class="panel coming-soon-panel">
-                    <i data-lucide="wallet" style="width:48px;height:48px;color:var(--orange);margin-bottom:16px;"></i>
-                    <h3>Wallet</h3>
-                    <p class="stat-label" style="margin-top:8px;">This page is coming soon.</p>
+
+                <!-- Balance Hero Card -->
+                <div class="wallet-hero">
+                    <div class="wallet-hero-info">
+                        <p class="wallet-hero-label">Total Balance</p>
+                        <h2 class="wallet-hero-balance" id="wallet-hero-balance">R0.00</h2>
+                    </div>
+                    <div class="wallet-virtual-card">
+                        <div class="wallet-card-top">
+                            <span class="wallet-card-logo">FlexScribe</span>
+                            <div class="wallet-card-chip"></div>
+                        </div>
+                        <div class="wallet-card-bottom">
+                            <p class="wallet-card-number">•••• •••• •••• 4829</p>
+                            <p class="wallet-card-name">Sarah M.</p>
+                        </div>
+                    </div>
                 </div>
-            </div>
+
+                <!-- Stat Cards -->
+                <div class="wallet-stats">
+                    <div class="wallet-stat-card">
+                        <div class="wallet-stat-icon green">
+                            <svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M12 2v20M17 7l-5-5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                        <p class="wallet-stat-label">Available Balance</p>
+                        <p class="wallet-stat-value" id="wallet-stat-available">R0.00</p>
+                    </div>
+                    <div class="wallet-stat-card">
+                        <div class="wallet-stat-icon blue">
+                            <svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M12 22V2M7 17l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                        <p class="wallet-stat-label">Pending In</p>
+                        <p class="wallet-stat-value" id="wallet-stat-pending-in">R0.00</p>
+                    </div>
+                    <div class="wallet-stat-card">
+                        <div class="wallet-stat-icon red">
+                            <svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M7 7l10 10M17 7l-10 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                        </div>
+                        <p class="wallet-stat-label">Pending Out</p>
+                        <p class="wallet-stat-value" id="wallet-stat-pending-out">R0.00</p>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="wallet-quick-actions">
+                    <button class="wallet-action-btn" id="wallet-btn-add">
+                        <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                        Add Funds
+                    </button>
+                    <button class="wallet-action-btn" id="wallet-btn-withdraw">
+                        <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        Withdraw
+                    </button>
+                    <button class="wallet-action-btn" id="wallet-btn-transfer">
+                        <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M3 12h18M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        Transfer to Goal
+                    </button>
+                    <button class="wallet-action-btn" id="wallet-btn-send">
+                        <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M8.5 3a4 4 0 110 8 4 4 0 010-8zM20 8v6M23 11h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        Send to Dependant
+                    </button>
+                </div>
+
+                <!-- Recent Wallet Activity -->
+                <div class="wallet-activity">
+                    <div class="wallet-activity-header">
+                        <h3 class="wallet-activity-title">Recent Wallet Activity</h3>
+                    </div>
+                    <ul class="wallet-activity-list" id="wallet-activity-list">
+                        <!-- Rendered by WalletUI -->
+                    </ul>
+                </div>
+
+            </div><!-- /panel-wallet -->
 
             <!-- ═══════════════════ GOALS PANEL ═══════════════════ -->
             <div id="panel-goals" class="page-panel" hidden>
-                <div class="panel coming-soon-panel">
-                    <i data-lucide="target" style="width:48px;height:48px;color:var(--orange);margin-bottom:16px;"></i>
-                    <h3>Goals</h3>
-                    <p class="stat-label" style="margin-top:8px;">This page is coming soon.</p>
+
+                <!-- Header Stats -->
+                <div class="goals-stats">
+                    <div class="goals-stat-card">
+                        <div class="goals-stat-icon green">
+                            <svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M12 2v20M17 7l-5-5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                        <p class="goals-stat-label">Total Saved</p>
+                        <p class="goals-stat-value" id="goals-stat-total-saved">R0.00</p>
+                    </div>
+                    <div class="goals-stat-card">
+                        <div class="goals-stat-icon orange">
+                            <svg viewBox="0 0 24 24" fill="none" width="20" height="20"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                        </div>
+                        <p class="goals-stat-label">Active Goals</p>
+                        <p class="goals-stat-value" id="goals-stat-active">0</p>
+                    </div>
+                    <div class="goals-stat-card">
+                        <div class="goals-stat-icon blue">
+                            <svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                        <p class="goals-stat-label">Completed</p>
+                        <p class="goals-stat-value" id="goals-stat-completed">0</p>
+                    </div>
                 </div>
-            </div>
+
+                <!-- Filter Bar -->
+                <div class="goals-filter-bar">
+                    <button class="goals-filter-btn filter-btn--active" data-filter="all">All</button>
+                    <button class="goals-filter-btn" data-filter="in_progress">In Progress</button>
+                    <button class="goals-filter-btn" data-filter="completed">Completed</button>
+                </div>
+
+                <!-- Goal Card Grid -->
+                <div class="goals-grid">
+                    <!-- Rendered by GoalsUI -->
+                </div>
+
+            </div><!-- /panel-goals -->
 
             <!-- ═══════════════════ ANALYTICS PANEL ═══════════════════ -->
             <div id="panel-analytics" class="page-panel" hidden>
-                <div class="panel coming-soon-panel">
-                    <i data-lucide="line-chart" style="width:48px;height:48px;color:var(--orange);margin-bottom:16px;"></i>
-                    <h3>Analytics</h3>
-                    <p class="stat-label" style="margin-top:8px;">This page is coming soon.</p>
+
+                <!-- Header: date range tabs + export -->
+                <div class="analytics-header">
+                    <div class="analytics-range-tabs">
+                        <button class="analytics-range-btn active" data-range="thisMonth">This Month</button>
+                        <button class="analytics-range-btn" data-range="lastMonth">Last Month</button>
+                        <button class="analytics-range-btn" data-range="last3Months">Last 3 Months</button>
+                    </div>
+                    <button class="analytics-export-btn" id="analytics-export-btn">
+                        <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        Export CSV
+                    </button>
                 </div>
-            </div>
+
+                <!-- Summary strip -->
+                <div class="analytics-stats" id="analytics-stats">
+                    <!-- Rendered by AnalyticsUI -->
+                </div>
+
+                <!-- Charts grid: donut + bar chart -->
+                <div class="analytics-charts-grid">
+                    <!-- Donut chart panel -->
+                    <div class="analytics-panel">
+                        <h3 class="analytics-panel-title">Spending by Category</h3>
+                        <div class="analytics-donut-wrap">
+                            <div class="analytics-donut-container">
+                                <svg id="analytics-donut-svg" viewBox="0 0 200 200" class="analytics-donut-svg" aria-hidden="true">
+                                    <circle cx="100" cy="100" r="72" fill="none" stroke="var(--border)" stroke-width="30"/>
+                                </svg>
+                                <div class="analytics-donut-center">
+                                    <span class="analytics-donut-total" id="analytics-donut-total">—</span>
+                                    <span class="analytics-donut-subtitle">total</span>
+                                </div>
+                            </div>
+                            <ul class="analytics-legend" id="analytics-donut-legend">
+                                <!-- Rendered by AnalyticsUI -->
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Monthly trend bar chart -->
+                    <div class="analytics-panel">
+                        <h3 class="analytics-panel-title">Monthly Spending Trend</h3>
+                        <div class="analytics-bar-chart" id="analytics-bar-chart">
+                            <!-- Rendered by AnalyticsUI -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom grid: merchants + budgets -->
+                <div class="analytics-charts-grid">
+                    <!-- Top merchants -->
+                    <div class="analytics-panel">
+                        <h3 class="analytics-panel-title">Top Merchants</h3>
+                        <table class="analytics-merchants-table">
+                            <thead>
+                                <tr>
+                                    <th>Merchant</th>
+                                    <th>Total</th>
+                                    <th>Count</th>
+                                </tr>
+                            </thead>
+                            <tbody id="analytics-merchants-body">
+                                <!-- Rendered by AnalyticsUI -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Budget vs Actual -->
+                    <div class="analytics-panel">
+                        <h3 class="analytics-panel-title">Budget vs Actual</h3>
+                        <div class="analytics-budgets" id="analytics-budgets">
+                            <!-- Rendered by AnalyticsUI -->
+                        </div>
+                    </div>
+                </div>
+
+            </div><!-- /panel-analytics -->
 
             <!-- ═══════════════════ TIMELINE PANEL ═══════════════════ -->
             <div id="panel-timeline" class="page-panel" hidden>
@@ -407,20 +505,70 @@
 
             <!-- ═══════════════════ DEPENDANTS PANEL ═══════════════════ -->
             <div id="panel-dependants" class="page-panel" hidden>
-                <div class="panel coming-soon-panel">
-                    <i data-lucide="users" style="width:48px;height:48px;color:var(--orange);margin-bottom:16px;"></i>
-                    <h3>Dependants</h3>
-                    <p class="stat-label" style="margin-top:8px;">This page is coming soon.</p>
+
+                <!-- Dependant Card Grid -->
+                <div class="dep-grid">
+                    <!-- Rendered by DependantsUI -->
                 </div>
-            </div>
+
+            </div><!-- /panel-dependants -->
 
             <!-- ═══════════════════ NOTIFICATIONS PANEL ═══════════════════ -->
             <div id="panel-notifications" class="page-panel" hidden>
-                <div class="panel coming-soon-panel">
-                    <i data-lucide="bell" style="width:48px;height:48px;color:var(--orange);margin-bottom:16px;"></i>
-                    <h3>Notifications</h3>
-                    <p class="stat-label" style="margin-top:8px;">This page is coming soon.</p>
+                <div class="notif-panel-header">
+                    <div class="notif-panel-tabs">
+                        <button class="notif-tab-btn active" data-filter="all">All</button>
+                        <button class="notif-tab-btn" data-filter="unread">Unread</button>
+                        <button class="notif-tab-btn" data-filter="payments">Payments</button>
+                        <button class="notif-tab-btn" data-filter="goals">Goals</button>
+                    </div>
+                    <button class="notif-mark-read-btn" id="notif-mark-all-read">Mark all as read</button>
                 </div>
+                <ul class="notif-full-list" id="notif-full-list">
+                    <li class="notif-full-item unread" data-notif-id="notif-1" data-category="payments">
+                        <div class="notif-full-icon payments"><svg viewBox="0 0 24 24" fill="none" width="18" height="18"><rect x="2" y="7" width="20" height="13" rx="2" stroke="currentColor" stroke-width="2"/><path d="M2 10h20" stroke="currentColor" stroke-width="2"/></svg></div>
+                        <div class="notif-full-content">
+                            <p class="notif-full-title">Netflix payment due tomorrow</p>
+                            <p class="notif-full-desc">Your monthly Netflix subscription of R199.00 is scheduled for tomorrow.</p>
+                            <p class="notif-full-time">2 hours ago</p>
+                        </div>
+                        <span class="notif-full-dot"></span>
+                    </li>
+                    <li class="notif-full-item unread" data-notif-id="notif-2" data-category="goals">
+                        <div class="notif-full-icon goals"><svg viewBox="0 0 24 24" fill="none" width="18" height="18"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/></svg></div>
+                        <div class="notif-full-content">
+                            <p class="notif-full-title">You're close to your Vacation goal</p>
+                            <p class="notif-full-desc">Your Vacation Fund is 63% funded. Only R9,200 to go!</p>
+                            <p class="notif-full-time">1 day ago</p>
+                        </div>
+                        <span class="notif-full-dot"></span>
+                    </li>
+                    <li class="notif-full-item unread" data-notif-id="notif-3" data-category="general">
+                        <div class="notif-full-icon general"><svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="1.5"/></svg></div>
+                        <div class="notif-full-content">
+                            <p class="notif-full-title">Scribe Score increased to 560</p>
+                            <p class="notif-full-desc">Great job! Your financial health score improved by 15 points this month.</p>
+                            <p class="notif-full-time">3 days ago</p>
+                        </div>
+                        <span class="notif-full-dot"></span>
+                    </li>
+                    <li class="notif-full-item" data-notif-id="notif-4" data-category="payments">
+                        <div class="notif-full-icon payments"><svg viewBox="0 0 24 24" fill="none" width="18" height="18"><rect x="2" y="7" width="20" height="13" rx="2" stroke="currentColor" stroke-width="2"/><path d="M2 10h20" stroke="currentColor" stroke-width="2"/></svg></div>
+                        <div class="notif-full-content">
+                            <p class="notif-full-title">Spotify payment processed</p>
+                            <p class="notif-full-desc">R59.99 was debited for your Spotify Premium subscription.</p>
+                            <p class="notif-full-time">5 days ago</p>
+                        </div>
+                    </li>
+                    <li class="notif-full-item" data-notif-id="notif-5" data-category="goals">
+                        <div class="notif-full-icon goals"><svg viewBox="0 0 24 24" fill="none" width="18" height="18"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/></svg></div>
+                        <div class="notif-full-content">
+                            <p class="notif-full-title">New Laptop goal is 69% complete</p>
+                            <p class="notif-full-desc">Keep it up! R5,500 remaining to reach your target.</p>
+                            <p class="notif-full-time">1 week ago</p>
+                        </div>
+                    </li>
+                </ul>
             </div>
 
             <!-- ═══════════════════ REPORTS PANEL ═══════════════════ -->
@@ -429,6 +577,95 @@
                     <i data-lucide="file-text" style="width:48px;height:48px;color:var(--orange);margin-bottom:16px;"></i>
                     <h3>Reports</h3>
                     <p class="stat-label" style="margin-top:8px;">This page is coming soon.</p>
+                </div>
+            </div>
+
+            <!-- ═══════════════════ SETTINGS PANEL ═══════════════════ -->
+            <div id="panel-settings" class="page-panel" hidden>
+
+                <!-- Appearance -->
+                <div class="settings-section">
+                    <h3 class="settings-section-title"><i data-lucide="palette" style="width:18px;height:18px;color:var(--orange);margin-right:8px"></i>Appearance</h3>
+                    <div class="settings-row">
+                        <span class="settings-label">Theme</span>
+                        <div class="settings-theme-btns">
+                            <button class="settings-theme-btn" data-theme="dark" id="settings-theme-dark"><i data-lucide="moon" style="width:14px;height:14px;margin-right:4px"></i>Dark</button>
+                            <button class="settings-theme-btn" data-theme="light" id="settings-theme-light"><i data-lucide="sun" style="width:14px;height:14px;margin-right:4px"></i>Light</button>
+                        </div>
+                    </div>
+                    <div class="settings-row">
+                        <span class="settings-label">Accent Color</span>
+                        <div class="settings-accent-row" id="settings-accent-row">
+                            <button class="settings-accent" data-color="#FF8A34" style="background:#FF8A34" aria-label="Orange"></button>
+                            <button class="settings-accent" data-color="#3B82F6" style="background:#3B82F6" aria-label="Blue"></button>
+                            <button class="settings-accent" data-color="#8B5CF6" style="background:#8B5CF6" aria-label="Purple"></button>
+                            <button class="settings-accent" data-color="#3ECF6E" style="background:#3ECF6E" aria-label="Green"></button>
+                            <button class="settings-accent" data-color="#F5B83D" style="background:#F5B83D" aria-label="Gold"></button>
+                            <button class="settings-accent" data-color="#F87171" style="background:#F87171" aria-label="Red"></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notifications -->
+                <div class="settings-section">
+                    <h3 class="settings-section-title"><i data-lucide="bell" style="width:18px;height:18px;color:var(--orange);margin-right:8px"></i>Notifications</h3>
+                    <div class="settings-toggle-row">
+                        <span>Payment reminders</span>
+                        <label class="settings-switch"><input type="checkbox" id="settings-notif-payments"><span class="settings-switch-track"></span></label>
+                    </div>
+                    <div class="settings-toggle-row">
+                        <span>Goal milestones</span>
+                        <label class="settings-switch"><input type="checkbox" id="settings-notif-goals"><span class="settings-switch-track"></span></label>
+                    </div>
+                    <div class="settings-toggle-row">
+                        <span>Weekly spending summary</span>
+                        <label class="settings-switch"><input type="checkbox" id="settings-notif-weekly"><span class="settings-switch-track"></span></label>
+                    </div>
+                </div>
+
+                <!-- Security -->
+                <div class="settings-section">
+                    <h3 class="settings-section-title"><i data-lucide="shield" style="width:18px;height:18px;color:var(--orange);margin-right:8px"></i>Security</h3>
+                    <div class="settings-form-row">
+                        <div class="settings-field">
+                            <label for="settings-current-pw">Current Password</label>
+                            <input type="password" id="settings-current-pw" placeholder="Current password">
+                        </div>
+                        <div class="settings-field">
+                            <label for="settings-new-pw">New Password</label>
+                            <input type="password" id="settings-new-pw" placeholder="New password">
+                        </div>
+                        <div class="settings-field">
+                            <label for="settings-confirm-pw">Confirm Password</label>
+                            <input type="password" id="settings-confirm-pw" placeholder="Confirm new password">
+                        </div>
+                    </div>
+                    <span class="settings-error" id="settings-pw-error"></span>
+                    <button class="settings-btn settings-btn--primary" id="settings-change-pw-btn">Update Password</button>
+                    <div class="settings-toggle-row" style="margin-top:16px">
+                        <span>Two-factor authentication</span>
+                        <label class="settings-switch"><input type="checkbox" id="settings-2fa"><span class="settings-switch-track"></span></label>
+                    </div>
+                </div>
+
+                <!-- Data Management -->
+                <div class="settings-section settings-section--danger">
+                    <h3 class="settings-section-title"><i data-lucide="database" style="width:18px;height:18px;color:var(--danger);margin-right:8px"></i>Data Management</h3>
+                    <div class="settings-btn-row">
+                        <button class="settings-btn settings-btn--secondary" id="settings-export-btn"><i data-lucide="download" style="width:14px;height:14px;margin-right:6px"></i>Export All Data</button>
+                        <button class="settings-btn settings-btn--danger" id="settings-clear-btn"><i data-lucide="trash-2" style="width:14px;height:14px;margin-right:6px"></i>Clear All Data</button>
+                    </div>
+                    <button class="settings-btn settings-btn--danger" id="settings-delete-btn" style="margin-top:8px;width:100%"><i data-lucide="user-x" style="width:14px;height:14px;margin-right:6px"></i>Delete Account</button>
+                    <div class="settings-delete-confirm" id="settings-delete-confirm" hidden>
+                        <p class="settings-delete-hint">Type <strong>DELETE</strong> to confirm:</p>
+                        <input type="text" id="settings-delete-input" placeholder="Type DELETE" autocomplete="off">
+                        <button class="settings-btn settings-btn--danger" id="settings-delete-final" disabled style="width:100%;margin-top:8px">Confirm Deletion</button>
+                    </div>
+                </div>
+
+                <!-- Save indicator -->
+                <div class="settings-save-row">
+                    <span class="settings-save-status" id="settings-save-status"></span>
                 </div>
             </div>
 
@@ -510,6 +747,61 @@
                     <label for="sub-modal-notes">Notes</label>
                     <textarea id="sub-modal-notes" rows="2" placeholder="Optional notes about this subscription"></textarea>
                 </div>
+
+                <!-- Advanced Options (collapsible) -->
+                <div class="sub-advanced-section">
+                    <button type="button" class="sub-advanced-toggle" id="sub-advanced-toggle" aria-expanded="false" aria-controls="sub-advanced-body">
+                        <span>Advanced Options</span>
+                        <svg class="sub-advanced-chevron" viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <div class="sub-advanced-body" id="sub-advanced-body" aria-hidden="true">
+                        <!-- Logo Upload -->
+                        <div class="sub-modal-field sub-modal-field--full">
+                            <label for="sub-modal-logo-upload">Custom Logo</label>
+                            <div class="sub-logo-upload-wrap">
+                                <input type="file" id="sub-modal-logo-upload" accept="image/*" class="sub-logo-file-input">
+                                <label for="sub-modal-logo-upload" class="sub-logo-upload-btn">
+                                    <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    Choose Image
+                                </label>
+                                <div class="sub-logo-preview" id="sub-logo-preview" hidden>
+                                    <img id="sub-logo-preview-img" alt="Logo preview">
+                                    <button type="button" class="sub-logo-remove-btn" id="sub-logo-remove-btn" aria-label="Remove logo">
+                                        <svg viewBox="0 0 24 24" fill="none" width="12" height="12"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Colour Tag Picker -->
+                        <div class="sub-modal-field sub-modal-field--full">
+                            <label>Colour Tag</label>
+                            <div class="sub-colour-swatches" id="sub-colour-swatches" role="radiogroup" aria-label="Choose a colour tag">
+                                <button type="button" class="sub-swatch" data-colour="#FF6B6B" style="background:#FF6B6B" aria-label="Red"></button>
+                                <button type="button" class="sub-swatch" data-colour="#4ECDC4" style="background:#4ECDC4" aria-label="Teal"></button>
+                                <button type="button" class="sub-swatch" data-colour="#45B7D1" style="background:#45B7D1" aria-label="Blue"></button>
+                                <button type="button" class="sub-swatch" data-colour="#96CEB4" style="background:#96CEB4" aria-label="Sage"></button>
+                                <button type="button" class="sub-swatch" data-colour="#FFEAA7" style="background:#FFEAA7" aria-label="Yellow"></button>
+                                <button type="button" class="sub-swatch" data-colour="#DDA0DD" style="background:#DDA0DD" aria-label="Plum"></button>
+                                <button type="button" class="sub-swatch" data-colour="#98D8C8" style="background:#98D8C8" aria-label="Mint"></button>
+                                <button type="button" class="sub-swatch" data-colour="#F7DC6F" style="background:#F7DC6F" aria-label="Gold"></button>
+                                <button type="button" class="sub-swatch sub-swatch--none" data-colour="" aria-label="No colour">✕</button>
+                            </div>
+                        </div>
+
+                        <!-- Reminder Days -->
+                        <div class="sub-modal-row">
+                            <div class="sub-modal-field">
+                                <label for="sub-modal-reminder">Reminder (days before)</label>
+                                <input type="number" id="sub-modal-reminder" min="1" max="30" placeholder="e.g. 3">
+                            </div>
+                            <div class="sub-modal-field">
+                                <label for="sub-modal-provider-url">Provider URL</label>
+                                <input type="url" id="sub-modal-provider-url" placeholder="https://example.com">
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="sub-modal-footer">
                 <button type="button" class="secondary-btn sub-modal-btn" id="sub-modal-cancel-btn" onclick="SubscriptionsUI.closeModal()">Cancel</button>
@@ -556,15 +848,23 @@
             <span class="drawer-label">Added on</span>
             <span class="drawer-value" id="drawer-created"></span>
         </div>
+        <div class="drawer-row" id="drawer-reminder-row" hidden>
+            <span class="drawer-label">Reminder</span>
+            <span class="drawer-value" id="drawer-reminder"></span>
+        </div>
+        <div class="drawer-row" id="drawer-provider-url-row" hidden>
+            <span class="drawer-label">Provider</span>
+            <span class="drawer-value" id="drawer-provider-url"></span>
+        </div>
         <div class="drawer-notes">
             <span class="drawer-label">Notes</span>
             <p id="drawer-notes" class="drawer-notes-text"></p>
         </div>
     </div>
     <div class="sub-drawer-footer">
-        <button class="secondary-btn sub-drawer-btn" id="drawer-toggle-btn">Pause</button>
-        <button class="secondary-btn sub-drawer-btn" id="drawer-edit-btn">Edit</button>
-        <button class="danger-btn sub-drawer-btn" id="drawer-delete-btn">Delete</button>
+        <button class="sub-drawer-btn sub-drawer-btn--toggle" id="drawer-toggle-btn">Pause</button>
+        <button class="sub-drawer-btn sub-drawer-btn--edit" id="drawer-edit-btn">Edit</button>
+        <button class="sub-drawer-btn sub-drawer-btn--delete" id="drawer-delete-btn">Delete</button>
     </div>
 </aside>
 
@@ -584,11 +884,634 @@
     </div>
 </div>
 
+<!-- ═══════════════ RECOMMENDATION ADD CONFIRMATION MODAL ═══════════════ -->
+<div id="rec-add-modal" class="sub-modal-backdrop" hidden aria-modal="true" role="dialog" aria-labelledby="rec-add-modal-title">
+    <div class="sub-modal-box rec-add-modal-box">
+        <div class="sub-modal-header">
+            <h2 id="rec-add-modal-title">Add Subscription</h2>
+            <button class="icon-btn" id="rec-add-modal-close" aria-label="Close modal">
+                <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>
+        </div>
+        <div class="sub-modal-body">
+            <!-- Provider hero section -->
+            <div class="rec-add-hero">
+                <div id="rec-add-logo" class="rec-add-logo"></div>
+                <div class="rec-add-hero-info">
+                    <h3 id="rec-add-name" class="rec-add-name"></h3>
+                    <p id="rec-add-category" class="rec-add-category"></p>
+                </div>
+                <p id="rec-add-cost" class="rec-add-cost"></p>
+            </div>
+            <p id="rec-add-desc" class="rec-add-desc"></p>
+
+            <!-- Billing cycle selector -->
+            <div class="sub-modal-field">
+                <label for="rec-add-cycle">Billing cycle</label>
+                <select id="rec-add-cycle">
+                    <option value="monthly">Monthly</option>
+                    <option value="quarterly">Quarterly</option>
+                    <option value="yearly">Yearly</option>
+                </select>
+            </div>
+
+            <!-- Payment source selector -->
+            <div class="sub-modal-field">
+                <label for="rec-add-payment">Payment source</label>
+                <select id="rec-add-payment">
+                    <option value="wallet">Wallet</option>
+                    <option value="bank-card">Bank Card</option>
+                </select>
+            </div>
+
+            <!-- Auto-renew toggle -->
+            <div class="rec-add-toggle-row">
+                <span class="rec-add-toggle-label">Auto-renew</span>
+                <label class="switch" aria-label="Toggle auto-renew">
+                    <input type="checkbox" id="rec-add-autorenew" checked>
+                    <span class="switch-track"></span>
+                </label>
+            </div>
+
+            <!-- Notifications toggle -->
+            <div class="rec-add-toggle-row">
+                <span class="rec-add-toggle-label">Payment notifications</span>
+                <label class="switch" aria-label="Toggle notifications">
+                    <input type="checkbox" id="rec-add-notify" checked>
+                    <span class="switch-track"></span>
+                </label>
+            </div>
+        </div>
+        <div class="sub-modal-footer">
+            <button type="button" class="secondary-btn sub-modal-btn" id="rec-add-cancel-btn">Cancel</button>
+            <button type="button" class="primary-btn sub-modal-btn" id="rec-add-confirm-btn">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ RECOMMENDATION QUICK VIEW MODAL ═══════════════ -->
+<div id="rec-quickview-modal" class="sub-modal-backdrop" hidden aria-modal="true" role="dialog" aria-labelledby="rec-qv-modal-title">
+    <div class="sub-modal-box rec-qv-modal-box">
+        <div class="sub-modal-header">
+            <h2 id="rec-qv-modal-title">Quick View</h2>
+            <button class="icon-btn" id="rec-qv-modal-close" aria-label="Close modal">
+                <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>
+        </div>
+        <div class="sub-modal-body rec-qv-body">
+            <!-- Provider hero -->
+            <div class="rec-qv-hero">
+                <div id="rec-qv-logo" class="rec-qv-logo"></div>
+                <div class="rec-qv-hero-info">
+                    <h3 id="rec-qv-name" class="rec-qv-name"></h3>
+                    <p id="rec-qv-category" class="rec-qv-category"></p>
+                </div>
+            </div>
+
+            <!-- Description -->
+            <p id="rec-qv-desc" class="rec-qv-desc"></p>
+
+            <!-- Star rating -->
+            <div id="rec-qv-rating" class="rec-qv-rating"></div>
+
+            <!-- Monthly cost -->
+            <div class="rec-qv-cost-row">
+                <span class="rec-qv-cost-label">Monthly cost</span>
+                <span id="rec-qv-cost" class="rec-qv-cost"></span>
+            </div>
+
+            <!-- Pricing table -->
+            <div class="rec-qv-pricing">
+                <h4 class="rec-qv-section-title">Pricing Plans</h4>
+                <div class="rec-qv-pricing-table">
+                    <div class="rec-qv-pricing-row">
+                        <span class="rec-qv-pricing-cycle">Monthly</span>
+                        <span id="rec-qv-price-monthly" class="rec-qv-pricing-amount"></span>
+                    </div>
+                    <div class="rec-qv-pricing-row">
+                        <span class="rec-qv-pricing-cycle">Quarterly</span>
+                        <span id="rec-qv-price-quarterly" class="rec-qv-pricing-amount"></span>
+                    </div>
+                    <div class="rec-qv-pricing-row rec-qv-pricing-row--best">
+                        <span class="rec-qv-pricing-cycle">Yearly <span class="rec-qv-discount-badge">Save 17%</span></span>
+                        <span id="rec-qv-price-yearly" class="rec-qv-pricing-amount"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Benefits list -->
+            <div class="rec-qv-benefits">
+                <h4 class="rec-qv-section-title">Top Benefits</h4>
+                <ul id="rec-qv-benefits-list" class="rec-qv-benefits-list"></ul>
+            </div>
+        </div>
+        <div class="sub-modal-footer">
+            <button type="button" class="secondary-btn sub-modal-btn" id="rec-qv-cancel-btn">Close</button>
+            <button type="button" class="primary-btn sub-modal-btn" id="rec-qv-add-btn">Add Subscription</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ NEW / EDIT GOAL MODAL ═══════════════ -->
+<div id="goals-modal" class="goals-modal-backdrop" hidden aria-modal="true" role="dialog" aria-labelledby="goals-modal-title">
+    <div class="goals-modal-box">
+        <div class="goals-modal-header">
+            <h2 id="goals-modal-title">New Goal</h2>
+            <button class="icon-btn" id="goals-modal-close" aria-label="Close modal">
+                <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>
+        </div>
+        <form id="goals-modal-form" novalidate>
+            <div class="goals-modal-body">
+                <div class="goals-modal-field">
+                    <label for="goals-modal-name">Goal Name <span class="required">*</span></label>
+                    <input type="text" id="goals-modal-name" placeholder="e.g. Vacation Fund" autocomplete="off">
+                </div>
+                <div class="goals-modal-row">
+                    <div class="goals-modal-field">
+                        <label for="goals-modal-target">Target Amount (R) <span class="required">*</span></label>
+                        <input type="number" id="goals-modal-target" placeholder="0.00" min="1" step="0.01">
+                    </div>
+                    <div class="goals-modal-field">
+                        <label for="goals-modal-date">Target Date</label>
+                        <input type="date" id="goals-modal-date">
+                    </div>
+                </div>
+                <div class="goals-modal-row">
+                    <div class="goals-modal-field">
+                        <label for="goals-modal-category">Category</label>
+                        <select id="goals-modal-category">
+                            <option value="Travel">Travel</option>
+                            <option value="Tech">Tech</option>
+                            <option value="Education">Education</option>
+                            <option value="Emergency">Emergency</option>
+                            <option value="Home">Home</option>
+                            <option value="Vehicle">Vehicle</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="goals-modal-field">
+                        <label for="goals-modal-image">Image URL (optional)</label>
+                        <input type="url" id="goals-modal-image" placeholder="https://...">
+                    </div>
+                </div>
+                <span class="goals-modal-error" id="goals-modal-error"></span>
+            </div>
+            <div class="goals-modal-footer">
+                <button type="button" class="goals-btn goals-btn--secondary" id="goals-modal-cancel">Cancel</button>
+                <button type="submit" class="goals-btn goals-btn--primary">Save Goal</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ═══════════════ GOAL DETAIL DRAWER ═══════════════ -->
+<div id="goals-drawer-overlay" class="goals-drawer-overlay" hidden></div>
+<aside id="goals-drawer" class="goals-drawer" hidden aria-label="Goal details">
+    <div class="goals-drawer-header">
+        <div>
+            <h2 id="goals-drawer-name" class="goals-drawer-title"></h2>
+            <p id="goals-drawer-cat" class="goals-drawer-cat"></p>
+        </div>
+        <button class="icon-btn" id="goals-drawer-close" aria-label="Close details">
+            <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+    </div>
+    <div class="goals-drawer-body">
+        <div class="goals-drawer-row">
+            <span class="goals-drawer-label">Target</span>
+            <span class="goals-drawer-value" id="goals-drawer-target"></span>
+        </div>
+        <div class="goals-drawer-row">
+            <span class="goals-drawer-label">Saved</span>
+            <span class="goals-drawer-value" id="goals-drawer-saved"></span>
+        </div>
+        <div class="goals-drawer-row">
+            <span class="goals-drawer-label">Remaining</span>
+            <span class="goals-drawer-value" id="goals-drawer-remaining"></span>
+        </div>
+        <div class="goals-drawer-row">
+            <span class="goals-drawer-label">Status</span>
+            <span class="goals-drawer-value" id="goals-drawer-status"></span>
+        </div>
+        <div class="goals-drawer-row">
+            <span class="goals-drawer-label">Created</span>
+            <span class="goals-drawer-value" id="goals-drawer-created"></span>
+        </div>
+        <div class="goals-drawer-row">
+            <span class="goals-drawer-label">Deadline</span>
+            <span class="goals-drawer-value" id="goals-drawer-deadline"></span>
+        </div>
+
+        <!-- Forecast -->
+        <div class="goals-forecast" id="goals-drawer-forecast" hidden></div>
+
+        <!-- Add Funds Quick Action -->
+        <div>
+            <p class="goals-drawer-section-title">Add Funds</p>
+            <div class="goals-add-funds-row">
+                <input type="number" id="goals-drawer-fund-amount" placeholder="Amount (R)" min="1" step="0.01">
+                <button type="button" class="goals-add-funds-btn" id="goals-drawer-addfunds-btn">Add</button>
+            </div>
+            <p class="goals-wallet-balance-hint" id="goals-drawer-wallet-hint"></p>
+        </div>
+
+        <!-- Contribution History -->
+        <p class="goals-drawer-section-title">Contribution History</p>
+        <ul class="goals-contribution-list" id="goals-contribution-list">
+            <!-- Rendered by GoalsUI -->
+        </ul>
+    </div>
+    <div class="goals-drawer-footer">
+        <button class="goals-btn goals-btn--secondary" id="goals-drawer-edit-btn">Edit</button>
+        <button class="goals-btn goals-btn--danger" id="goals-drawer-delete-btn">Delete</button>
+    </div>
+</aside>
+
+<!-- ═══════════════ DASHBOARD CUSTOMIZE DRAWER ═══════════════ -->
+<div id="dash-customize-overlay" class="sub-drawer-overlay" hidden></div>
+<aside id="dash-customize" class="sub-drawer dash-customize" hidden aria-label="Customize dashboard">
+    <div class="sub-drawer-header">
+        <div class="sub-drawer-title-row">
+            <h2 class="sub-drawer-name">Customize Dashboard</h2>
+        </div>
+        <button class="icon-btn" id="dash-customize-close" aria-label="Close customization">
+            <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+    </div>
+    <div class="sub-drawer-body" id="dash-customize-body">
+        <!-- Rendered by DashboardUI -->
+    </div>
+    <div class="sub-drawer-footer">
+        <button class="secondary-btn sub-drawer-btn" id="dash-reset-btn">Reset to Default</button>
+        <button class="primary-btn sub-drawer-btn" id="dash-customize-done">Done</button>
+    </div>
+</aside>
+
+<!-- ═══════════════ ADD FUNDS MODAL ═══════════════ -->
+<div id="wallet-add-modal" class="wallet-modal-backdrop" hidden aria-modal="true" role="dialog" aria-labelledby="wallet-add-title">
+    <div class="wallet-modal-box">
+        <div class="wallet-modal-header">
+            <h2 id="wallet-add-title">Add Funds</h2>
+            <button class="icon-btn wallet-modal-close-btn" aria-label="Close modal">
+                <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>
+        </div>
+        <form id="wallet-add-form" novalidate>
+            <div class="wallet-modal-body">
+                <div class="wallet-modal-field">
+                    <label for="wallet-add-amount">Amount (R)</label>
+                    <input type="number" id="wallet-add-amount" placeholder="0.00" min="0.01" step="0.01">
+                </div>
+                <div class="wallet-modal-field">
+                    <label for="wallet-add-source">Source</label>
+                    <select id="wallet-add-source">
+                        <option value="Bank Card">Bank Card</option>
+                        <option value="EFT">EFT</option>
+                    </select>
+                </div>
+                <span class="field-error" id="wallet-add-error"></span>
+            </div>
+            <div class="wallet-modal-footer">
+                <button type="button" class="wallet-btn wallet-btn--secondary wallet-modal-cancel-btn">Cancel</button>
+                <button type="submit" class="wallet-btn wallet-btn--primary">Confirm</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ═══════════════ WITHDRAW MODAL ═══════════════ -->
+<div id="wallet-withdraw-modal" class="wallet-modal-backdrop" hidden aria-modal="true" role="dialog" aria-labelledby="wallet-withdraw-title">
+    <div class="wallet-modal-box">
+        <div class="wallet-modal-header">
+            <h2 id="wallet-withdraw-title">Withdraw</h2>
+            <button class="icon-btn wallet-modal-close-btn" aria-label="Close modal">
+                <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>
+        </div>
+        <form id="wallet-withdraw-form" novalidate>
+            <div class="wallet-modal-body">
+                <div class="wallet-modal-field">
+                    <label for="wallet-withdraw-amount">Amount (R)</label>
+                    <input type="number" id="wallet-withdraw-amount" placeholder="0.00" min="0.01" step="0.01">
+                </div>
+                <div class="wallet-modal-field">
+                    <label for="wallet-withdraw-dest">Destination</label>
+                    <input type="text" id="wallet-withdraw-dest" placeholder="e.g. FNB Savings ****1234" autocomplete="off">
+                </div>
+                <span class="field-error" id="wallet-withdraw-error"></span>
+            </div>
+            <div class="wallet-modal-footer">
+                <button type="button" class="wallet-btn wallet-btn--secondary wallet-modal-cancel-btn">Cancel</button>
+                <button type="submit" class="wallet-btn wallet-btn--primary">Confirm</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ═══════════════ TRANSFER TO GOAL MODAL ═══════════════ -->
+<div id="wallet-transfer-modal" class="wallet-modal-backdrop" hidden aria-modal="true" role="dialog" aria-labelledby="wallet-transfer-title">
+    <div class="wallet-modal-box">
+        <div class="wallet-modal-header">
+            <h2 id="wallet-transfer-title">Transfer to Goal</h2>
+            <button class="icon-btn wallet-modal-close-btn" aria-label="Close modal">
+                <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>
+        </div>
+        <form id="wallet-transfer-form" novalidate>
+            <div class="wallet-modal-body">
+                <div class="wallet-modal-field">
+                    <label for="wallet-transfer-amount">Amount (R)</label>
+                    <input type="number" id="wallet-transfer-amount" placeholder="0.00" min="0.01" step="0.01">
+                </div>
+                <div class="wallet-modal-field">
+                    <label for="wallet-transfer-goal">Goal</label>
+                    <select id="wallet-transfer-goal">
+                        <option value="">Select a goal...</option>
+                        <option value="Vacation Fund">Vacation Fund</option>
+                        <option value="Emergency Fund">Emergency Fund</option>
+                        <option value="New Laptop">New Laptop</option>
+                        <option value="Car Savings">Car Savings</option>
+                        <option value="Education">Education</option>
+                    </select>
+                </div>
+                <span class="field-error" id="wallet-transfer-error"></span>
+            </div>
+            <div class="wallet-modal-footer">
+                <button type="button" class="wallet-btn wallet-btn--secondary wallet-modal-cancel-btn">Cancel</button>
+                <button type="submit" class="wallet-btn wallet-btn--primary">Confirm</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ═══════════════ SEND TO DEPENDANT MODAL ═══════════════ -->
+<div id="wallet-send-modal" class="wallet-modal-backdrop" hidden aria-modal="true" role="dialog" aria-labelledby="wallet-send-title">
+    <div class="wallet-modal-box">
+        <div class="wallet-modal-header">
+            <h2 id="wallet-send-title">Send to Dependant</h2>
+            <button class="icon-btn wallet-modal-close-btn" aria-label="Close modal">
+                <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>
+        </div>
+        <form id="wallet-send-form" novalidate>
+            <div class="wallet-modal-body">
+                <div class="wallet-modal-field">
+                    <label for="wallet-send-amount">Amount (R)</label>
+                    <input type="number" id="wallet-send-amount" placeholder="0.00" min="0.01" step="0.01">
+                </div>
+                <div class="wallet-modal-field">
+                    <label for="wallet-send-name">Dependant Name</label>
+                    <input type="text" id="wallet-send-name" placeholder="e.g. James M." autocomplete="off">
+                </div>
+                <span class="field-error" id="wallet-send-error"></span>
+            </div>
+            <div class="wallet-modal-footer">
+                <button type="button" class="wallet-btn wallet-btn--secondary wallet-modal-cancel-btn">Cancel</button>
+                <button type="submit" class="wallet-btn wallet-btn--primary">Confirm</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ═══════════════ ADD DEPENDANT MODAL ═══════════════ -->
+<div id="dep-add-modal" class="dep-modal-backdrop" hidden aria-modal="true" role="dialog" aria-labelledby="dep-add-title">
+    <div class="dep-modal-box">
+        <div class="dep-modal-header">
+            <h2 id="dep-add-title">Add Dependant</h2>
+            <button class="icon-btn" id="dep-add-close" aria-label="Close modal">
+                <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>
+        </div>
+        <form id="dep-add-form" novalidate>
+            <div class="dep-modal-body">
+                <div class="dep-modal-row">
+                    <div class="dep-modal-field">
+                        <label for="dep-add-name">Name <span class="required">*</span></label>
+                        <input type="text" id="dep-add-name" placeholder="e.g. James Mitchell" autocomplete="off">
+                    </div>
+                    <div class="dep-modal-field">
+                        <label for="dep-add-email">Email <span class="required">*</span></label>
+                        <input type="email" id="dep-add-email" placeholder="e.g. james@email.com" autocomplete="off">
+                    </div>
+                </div>
+                <div class="dep-modal-row">
+                    <div class="dep-modal-field">
+                        <label for="dep-add-relationship">Relationship</label>
+                        <select id="dep-add-relationship">
+                            <option value="Son">Son</option>
+                            <option value="Daughter">Daughter</option>
+                            <option value="Spouse">Spouse</option>
+                            <option value="Parent">Parent</option>
+                            <option value="Sibling">Sibling</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="dep-modal-field">
+                        <label for="dep-add-allowance">Allowance (R/mo)</label>
+                        <input type="number" id="dep-add-allowance" placeholder="0.00" min="0" step="0.01">
+                    </div>
+                </div>
+                <div class="dep-modal-field">
+                    <label for="dep-add-spending-limit">Spending Limit (R)</label>
+                    <input type="number" id="dep-add-spending-limit" placeholder="0.00" min="0" step="0.01">
+                </div>
+                <span class="dep-modal-error" id="dep-add-error"></span>
+            </div>
+            <div class="dep-modal-footer">
+                <button type="button" class="secondary-btn" id="dep-add-cancel">Cancel</button>
+                <button type="submit" class="primary-btn">Add Dependant</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ═══════════════ SEND ALLOWANCE MODAL ═══════════════ -->
+<div id="dep-send-modal" class="dep-modal-backdrop" hidden aria-modal="true" role="dialog" aria-labelledby="dep-send-title">
+    <div class="dep-modal-box">
+        <div class="dep-modal-header">
+            <h2 id="dep-send-title">Send Allowance</h2>
+            <button class="icon-btn" id="dep-send-close" aria-label="Close modal">
+                <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>
+        </div>
+        <form id="dep-send-form" novalidate>
+            <div class="dep-modal-body">
+                <p style="font-size:14px;color:var(--text-light);margin-bottom:4px;">
+                    Sending to: <strong id="dep-send-dep-name" style="color:var(--text);"></strong>
+                </p>
+                <div class="dep-modal-row">
+                    <div class="dep-modal-field">
+                        <label for="dep-send-amount">Amount (R) <span class="required">*</span></label>
+                        <input type="number" id="dep-send-amount" placeholder="0.00" min="0.01" step="0.01">
+                    </div>
+                    <div class="dep-modal-field">
+                        <label for="dep-send-frequency">Frequency</label>
+                        <select id="dep-send-frequency">
+                            <option value="one-time">One-time</option>
+                            <option value="recurring">Recurring (monthly)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="dep-modal-field">
+                    <label for="dep-send-source">Source</label>
+                    <select id="dep-send-source">
+                        <option value="wallet">Wallet</option>
+                    </select>
+                </div>
+                <span class="dep-modal-error" id="dep-send-error"></span>
+            </div>
+            <div class="dep-modal-footer">
+                <button type="button" class="secondary-btn" id="dep-send-cancel">Cancel</button>
+                <button type="submit" class="primary-btn">Send Allowance</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ═══════════════ DEPENDANT DETAIL DRAWER ═══════════════ -->
+<div id="dep-drawer-overlay" class="dep-drawer-overlay" hidden></div>
+<aside id="dep-drawer" class="dep-drawer" hidden aria-label="Dependant details">
+    <div class="dep-drawer-header">
+        <div class="dep-drawer-title-row">
+            <div class="dep-avatar dep-avatar--blue" id="dep-drawer-avatar">JM</div>
+            <div>
+                <h2 id="dep-drawer-name" class="dep-drawer-name"></h2>
+                <p id="dep-drawer-rel" class="dep-drawer-relationship"></p>
+            </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+            <span id="dep-drawer-status" class="dep-status-badge"></span>
+            <button class="icon-btn" id="dep-drawer-close" aria-label="Close details">
+                <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>
+        </div>
+    </div>
+    <div class="dep-drawer-body">
+        <!-- Permissions -->
+        <p class="dep-drawer-section-title">Permissions</p>
+        <div class="dep-permission-list">
+            <div class="dep-permission-row">
+                <span class="dep-permission-label">Can spend</span>
+                <label class="dep-switch">
+                    <input type="checkbox" id="dep-perm-spend">
+                    <span class="dep-switch-track"></span>
+                </label>
+            </div>
+            <div class="dep-permission-row">
+                <span class="dep-permission-label">Can view wallet</span>
+                <label class="dep-switch">
+                    <input type="checkbox" id="dep-perm-view-wallet">
+                    <span class="dep-switch-track"></span>
+                </label>
+            </div>
+            <div class="dep-permission-row">
+                <span class="dep-permission-label">Can request funds</span>
+                <label class="dep-switch">
+                    <input type="checkbox" id="dep-perm-request">
+                    <span class="dep-switch-track"></span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Activity -->
+        <p class="dep-drawer-section-title">Activity</p>
+        <ul class="dep-activity-list" id="dep-drawer-activity-list">
+            <!-- Rendered by DependantsUI -->
+        </ul>
+    </div>
+    <div class="dep-drawer-footer">
+        <button class="dep-drawer-btn dep-drawer-btn--send" id="dep-drawer-send-btn">Send Allowance</button>
+        <button class="dep-drawer-btn dep-drawer-btn--delete" id="dep-drawer-delete-btn">Delete</button>
+    </div>
+</aside>
+
+<!-- ═══════════════ PROFILE PANEL ═══════════════ -->
+<div id="profile-panel-overlay" class="profile-panel-overlay" hidden></div>
+<aside id="profile-panel" class="profile-panel" hidden aria-label="Profile">
+    <div class="profile-panel-header">
+        <div class="profile-panel-tabs">
+            <h2 class="profile-panel-title">Profile</h2>
+        </div>
+        <button class="icon-btn" id="profile-panel-close" aria-label="Close panel">
+            <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+    </div>
+
+    <!-- PROFILE TAB -->
+    <div class="profile-panel-body" id="profile-tab-content">
+        <div class="pp-avatar-section">
+            <div class="pp-avatar" id="pp-avatar" title="Upload photo">
+                <img id="pp-avatar-img" src="../images/smallLogo.png" alt="Avatar">
+                <div class="pp-avatar-overlay"><svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="13" r="4" stroke="currentColor" stroke-width="2"/></svg></div>
+            </div>
+            <input type="file" id="pp-avatar-input" accept="image/*" hidden>
+            <div class="pp-avatar-row" id="pp-avatar-row">
+                <button class="pp-avatar-option" data-avatar="astronaut" title="Astronaut"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#1E293B"/><circle cx="32" cy="28" r="14" fill="#F8FAFC" stroke="#94A3B8" stroke-width="1.5"/><path d="M22 28c0-5.5 4.5-10 10-10s10 4.5 10 10" fill="#0EA5E9" opacity="0.3"/><rect x="26" y="24" width="4" height="4" rx="1" fill="#0EA5E9"/><rect x="34" y="24" width="4" height="4" rx="1" fill="#0EA5E9"/><path d="M18 48c0-7.7 6.3-14 14-14s14 6.3 14 14" fill="#F97316"/></svg></button>
+                <button class="pp-avatar-option" data-avatar="ninja" title="Ninja"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#1F2937"/><circle cx="32" cy="30" r="13" fill="#FDE68A"/><rect x="19" y="26" width="26" height="8" rx="2" fill="#374151"/><circle cx="27" cy="30" r="2.5" fill="#FFF"/><circle cx="37" cy="30" r="2.5" fill="#FFF"/><circle cx="27" cy="30" r="1.2" fill="#111"/><circle cx="37" cy="30" r="1.2" fill="#111"/><path d="M18 48c0-7.7 6.3-14 14-14s14 6.3 14 14" fill="#374151"/></svg></button>
+                <button class="pp-avatar-option" data-avatar="robot" title="Robot"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#0F172A"/><rect x="20" y="20" width="24" height="22" rx="4" fill="#64748B"/><rect x="24" y="26" width="6" height="6" rx="1.5" fill="#22D3EE"/><rect x="34" y="26" width="6" height="6" rx="1.5" fill="#22D3EE"/><rect x="27" y="35" width="10" height="3" rx="1" fill="#334155"/><rect x="30" y="14" width="4" height="6" rx="2" fill="#F59E0B"/><circle cx="32" cy="13" r="2.5" fill="#FBBF24"/><path d="M20 48c0-6.6 5.4-12 12-12s12 5.4 12 12" fill="#475569"/></svg></button>
+                <button class="pp-avatar-option" data-avatar="cat" title="Cool Cat"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#FDF4FF"/><circle cx="32" cy="34" r="14" fill="#F9A8D4"/><polygon points="20,22 24,32 16,32" fill="#F9A8D4"/><polygon points="44,22 48,32 40,32" fill="#F9A8D4"/><circle cx="27" cy="32" r="2.5" fill="#FFF"/><circle cx="37" cy="32" r="2.5" fill="#FFF"/><circle cx="27" cy="32.5" r="1.5" fill="#1E1B4B"/><circle cx="37" cy="32.5" r="1.5" fill="#1E1B4B"/><ellipse cx="32" cy="37" rx="2" ry="1.2" fill="#EC4899"/></svg></button>
+                <button class="pp-avatar-option" data-avatar="fox" title="Fox"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#FFF7ED"/><circle cx="32" cy="34" r="14" fill="#FB923C"/><polygon points="19,20 24,32 14,30" fill="#FB923C"/><polygon points="45,20 50,30 40,32" fill="#FB923C"/><polygon points="19,20 24,28 16,26" fill="#FFF"/><polygon points="45,20 48,26 40,28" fill="#FFF"/><circle cx="27" cy="32" r="2" fill="#1C1917"/><circle cx="37" cy="32" r="2" fill="#1C1917"/><ellipse cx="32" cy="37" rx="3" ry="2" fill="#FFF"/><circle cx="32" cy="36.5" r="1.5" fill="#1C1917"/></svg></button>
+                <button class="pp-avatar-more-btn" id="pp-avatar-more-btn" title="See more avatars">+</button>
+            </div>
+            <div class="pp-avatar-expanded" id="pp-avatar-expanded" hidden>
+                <button class="pp-avatar-option" data-avatar="panda" title="Panda"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#F0FDF4"/><circle cx="32" cy="34" r="14" fill="#FAFAFA"/><circle cx="24" cy="28" r="5" fill="#1C1917"/><circle cx="40" cy="28" r="5" fill="#1C1917"/><circle cx="26" cy="30" r="2.5" fill="#FFF"/><circle cx="38" cy="30" r="2.5" fill="#FFF"/><circle cx="26" cy="30.5" r="1.2" fill="#111"/><circle cx="38" cy="30.5" r="1.2" fill="#111"/><ellipse cx="32" cy="37" rx="3" ry="2" fill="#1C1917"/></svg></button>
+                <button class="pp-avatar-option" data-avatar="wizard" title="Wizard"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#1E1B4B"/><circle cx="32" cy="36" r="12" fill="#FDE68A"/><polygon points="32,6 22,30 42,30" fill="#7C3AED"/><circle cx="32" cy="10" r="2.5" fill="#FBBF24"/><circle cx="28" cy="34" r="2" fill="#1E1B4B"/><circle cx="36" cy="34" r="2" fill="#1E1B4B"/><path d="M28 40q4 3 8 0" stroke="#92400E" stroke-width="1" fill="none"/><path d="M20 50q12 6 24 0" fill="#7C3AED"/></svg></button>
+                <button class="pp-avatar-option" data-avatar="alien" title="Alien"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#042F2E"/><ellipse cx="32" cy="32" rx="16" ry="18" fill="#6EE7B7"/><ellipse cx="26" cy="28" rx="4" ry="5" fill="#111827"/><ellipse cx="38" cy="28" rx="4" ry="5" fill="#111827"/><ellipse cx="26" cy="28" rx="2" ry="3" fill="#34D399"/><ellipse cx="38" cy="28" rx="2" ry="3" fill="#34D399"/><ellipse cx="32" cy="40" rx="3" ry="1.5" fill="#065F46"/></svg></button>
+                <button class="pp-avatar-option" data-avatar="bear" title="Bear"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#FEF3C7"/><circle cx="21" cy="22" r="6" fill="#92400E"/><circle cx="43" cy="22" r="6" fill="#92400E"/><circle cx="21" cy="22" r="3.5" fill="#D97706"/><circle cx="43" cy="22" r="3.5" fill="#D97706"/><circle cx="32" cy="34" r="14" fill="#D97706"/><circle cx="27" cy="31" r="2" fill="#1C1917"/><circle cx="37" cy="31" r="2" fill="#1C1917"/><ellipse cx="32" cy="37" rx="4" ry="3" fill="#FDE68A"/><circle cx="32" cy="36" r="2" fill="#1C1917"/></svg></button>
+                <button class="pp-avatar-option" data-avatar="ghost" title="Ghost"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#0F172A"/><path d="M18 38c0-7.7 6.3-14 14-14s14 6.3 14 14v14c0 0-4-3-7-1s-4 3-7 1-4-3-7-1-7 1-7 1V38z" fill="#F1F5F9"/><circle cx="27" cy="35" r="3" fill="#1E293B"/><circle cx="37" cy="35" r="3" fill="#1E293B"/><circle cx="28" cy="34" r="1.2" fill="#FFF"/><circle cx="38" cy="34" r="1.2" fill="#FFF"/></svg></button>
+                <button class="pp-avatar-option" data-avatar="dragon" title="Dragon"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#1C1917"/><circle cx="32" cy="34" r="13" fill="#16A34A"/><polygon points="20,20 26,28 18,28" fill="#16A34A"/><polygon points="44,20 46,28 38,28" fill="#16A34A"/><circle cx="27" cy="32" r="3" fill="#FDE047"/><circle cx="37" cy="32" r="3" fill="#FDE047"/><circle cx="27" cy="32.5" r="1.5" fill="#111"/><circle cx="37" cy="32.5" r="1.5" fill="#111"/><ellipse cx="30" cy="39" rx="1" ry="0.8" fill="#111"/><ellipse cx="34" cy="39" rx="1" ry="0.8" fill="#111"/></svg></button>
+                <button class="pp-avatar-option" data-avatar="pirate" title="Pirate"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#1E293B"/><circle cx="32" cy="34" r="13" fill="#FDE68A"/><rect x="18" y="22" width="28" height="8" rx="2" fill="#1C1917"/><rect x="20" y="18" width="24" height="6" rx="2" fill="#DC2626"/><circle cx="37" cy="32" r="2.5" fill="#FFF"/><circle cx="37" cy="32" r="1.2" fill="#111"/><circle cx="25" cy="32" r="4" fill="#1C1917"/><path d="M22 32h6" stroke="#FDE68A" stroke-width="1"/><path d="M25 29v6" stroke="#FDE68A" stroke-width="1"/></svg></button>
+            </div>
+        </div>
+
+        <div class="pp-field">
+            <label for="pp-fullname">Full Name</label>
+            <input type="text" id="pp-fullname" placeholder="Your full name">
+        </div>
+        <div class="pp-field">
+            <label for="pp-nickname">Nickname <span style="font-weight:400;color:var(--text-light)">(shown in system)</span></label>
+            <input type="text" id="pp-nickname" placeholder="e.g. Sarah">
+        </div>
+        <div class="pp-field">
+            <label for="pp-email">Email</label>
+            <input type="email" id="pp-email" placeholder="you@email.com">
+        </div>
+        <div class="pp-row">
+            <div class="pp-field">
+                <label for="pp-phone">Phone</label>
+                <input type="tel" id="pp-phone" placeholder="+27 71 234 5678">
+            </div>
+            <div class="pp-field">
+                <label for="pp-dob">Date of Birth</label>
+                <input type="date" id="pp-dob">
+            </div>
+        </div>
+        <div class="pp-field">
+            <label for="pp-bio">Bio</label>
+            <textarea id="pp-bio" rows="3" placeholder="A bit about yourself..."></textarea>
+        </div>
+        <button class="pp-save-btn" id="pp-save-btn">Save Changes</button>
+    </div>
+
+
+</aside>
+
 <script>lucide.createIcons();</script>
 <script src="../scripts/ui-utils.js"></script>
 <script src="../scripts/api.js"></script>
 <script src="../backend/subscriptions.js"></script>
+<script src="../backend/dashboard.js"></script>
+<script src="../backend/wallet.js"></script>
+<script src="../backend/goals.js"></script>
+<script src="../backend/dependants.js"></script>
+<script src="../scripts/dashboard-ui.js"></script>
 <script src="../scripts/subscriptions-ui.js"></script>
+<script src="../scripts/wallet-ui.js"></script>
+<script src="../scripts/goals-ui.js"></script>
+<script src="../scripts/analytics-ui.js"></script>
+<script src="../scripts/dependants-ui.js"></script>
+<script src="../scripts/profile-panel.js"></script>
 <script src="../scripts/layout.js"></script>
 </body>
 </html>

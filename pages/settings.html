@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlexScribe — Settings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+<style>
+:root {
+    --background: #090B10;
+    --card: #181D24;
+    --border: #272D35;
+    --text: #F5F5F5;
+    --text-light: #A3ABB8;
+    --text-muted: #6B7280;
+    --orange: #FF8A34;
+    --orange-hover: #FF9B54;
+    --input-bg: #0D1117;
+    --green: #3ECF6E;
+    --danger: #F87171;
+    --shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+*:focus { outline: none; }
+*:focus-visible {
+    outline: 2px solid rgba(255, 138, 52, 0.7);
+    outline-offset: 2px;
+    border-radius: 3px;
+}
+
+body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--background);
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    padding: 40px 16px;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    top: -200px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(255, 138, 52, 0.06) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.settings-container {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 600px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 36px 32px;
+    box-shadow: var(--shadow);
+}
+
+.logo {
+    text-align: center;
+    margin-bottom: 24px;
+}
+.logo img {
+    border-radius: 12px;
+    margin-bottom: 6px;
+}
+.logo-text {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text);
+}
+.logo-text span { color: var(--orange); }
+
+.page-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 28px;
+    text-align: center;
+    color: var(--text-light);
+}
+
+/* Sections */
+.section {
+    margin-bottom: 28px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+}
+.section:last-of-type {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+.section-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.section-title i {
+    color: var(--orange);
+    font-size: 14px;
+}
+
+/* Toggle */
+.toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+}
+.toggle-label {
+    font-size: 14px;
+    color: var(--text-light);
+}
+.toggle {
+    position: relative;
+    width: 40px;
+    height: 22px;
+    cursor: pointer;
+}
+.toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.toggle-track {
+    position: absolute;
+    inset: 0;
+    background: var(--border);
+    border-radius: 11px;
+    transition: background 0.2s;
+}
+.toggle input:checked + .toggle-track {
+    background: var(--green);
+}
+.toggle-track::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.2s;
+}
+.toggle input:checked + .toggle-track::after {
+    transform: translateX(18px);
+}
+
+/* Theme toggle buttons */
+.theme-btns {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+.theme-btn {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-light);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+.theme-btn.active {
+    border-color: var(--orange);
+    background: rgba(255, 138, 52, 0.1);
+    color: var(--orange);
+}
+.theme-btn:hover:not(.active) {
+    border-color: var(--text-muted);
+}
+
+/* Accent swatches */
+.accent-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+}
+.accent-swatch {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    cursor: pointer;
+    transition: transform 0.15s, border-color 0.2s;
+}
+.accent-swatch:hover {
+    transform: scale(1.15);
+}
+.accent-swatch.active {
+    border-color: var(--text);
+    transform: scale(1.15);
+}
+
+/* Inputs */
+label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-light);
+    margin-bottom: 6px;
+    margin-top: 12px;
+}
+
+input[type="password"], input[type="text"] {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+input:focus {
+    border-color: var(--orange);
+}
+
+/* Buttons */
+.btn {
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+.btn-primary {
+    background: var(--orange);
+    color: #fff;
+}
+.btn-primary:hover { background: var(--orange-hover); }
+.btn-secondary {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-light);
+}
+.btn-secondary:hover { border-color: var(--text-muted); color: var(--text); }
+.btn-danger {
+    background: var(--danger);
+    color: #fff;
+}
+.btn-danger:hover { background: #ef4444; }
+.btn-sm {
+    padding: 10px 16px;
+    font-size: 13px;
+}
+
+.btn-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+}
+
+/* Delete confirm */
+.delete-confirm {
+    margin-top: 12px;
+    display: none;
+}
+.delete-confirm.show { display: block; }
+.delete-confirm input {
+    margin-top: 8px;
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--danger);
+    border-radius: 8px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+}
+.delete-hint {
+    font-size: 12px;
+    color: var(--danger);
+    margin-top: 6px;
+}
+
+/* Toast */
+.toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--green);
+    color: #111;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    opacity: 0;
+    transition: all 0.3s ease;
+    z-index: 999;
+}
+.toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.back-link {
+    display: block;
+    text-align: center;
+    margin-top: 24px;
+    color: var(--text-muted);
+    font-size: 13px;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+.back-link:hover { color: var(--orange); }
+
+.pw-error {
+    font-size: 12px;
+    color: var(--danger);
+    margin-top: 4px;
+    display: none;
+}
+.pw-error.show { display: block; }
+</style>
+</head>
+<body>
+
+<div class="settings-container">
+
+    <!-- Logo -->
+    <div class="logo">
+        <img src="../images/smallLogo.png" alt="FlexScribe" width="48" height="48">
+        <div class="logo-text">Flex<span>Scribe</span></div>
+    </div>
+
+    <div class="page-title">Account Settings</div>
+
+    <!-- ═══ Appearance ═══ -->
+    <div class="section">
+        <div class="section-title"><i class="fa-solid fa-palette"></i> Appearance</div>
+
+        <div class="toggle-label" style="margin-bottom:6px">Theme</div>
+        <div class="theme-btns">
+            <button class="theme-btn" data-theme="dark" id="theme-dark">
+                <i class="fa-solid fa-moon"></i> Dark
+            </button>
+            <button class="theme-btn" data-theme="light" id="theme-light">
+                <i class="fa-solid fa-sun"></i> Light
+            </button>
+        </div>
+
+        <div class="toggle-label" style="margin-top:16px;margin-bottom:4px">Accent Color</div>
+        <div class="accent-row" id="accent-row">
+            <div class="accent-swatch" data-color="#FF8A34" style="background:#FF8A34"></div>
+            <div class="accent-swatch" data-color="#3B82F6" style="background:#3B82F6"></div>
+            <div class="accent-swatch" data-color="#8B5CF6" style="background:#8B5CF6"></div>
+            <div class="accent-swatch" data-color="#3ECF6E" style="background:#3ECF6E"></div>
+            <div class="accent-swatch" data-color="#F5B83D" style="background:#F5B83D"></div>
+            <div class="accent-swatch" data-color="#F87171" style="background:#F87171"></div>
+        </div>
+    </div>
+
+    <!-- ═══ Notifications ═══ -->
+    <div class="section">
+        <div class="section-title"><i class="fa-solid fa-bell"></i> Notifications</div>
+
+        <div class="toggle-row">
+            <span class="toggle-label">Payment reminders</span>
+            <label class="toggle">
+                <input type="checkbox" id="notif-payments">
+                <div class="toggle-track"></div>
+            </label>
+        </div>
+        <div class="toggle-row">
+            <span class="toggle-label">Goal milestones</span>
+            <label class="toggle">
+                <input type="checkbox" id="notif-goals">
+                <div class="toggle-track"></div>
+            </label>
+        </div>
+        <div class="toggle-row">
+            <span class="toggle-label">Weekly spending summary</span>
+            <label class="toggle">
+                <input type="checkbox" id="notif-weekly">
+                <div class="toggle-track"></div>
+            </label>
+        </div>
+    </div>
+
+    <!-- ═══ Security ═══ -->
+    <div class="section">
+        <div class="section-title"><i class="fa-solid fa-shield-halved"></i> Security</div>
+
+        <label for="current-pw">Current Password</label>
+        <input type="password" id="current-pw" placeholder="Enter current password">
+
+        <label for="new-pw">New Password</label>
+        <input type="password" id="new-pw" placeholder="Enter new password">
+
+        <label for="confirm-pw">Confirm New Password</label>
+        <input type="password" id="confirm-pw" placeholder="Repeat new password">
+
+        <div class="pw-error" id="pw-error">Passwords do not match.</div>
+
+        <button class="btn btn-primary btn-sm" style="margin-top:14px" id="change-pw-btn">
+            <i class="fa-solid fa-key"></i> Update Password
+        </button>
+
+        <div class="toggle-row" style="margin-top:18px">
+            <span class="toggle-label">Two-factor authentication</span>
+            <label class="toggle">
+                <input type="checkbox" id="two-factor">
+                <div class="toggle-track"></div>
+            </label>
+        </div>
+    </div>
+
+    <!-- ═══ Data ═══ -->
+    <div class="section">
+        <div class="section-title"><i class="fa-solid fa-database"></i> Data</div>
+
+        <div class="btn-row">
+            <button class="btn btn-secondary btn-sm" id="export-btn">
+                <i class="fa-solid fa-download"></i> Export All Data
+            </button>
+            <button class="btn btn-secondary btn-sm" id="clear-btn" style="border-color: var(--danger); color: var(--danger);">
+                <i class="fa-solid fa-trash-can"></i> Clear All Data
+            </button>
+        </div>
+    </div>
+
+    <!-- ═══ Delete Account ═══ -->
+    <div class="section">
+        <div class="section-title"><i class="fa-solid fa-user-xmark"></i> Delete Account</div>
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px">
+            This will permanently erase all your data. This action cannot be undone.
+        </p>
+        <button class="btn btn-danger btn-sm" id="delete-btn">
+            <i class="fa-solid fa-skull-crossbones"></i> Delete Account
+        </button>
+
+        <div class="delete-confirm" id="delete-confirm">
+            <p class="delete-hint">Type <strong>DELETE</strong> below to confirm:</p>
+            <input type="text" id="delete-input" placeholder="Type DELETE to confirm" autocomplete="off">
+            <button class="btn btn-danger btn-sm" style="margin-top:10px;width:100%" id="delete-confirm-btn" disabled>
+                Confirm Deletion
+            </button>
+        </div>
+    </div>
+
+    <a href="MASTER.html" class="back-link">&larr; Back to Dashboard</a>
+
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+(function() {
+    const SETTINGS_KEY = 'flexscribe_settings';
+    const ACCENT_KEY = 'flexscribe_dashboard_accent';
+
+    const defaults = {
+        notifications: { payments: true, goals: true, weekly: false },
+        security: { twoFactor: false }
+    };
+
+    function loadSettings() {
+        const stored = localStorage.getItem(SETTINGS_KEY);
+        return stored ? JSON.parse(stored) : JSON.parse(JSON.stringify(defaults));
+    }
+    function saveSettings(data) {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(data));
+    }
+
+    const settings = loadSettings();
+
+    // ── Toast ──
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    // ═══ APPEARANCE ═══
+    // Theme
+    const currentTheme = localStorage.getItem('theme') || 'dark';
+    document.getElementById('theme-' + currentTheme).classList.add('active');
+
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            localStorage.setItem('theme', btn.dataset.theme);
+            showToast('Theme set to ' + btn.dataset.theme);
+        });
+    });
+
+    // Accent
+    const currentAccent = localStorage.getItem(ACCENT_KEY) || '#FF8A34';
+    document.querySelectorAll('.accent-swatch').forEach(sw => {
+        if (sw.dataset.color === currentAccent) sw.classList.add('active');
+        sw.addEventListener('click', () => {
+            document.querySelectorAll('.accent-swatch').forEach(s => s.classList.remove('active'));
+            sw.classList.add('active');
+            localStorage.setItem(ACCENT_KEY, sw.dataset.color);
+            showToast('Accent color updated');
+        });
+    });
+
+    // ═══ NOTIFICATIONS ═══
+    document.getElementById('notif-payments').checked = settings.notifications.payments;
+    document.getElementById('notif-goals').checked = settings.notifications.goals;
+    document.getElementById('notif-weekly').checked = settings.notifications.weekly;
+
+    ['notif-payments', 'notif-goals', 'notif-weekly'].forEach(id => {
+        document.getElementById(id).addEventListener('change', () => {
+            settings.notifications.payments = document.getElementById('notif-payments').checked;
+            settings.notifications.goals = document.getElementById('notif-goals').checked;
+            settings.notifications.weekly = document.getElementById('notif-weekly').checked;
+            saveSettings(settings);
+            showToast('Notification preferences saved');
+        });
+    });
+
+    // ═══ SECURITY ═══
+    document.getElementById('two-factor').checked = settings.security.twoFactor;
+    document.getElementById('two-factor').addEventListener('change', (e) => {
+        settings.security.twoFactor = e.target.checked;
+        saveSettings(settings);
+        showToast('Two-factor ' + (e.target.checked ? 'enabled' : 'disabled'));
+    });
+
+    // Change password
+    document.getElementById('change-pw-btn').addEventListener('click', () => {
+        const current = document.getElementById('current-pw').value;
+        const newPw = document.getElementById('new-pw').value;
+        const confirm = document.getElementById('confirm-pw').value;
+        const errEl = document.getElementById('pw-error');
+
+        if (!current || !newPw || !confirm) {
+            errEl.textContent = 'Please fill in all password fields.';
+            errEl.classList.add('show');
+            return;
+        }
+        if (newPw !== confirm) {
+            errEl.textContent = 'Passwords do not match.';
+            errEl.classList.add('show');
+            return;
+        }
+        if (newPw.length < 6) {
+            errEl.textContent = 'Password must be at least 6 characters.';
+            errEl.classList.add('show');
+            return;
+        }
+
+        errEl.classList.remove('show');
+        document.getElementById('current-pw').value = '';
+        document.getElementById('new-pw').value = '';
+        document.getElementById('confirm-pw').value = '';
+        showToast('Password updated successfully');
+    });
+
+    // ═══ DATA ═══
+    document.getElementById('export-btn').addEventListener('click', () => {
+        const data = {};
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            data[key] = localStorage.getItem(key);
+        }
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'flexscribe-data-export.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('Data exported');
+    });
+
+    document.getElementById('clear-btn').addEventListener('click', () => {
+        if (!confirm('Are you sure? This will clear all FlexScribe data.')) return;
+        const keys = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key.startsWith('flexscribe_')) keys.push(key);
+        }
+        keys.forEach(k => localStorage.removeItem(k));
+        showToast('All FlexScribe data cleared');
+        setTimeout(() => { window.location.href = 'login.html'; }, 1500);
+    });
+
+    // ═══ DELETE ACCOUNT ═══
+    const deleteBtn = document.getElementById('delete-btn');
+    const deleteConfirm = document.getElementById('delete-confirm');
+    const deleteInput = document.getElementById('delete-input');
+    const deleteConfirmBtn = document.getElementById('delete-confirm-btn');
+
+    deleteBtn.addEventListener('click', () => {
+        deleteConfirm.classList.toggle('show');
+    });
+
+    deleteInput.addEventListener('input', () => {
+        deleteConfirmBtn.disabled = deleteInput.value.trim() !== 'DELETE';
+    });
+
+    deleteConfirmBtn.addEventListener('click', () => {
+        localStorage.clear();
+        showToast('Account deleted. Redirecting...');
+        setTimeout(() => { window.location.href = 'login.html'; }, 1500);
+    });
+
+})();
+</script>
+</body>
+</html>
