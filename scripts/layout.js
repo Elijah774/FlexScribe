@@ -165,6 +165,10 @@ function loadPage(pageName) {
         AnalyticsUI.init();
     }
 
+    if (pageName === 'reports' && typeof ReportsUI !== 'undefined') {
+        ReportsUI.init();
+    }
+
     if (pageName === 'dependants' && typeof DependantsUI !== 'undefined') {
         DependantsUI.init();
     }
