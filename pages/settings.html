@@ -1,0 +1,85 @@
+
+                <!-- Appearance -->
+                <div class="settings-section">
+                    <h3 class="settings-section-title"><i data-lucide="palette" style="width:18px;height:18px;color:var(--orange);margin-right:8px"></i>Appearance</h3>
+                    <div class="settings-row">
+                        <span class="settings-label">Theme</span>
+                        <div class="settings-theme-btns">
+                            <button class="settings-theme-btn" data-theme="dark" id="settings-theme-dark"><i data-lucide="moon" style="width:14px;height:14px;margin-right:4px"></i>Dark</button>
+                            <button class="settings-theme-btn" data-theme="light" id="settings-theme-light"><i data-lucide="sun" style="width:14px;height:14px;margin-right:4px"></i>Light</button>
+                        </div>
+                    </div>
+                    <div class="settings-row">
+                        <span class="settings-label">Accent Color</span>
+                        <div class="settings-accent-row" id="settings-accent-row">
+                            <button class="settings-accent" data-color="#FF8A34" style="background:#FF8A34" aria-label="Orange"></button>
+                            <button class="settings-accent" data-color="#3B82F6" style="background:#3B82F6" aria-label="Blue"></button>
+                            <button class="settings-accent" data-color="#8B5CF6" style="background:#8B5CF6" aria-label="Purple"></button>
+                            <button class="settings-accent" data-color="#3ECF6E" style="background:#3ECF6E" aria-label="Green"></button>
+                            <button class="settings-accent" data-color="#F5B83D" style="background:#F5B83D" aria-label="Gold"></button>
+                            <button class="settings-accent" data-color="#F87171" style="background:#F87171" aria-label="Red"></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notifications -->
+                <div class="settings-section">
+                    <h3 class="settings-section-title"><i data-lucide="bell" style="width:18px;height:18px;color:var(--orange);margin-right:8px"></i>Notifications</h3>
+                    <div class="settings-toggle-row">
+                        <span>Payment reminders</span>
+                        <label class="settings-switch"><input type="checkbox" id="settings-notif-payments"><span class="settings-switch-track"></span></label>
+                    </div>
+                    <div class="settings-toggle-row">
+                        <span>Goal milestones</span>
+                        <label class="settings-switch"><input type="checkbox" id="settings-notif-goals"><span class="settings-switch-track"></span></label>
+                    </div>
+                    <div class="settings-toggle-row">
+                        <span>Weekly spending summary</span>
+                        <label class="settings-switch"><input type="checkbox" id="settings-notif-weekly"><span class="settings-switch-track"></span></label>
+                    </div>
+                </div>
+
+                <!-- Security -->
+                <div class="settings-section">
+                    <h3 class="settings-section-title"><i data-lucide="shield" style="width:18px;height:18px;color:var(--orange);margin-right:8px"></i>Security</h3>
+                    <div class="settings-form-row">
+                        <div class="settings-field">
+                            <label for="settings-current-pw">Current Password</label>
+                            <input type="password" id="settings-current-pw" placeholder="Current password">
+                        </div>
+                        <div class="settings-field">
+                            <label for="settings-new-pw">New Password</label>
+                            <input type="password" id="settings-new-pw" placeholder="New password">
+                        </div>
+                        <div class="settings-field">
+                            <label for="settings-confirm-pw">Confirm Password</label>
+                            <input type="password" id="settings-confirm-pw" placeholder="Confirm new password">
+                        </div>
+                    </div>
+                    <span class="settings-error" id="settings-pw-error"></span>
+                    <button class="settings-btn settings-btn--primary" id="settings-change-pw-btn">Update Password</button>
+                    <div class="settings-toggle-row" style="margin-top:16px">
+                        <span>Two-factor authentication</span>
+                        <label class="settings-switch"><input type="checkbox" id="settings-2fa"><span class="settings-switch-track"></span></label>
+                    </div>
+                </div>
+
+                <!-- Data Management -->
+                <div class="settings-section settings-section--danger">
+                    <h3 class="settings-section-title"><i data-lucide="database" style="width:18px;height:18px;color:var(--danger);margin-right:8px"></i>Data Management</h3>
+                    <div class="settings-btn-row">
+                        <button class="settings-btn settings-btn--secondary" id="settings-export-btn"><i data-lucide="download" style="width:14px;height:14px;margin-right:6px"></i>Export All Data</button>
+                        <button class="settings-btn settings-btn--danger" id="settings-clear-btn"><i data-lucide="trash-2" style="width:14px;height:14px;margin-right:6px"></i>Clear All Data</button>
+                    </div>
+                    <button class="settings-btn settings-btn--danger" id="settings-delete-btn" style="margin-top:8px;width:100%"><i data-lucide="user-x" style="width:14px;height:14px;margin-right:6px"></i>Delete Account</button>
+                    <div class="settings-delete-confirm" id="settings-delete-confirm" hidden>
+                        <p class="settings-delete-hint">Type <strong>DELETE</strong> to confirm:</p>
+                        <input type="text" id="settings-delete-input" placeholder="Type DELETE" autocomplete="off">
+                        <button class="settings-btn settings-btn--danger" id="settings-delete-final" disabled style="width:100%;margin-top:8px">Confirm Deletion</button>
+                    </div>
+                </div>
+
+                <!-- Save indicator -->
+                <div class="settings-save-row">
+                    <span class="settings-save-status" id="settings-save-status"></span>
+                </div>

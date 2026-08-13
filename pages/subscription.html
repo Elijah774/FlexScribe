@@ -1,173 +1,78 @@
 
-<div class="page-body">
-</div>
-<div class="heading-actions">
-    <button class="add-sub-btn"><i data-lucide="plus"></i>Add Subscription</button>
-    <button class="icon-btn"><i data-lucide="more-vertical"></i></button>
-</div>
-
-            <!-- stat cards -->
-            <div class="stat-row">
-                <div class="card stat-card">
-                    <div class="card-icon icon-green"><i data-lucide="layers"></i></div>
-                    <div>
-                        <p class="card-label">Active Subscriptions</p>
-                        <p class="card-value">5</p>
+                <!-- Actions bar -->
+                <div class="sub-actions-bar">
+                    <div class="sub-filters">
+                        <button class="filter-status-btn filter-btn--active" data-status="all">All</button>
+                        <button class="filter-status-btn" data-status="active">Active</button>
+                        <button class="filter-status-btn" data-status="paused">Paused</button>
                     </div>
-                </div>
-                <div class="card stat-card">
-                    <div class="card-icon icon-orange"><i data-lucide="wallet"></i></div>
-                    <div>
-                        <p class="card-label">Monthly Total</p>
-                        <p class="card-value">R905.99</p>
-                    </div>
-                </div>
-                <div class="card stat-card">
-                    <div class="card-icon icon-purple"><i data-lucide="calendar"></i></div>
-                    <div>
-                        <p class="card-label">Annual Total</p>
-                        <p class="card-value">R10,871.88</p>
-                    </div>
-                </div>
-                <div class="card stat-card">
-                    <div class="card-icon icon-blue"><i data-lucide="piggy-bank"></i></div>
-                    <div>
-                        <p class="card-label">Potential Savings</p>
-                        <p class="card-value">R2,180.00</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- upcoming payments + category donut -->
-            <div class="mid-row">
-
-                <div class="card panel">
-                    <div class="panel-header">
-                        <h2>Upcoming Payments</h2>
-                        <a href="#" class="card-link">View all upcoming</a>
-                    </div>
-                    <div class="upcoming-list">
-                        <div class="upcoming-item">
-                            <div class="compact-logo netflix"><i data-lucide="clapperboard"></i></div>
-                            <span class="upcoming-name">Netflix</span>
-                            <span class="upcoming-amount">R199.00</span>
-                            <span class="upcoming-date">May 18, 2025</span>
-                        </div>
-                        <div class="upcoming-item">
-                            <div class="compact-logo spotify"><i data-lucide="music"></i></div>
-                            <span class="upcoming-name">Spotify</span>
-                            <span class="upcoming-amount">R59.99</span>
-                            <span class="upcoming-date">May 16, 2025</span>
-                        </div>
-                        <div class="upcoming-item">
-                            <div class="compact-logo youtube"><i data-lucide="play"></i></div>
-                            <span class="upcoming-name">YouTube Premium</span>
-                            <span class="upcoming-amount">R79.00</span>
-                            <span class="upcoming-date">May 20, 2025</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card panel">
-                    <div class="panel-header">
-                        <h2>Top Categories</h2>
-                    </div>
-                    <div class="donut-wrap">
-                        <div class="donut">
-                            <div class="donut-center">
-                                <span class="donut-total">R905.99</span>
-                                <span class="donut-sub">/month</span>
+                    <div class="sub-actions-right">
+                        <button class="primary-btn add-sub-btn" id="add-sub-btn" aria-label="Add subscription">
+                            <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+                            Add Subscription
+                        </button>
+                        <div class="sub-more-wrap">
+                            <button class="icon-btn" id="sub-more-btn" aria-label="More options">
+                                <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><circle cx="12" cy="5" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="19" r="1.5" fill="currentColor"/></svg>
+                            </button>
+                            <div class="dropdown-menu sub-more-menu" id="sub-more-menu" hidden>
+                                <button class="dropdown-menu-item" id="sub-export-btn">
+                                    <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    Export CSV
+                                </button>
+                                <button class="dropdown-menu-item sort-btn" data-sort="amount">
+                                    <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M3 6h18M7 12h10M11 18h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                                    Sort by amount <span class="sort-arrow">↑</span>
+                                </button>
+                                <button class="dropdown-menu-item sort-btn" data-sort="name">
+                                    <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M3 6h18M7 12h10M11 18h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                                    Sort by name <span class="sort-arrow">↑</span>
+                                </button>
+                                <button class="dropdown-menu-item sort-btn sort-btn--active" data-sort="date">
+                                    <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                                    Sort by date <span class="sort-arrow">↑</span>
+                                </button>
                             </div>
                         </div>
-                        <ul class="donut-legend">
-                            <li><i class="dot dot-entertainment"></i>Entertainment<span>44%</span></li>
-                            <li><i class="dot dot-music"></i>Music<span>22%</span></li>
-                            <li><i class="dot dot-shopping"></i>Shopping<span>17%</span></li>
-                            <li><i class="dot dot-productivity"></i>Productivity<span>12%</span></li>
-                            <li><i class="dot dot-other"></i>Other<span>5%</span></li>
-                        </ul>
                     </div>
                 </div>
 
-            </div>
-
-            <!-- all subscriptions -->
-            <div class="card panel">
-                <div class="panel-header">
-                    <h2>All Subscriptions</h2>
-                </div>
-                <div class="compact-list">
-                    <div class="compact-row">
-                        <div class="compact-primary">
-                            <div class="compact-logo netflix"><i data-lucide="clapperboard"></i></div>
-                            <span class="compact-name">Netflix</span>
-                        </div>
-                        <span class="compact-category">Entertainment</span>
-                        <span class="compact-amount">R199.00<small>/ month</small></span>
-                        <span class="compact-date">May 18, 2025</span>
-                        <label class="toggle">
-                            <input type="checkbox" checked>
-                            <span class="toggle-track"></span>
-                        </label>
-                        <button class="row-icon-btn"><i data-lucide="more-vertical"></i></button>
-                    </div>
-
-                    <div class="compact-row">
-                        <div class="compact-primary">
-                            <div class="compact-logo spotify"><i data-lucide="music"></i></div>
-                            <span class="compact-name">Spotify</span>
-                        </div>
-                        <span class="compact-category">Music</span>
-                        <span class="compact-amount">R59.99<small>/ month</small></span>
-                        <span class="compact-date">May 16, 2025</span>
-                        <label class="toggle">
-                            <input type="checkbox" checked>
-                            <span class="toggle-track"></span>
-                        </label>
-                        <button class="row-icon-btn"><i data-lucide="more-vertical"></i></button>
-                    </div>
-
-                    <div class="compact-row">
-                        <div class="compact-primary">
-                            <div class="compact-logo disney"><i data-lucide="sparkles"></i></div>
-                            <span class="compact-name">Disney+</span>
-                        </div>
-                        <span class="compact-category">Entertainment</span>
-                        <span class="compact-amount">R89.00<small>/ month</small></span>
-                        <span class="compact-date">May 24, 2025</span>
-                        <label class="toggle">
-                            <input type="checkbox" checked>
-                            <span class="toggle-track"></span>
-                        </label>
-                        <button class="row-icon-btn"><i data-lucide="more-vertical"></i></button>
-                    </div>
-
-                    <div class="compact-row">
-                        <div class="compact-primary">
-                            <div class="compact-logo amazon"><i data-lucide="package"></i></div>
-                            <span class="compact-name">Amazon Prime</span>
-                        </div>
-                        <span class="compact-category">Shopping</span>
-                        <span class="compact-amount">R79.00<small>/ month</small></span>
-                        <span class="compact-date">May 22, 2025</span>
-                        <label class="toggle">
-                            <input type="checkbox" checked>
-                            <span class="toggle-track"></span>
-                        </label>
-                        <button class="row-icon-btn"><i data-lucide="more-vertical"></i></button>
-                    </div>
+                <!-- Category filter chips -->
+                <div class="sub-cat-filter">
+                    <button class="filter-cat-btn filter-btn--active" data-cat="all">All</button>
+                    <button class="filter-cat-btn" data-cat="Entertainment">Entertainment</button>
+                    <button class="filter-cat-btn" data-cat="Music">Music</button>
+                    <button class="filter-cat-btn" data-cat="Shopping">Shopping</button>
+                    <button class="filter-cat-btn" data-cat="Productivity">Productivity</button>
+                    <button class="filter-cat-btn" data-cat="Education">Education</button>
+                    <button class="filter-cat-btn" data-cat="Utilities">Utilities</button>
+                    <button class="filter-cat-btn" data-cat="Gaming">Gaming</button>
+                    <button class="filter-cat-btn" data-cat="Other">Other</button>
                 </div>
 
-                <a href="#" class="view-all-link">View all subscriptions <i data-lucide="chevron-right"></i></a>
-            </div>
+                <!-- All subscriptions list (current/active subs at top) -->
+                <div class="panel sub-list-panel">
+                    <div class="panel-head">
+                        <h3>Your Subscriptions</h3>
+                    </div>
+                    <ul class="sub-list" id="sub-list" aria-label="Subscriptions list">
+                        <!-- Rendered by SubscriptionsUI -->
+                    </ul>
+                </div>
 
-        </div>
-    </main>
+                <!-- Recommended For You (auto-scrolling marquee) -->
+                <section class="rec-section" aria-label="Recommended subscriptions">
+                    <div class="panel-head">
+                        <h3>Recommended For You</h3>
+                    </div>
+                    <div class="rec-marquee-wrapper">
+                        <div class="rec-marquee" id="rec-strip" role="list" aria-label="Recommended subscription providers">
+                            <!-- Rendered by SubscriptionsUI — cards duplicated for infinite scroll -->
+                        </div>
+                    </div>
+                </section>
 
-</div>
-</body>
-</html>
-<script>
-    lucide.createIcons();
-</script>
-<script src="../scripts/layout.js"></script>
+                <!-- FAB (mobile + desktop) -->
+                <button class="sub-fab" id="sub-fab" aria-label="Add subscription">
+                    <svg viewBox="0 0 24 24" fill="none" width="24" height="24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+                </button>

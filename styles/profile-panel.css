@@ -1,0 +1,307 @@
+/* ===========================================================
+   PROFILE SLIDING PANEL
+   Uses var(--x) design tokens from MASTER.css so it
+   automatically adapts to light/dark mode.
+=========================================================== */
+
+/* ── Overlay (backdrop blur) ── */
+.profile-panel-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 950;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.profile-panel-overlay[hidden] {
+    display: none !important;
+}
+
+.profile-panel-overlay.visible {
+    opacity: 1;
+}
+
+/* ── Panel ── */
+.profile-panel {
+    position: fixed;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 420px;
+    max-width: 100vw;
+    background: var(--card);
+    border-left: 1px solid var(--border);
+    z-index: 960;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.profile-panel[hidden] {
+    display: none !important;
+}
+
+.profile-panel.open {
+    transform: translateX(0);
+}
+
+/* ── Header with title + close ── */
+.profile-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--card);
+    z-index: 2;
+}
+
+.profile-panel-tabs {
+    display: flex;
+    align-items: center;
+}
+
+.profile-panel-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+/* ── Panel body ── */
+.profile-panel-body {
+    padding: 24px;
+    flex: 1;
+}
+
+.profile-panel-body[hidden] {
+    display: none !important;
+}
+
+/* ── Avatar section ── */
+.pp-avatar-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.pp-avatar {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 3px solid var(--orange);
+    overflow: hidden;
+    cursor: pointer;
+    transition: box-shadow 0.2s ease;
+}
+
+.pp-avatar:hover {
+    box-shadow: 0 0 0 4px var(--orange-tint);
+}
+
+.pp-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.pp-avatar-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    color: #fff;
+}
+
+.pp-avatar:hover .pp-avatar-overlay {
+    opacity: 1;
+}
+
+/* Avatar row — single horizontal line */
+.pp-avatar-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+    justify-content: center;
+}
+
+/* "+" more button */
+.pp-avatar-more-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 2px dashed var(--border);
+    background: transparent;
+    color: var(--text-light);
+    font-size: 20px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+    flex-shrink: 0;
+}
+
+.pp-avatar-more-btn:hover {
+    border-color: var(--orange);
+    color: var(--orange);
+    background: var(--orange-tint);
+}
+
+/* Expanded avatar grid (hidden by default) */
+.pp-avatar-expanded {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 14px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    justify-content: center;
+    animation: pp-expand-in 0.2s ease;
+}
+
+.pp-avatar-expanded[hidden] {
+    display: none !important;
+}
+
+@keyframes pp-expand-in {
+    from { opacity: 0; max-height: 0; transform: scaleY(0.9); }
+    to { opacity: 1; max-height: 200px; transform: scaleY(1); }
+}
+
+/* Avatar option buttons — shared between row and expanded */
+.pp-avatar-option {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    padding: 0;
+    background: none;
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.pp-avatar-option:hover {
+    transform: scale(1.15);
+    border-color: var(--orange);
+    box-shadow: 0 0 0 3px var(--orange-tint);
+}
+
+.pp-avatar-option.selected {
+    border-color: var(--orange);
+    box-shadow: 0 0 0 3px var(--orange-glow);
+    transform: scale(1.1);
+}
+
+.pp-avatar-option svg {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    display: block;
+}
+
+/* ── Form fields ── */
+.pp-field {
+    margin-bottom: 16px;
+}
+
+.pp-field label {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text-light);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.pp-field input,
+.pp-field textarea,
+.pp-field select {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 14px;
+    color: var(--text);
+    font-family: inherit;
+    transition: border-color 0.15s ease;
+}
+
+.pp-field input:focus,
+.pp-field textarea:focus,
+.pp-field select:focus {
+    border-color: var(--orange);
+    outline: none;
+}
+
+.pp-field textarea {
+    resize: vertical;
+    min-height: 60px;
+}
+
+/* Two-column row */
+.pp-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+/* ── Save button ── */
+.pp-save-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--orange);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background-color 0.15s ease;
+    margin-top: 8px;
+}
+
+.pp-save-btn:hover {
+    background: var(--orange-hover);
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .profile-panel {
+        width: 100vw;
+    }
+}
+
+/* Saved flash indicator on user chip */
+#user-chip.pp-saved-flash {
+    animation: pp-saved-pulse 0.6s ease 2;
+}
+
+@keyframes pp-saved-pulse {
+    0%, 100% { box-shadow: none; }
+    50% { box-shadow: 0 0 0 4px var(--orange-glow); }
+}

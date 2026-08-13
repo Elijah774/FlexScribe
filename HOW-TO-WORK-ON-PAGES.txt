@@ -1,0 +1,177 @@
+===========================================================
+  FlexScribe — How to Work on Pages (Team Guide)
+===========================================================
+
+OVERVIEW
+--------
+FlexScribe is a single-page app. The main file is pages/MASTER.html
+which provides the layout (header, sidebar, navigation). Each page's
+content lives in a SEPARATE file and is loaded dynamically via JavaScript.
+
+When you open MASTER.html in a browser, clicking a nav link loads
+that page's content into the main content area without a full reload.
+
+
+PROJECT STRUCTURE
+-----------------
+Flexscibe/
+  pages/
+    MASTER.html          <-- Layout skeleton (DO NOT put page content here)
+    dashboard.html       <-- Dashboard page content (HTML fragment)
+    subscription.html    <-- Subscriptions page content
+    wallet.html          <-- Wallet page content
+    goals.html           <-- Goals page content
+    analytics.html       <-- Analytics page content
+    timeline.html        <-- Timeline page content
+    dependants.html      <-- Dependants page content
+    notifications.html   <-- Notifications page content
+    reports.html         <-- Reports page content
+    settings.html        <-- Settings page content
+
+  scripts/
+    layout.js            <-- Page routing logic (shows/hides panels, calls init)
+    dashboard.page.js    <-- Registers dashboard.html content for Chrome file://
+    subscription.page.js <-- Registers subscription.html content
+    wallet.page.js       <-- Registers wallet.html content
+    goals.page.js        <-- Registers goals.html content
+    analytics.page.js    <-- Registers analytics.html content
+    timeline.page.js     <-- Registers timeline.html content
+    dependants.page.js   <-- Registers dependants.html content
+    notifications.page.js<-- Registers notifications.html content
+    reports.page.js      <-- Registers reports.html content
+    settings.page.js     <-- Registers settings.html content
+    dashboard-ui.js      <-- Dashboard interactivity/logic
+    subscriptions-ui.js  <-- Subscriptions interactivity/logic
+    wallet-ui.js         <-- Wallet interactivity/logic
+    goals-ui.js          <-- Goals interactivity/logic
+    analytics-ui.js      <-- Analytics interactivity/logic
+    reports-ui.js        <-- Reports interactivity/logic
+    dependants-ui.js     <-- Dependants interactivity/logic
+    search.js            <-- Global search bar functionality
+    profile-panel.js     <-- Profile panel slide-out logic
+    ui-utils.js          <-- Shared utilities (toasts, helpers)
+    api.js               <-- API layer (future backend calls)
+
+  backend/
+    subscriptions.js     <-- Subscriptions data store (localStorage)
+    dashboard.js         <-- Dashboard data store
+    wallet.js            <-- Wallet data store
+    goals.js             <-- Goals data store
+    dependants.js        <-- Dependants data store
+
+  styles/
+    MASTER.css           <-- Global layout styles (header, sidebar, grid)
+    dashboard.css        <-- Dashboard-specific styles
+    subscription.css     <-- Subscription-specific styles
+    wallet.css           <-- Wallet-specific styles
+    goals.css            <-- Goals-specific styles
+    analytics.css        <-- Analytics-specific styles
+    reports.css          <-- Reports-specific styles
+    dependants.css       <-- Dependants-specific styles
+    profile-panel.css    <-- Profile panel styles
+
+
+HOW PAGE LOADING WORKS
+-----------------------
+1. Each page's HTML content is stored in two places:
+   - pages/[name].html       (the source HTML fragment)
+   - scripts/[name].page.js  (same content wrapped in JS for Chrome)
+
+2. The .page.js files register content into window._pageContent:
+     window._pageContent['dashboard'] = '...html string...';
+
+3. When a user clicks a nav link, layout.js calls loadPage('dashboard'):
+   - It finds the #panel-dashboard div in MASTER.html
+   - Reads the HTML from window._pageContent['dashboard']
+   - Injects it into the panel via innerHTML
+   - Calls the page's init function (e.g. DashboardUI.init())
+
+4. Content is cached after first load — navigating back doesn't re-inject.
+
+
+HOW TO EDIT A PAGE (e.g. Wallet)
+---------------------------------
+1. Open pages/wallet.html
+2. Edit the HTML content as needed
+3. IMPORTANT: After editing, you MUST also update scripts/wallet.page.js
+   to match. The .page.js file is what Chrome actually loads.
+4. The .page.js file wraps the HTML in a JS string:
+     window._pageContent = window._pageContent || {};
+     window._pageContent['wallet'] = '\
+     ...your HTML with escaped quotes...\
+     ';
+5. Rules for the .page.js string:
+   - Each line ends with a backslash (\) for line continuation
+   - Single quotes (') inside HTML must be escaped: \'
+   - Backslashes (\) inside HTML must be escaped: \\
+   - The HTML should NOT have DOCTYPE, html, head, or body tags
+6. Test by opening pages/MASTER.html in Chrome
+
+
+HOW TO ADD A NEW PAGE
+----------------------
+1. Create pages/newpage.html with your HTML content (fragment only)
+2. Create scripts/newpage.page.js:
+     window._pageContent = window._pageContent || {};
+     window._pageContent['newpage'] = '...your html...';
+3. In pages/MASTER.html add an empty panel div:
+     <div id="panel-newpage" class="page-panel" hidden></div>
+4. In pages/MASTER.html add a nav link in the sidebar:
+     <li><a href="#" class="nav-item" data-page="newpage"><i data-lucide="icon-name"></i> Page Name</a></li>
+5. In pages/MASTER.html add the script tag before layout.js:
+     <script src="../scripts/newpage.page.js"></script>
+6. In scripts/layout.js add the page to pageTitles and pageFiles
+7. If the page needs interactivity, create scripts/newpage-ui.js
+   and call its init() in the loadPage function in layout.js
+8. If the page needs styles, create styles/newpage.css and link it
+   in the <head> of MASTER.html
+
+
+WHAT STAYS IN MASTER.HTML (DO NOT MOVE)
+----------------------------------------
+- Logo area
+- Top header (search, notifications, theme toggle, user chip)
+- Sidebar navigation
+- Empty panel divs (containers for page content)
+- Global modals (subscription add/edit, goal add/edit, wallet modals)
+- Global drawers (subscription detail drawer, dependant drawer)
+- Profile panel aside
+- All <script> and <link> tags
+
+
+WHAT GOES IN SEPARATE PAGE FILES
+----------------------------------
+- All visible page content (cards, tables, charts, forms)
+- Content that only appears when that page is active
+
+
+TEAM WORKFLOW TIPS
+-------------------
+- Each team member can work on their own page file without conflicts
+- Only ONE person should edit MASTER.html at a time (shared layout)
+- Only ONE person should edit layout.js at a time (routing logic)
+- CSS files are page-specific so multiple people can work in parallel
+- Backend stores (backend/*.js) are independent — work on them freely
+- Always test in Chrome by opening pages/MASTER.html directly (file://)
+- If a page doesn't show content, check the browser console for JS errors
+  (usually a quote escaping issue in the .page.js file)
+
+
+COMMON ISSUES
+--------------
+Q: Page shows blank when I click the nav link
+A: Check scripts/[page].page.js exists and has no syntax errors.
+   Open browser console (F12) to see JS errors.
+
+Q: I edited the .html file but changes don't show
+A: You also need to update the .page.js file. Chrome loads from .page.js.
+
+Q: Modals/drawers don't work
+A: They live in MASTER.html. Make sure they weren't accidentally removed.
+
+Q: Styles look wrong
+A: Make sure the page's CSS file is linked in MASTER.html's <head>.
+
+Q: New elements don't have Lucide icons
+A: layout.js calls lucide.createIcons() after loading. If adding icons
+   dynamically after init, call lucide.createIcons() again.

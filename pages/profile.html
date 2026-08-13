@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlexScribe — Profile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+<style>
+:root {
+    --background: #090B10;
+    --card: #181D24;
+    --border: #272D35;
+    --text: #F5F5F5;
+    --text-light: #A3ABB8;
+    --text-muted: #6B7280;
+    --orange: #FF8A34;
+    --orange-hover: #FF9B54;
+    --input-bg: #0D1117;
+    --green: #3ECF6E;
+    --danger: #F87171;
+    --shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+*:focus { outline: none; }
+*:focus-visible {
+    outline: 2px solid rgba(255, 138, 52, 0.7);
+    outline-offset: 2px;
+    border-radius: 3px;
+}
+
+body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--background);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    padding: 24px 16px;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    top: -200px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(255, 138, 52, 0.06) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.profile-container {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 560px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 36px 32px;
+    box-shadow: var(--shadow);
+}
+
+.logo {
+    text-align: center;
+    margin-bottom: 24px;
+}
+.logo img {
+    border-radius: 12px;
+    margin-bottom: 6px;
+}
+.logo-text {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text);
+}
+.logo-text span { color: var(--orange); }
+
+.page-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 24px;
+    text-align: center;
+    color: var(--text-light);
+}
+
+/* Avatar */
+.avatar-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 28px;
+}
+.avatar-wrapper {
+    position: relative;
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    cursor: pointer;
+    overflow: hidden;
+    border: 3px solid var(--orange);
+    transition: transform 0.2s ease;
+}
+.avatar-wrapper:hover {
+    transform: scale(1.05);
+}
+.avatar-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.avatar-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+.avatar-wrapper:hover .avatar-overlay {
+    opacity: 1;
+}
+.avatar-overlay i {
+    color: #fff;
+    font-size: 20px;
+}
+.avatar-hint {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 8px;
+}
+
+/* Form */
+label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-light);
+    margin-bottom: 6px;
+    margin-top: 16px;
+}
+label:first-of-type { margin-top: 0; }
+
+input, textarea {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+input:focus, textarea:focus {
+    border-color: var(--orange);
+}
+textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.save-btn {
+    width: 100%;
+    margin-top: 24px;
+    padding: 14px;
+    background: var(--orange);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+}
+.save-btn:hover {
+    background: var(--orange-hover);
+}
+.save-btn:active {
+    transform: scale(0.98);
+}
+
+/* Toast */
+.toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--green);
+    color: #111;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    opacity: 0;
+    transition: all 0.3s ease;
+    z-index: 999;
+}
+.toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.back-link {
+    display: block;
+    text-align: center;
+    margin-top: 20px;
+    color: var(--text-muted);
+    font-size: 13px;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+.back-link:hover {
+    color: var(--orange);
+}
+</style>
+</head>
+<body>
+
+<div class="profile-container">
+
+    <!-- Logo -->
+    <div class="logo">
+        <img src="../images/smallLogo.png" alt="FlexScribe" width="48" height="48">
+        <div class="logo-text">Flex<span>Scribe</span></div>
+    </div>
+
+    <div class="page-title">Your Profile</div>
+
+    <!-- Avatar -->
+    <div class="avatar-section">
+        <div class="avatar-wrapper" id="avatar-wrapper" title="Click to change avatar">
+            <img id="avatar-img" src="../images/smallLogo.png" alt="Profile avatar">
+            <div class="avatar-overlay"><i class="fa-solid fa-camera"></i></div>
+        </div>
+        <span class="avatar-hint">Click to upload a photo</span>
+        <input type="file" id="avatar-input" accept="image/*" hidden>
+    </div>
+
+    <!-- Form -->
+    <form id="profile-form" novalidate>
+
+        <label for="fullName">Full Name</label>
+        <input type="text" id="fullName" placeholder="Your full name">
+
+        <label for="email">Email Address</label>
+        <input type="email" id="email" placeholder="you@email.com">
+
+        <div class="row">
+            <div>
+                <label for="phone">Phone Number</label>
+                <input type="tel" id="phone" placeholder="+27 71 234 5678">
+            </div>
+            <div>
+                <label for="dob">Date of Birth</label>
+                <input type="date" id="dob">
+            </div>
+        </div>
+
+        <label for="bio">Bio / About</label>
+        <textarea id="bio" placeholder="Tell us a bit about yourself..."></textarea>
+
+        <button type="submit" class="save-btn">
+            <i class="fa-solid fa-floppy-disk"></i> Save Changes
+        </button>
+
+    </form>
+
+    <a href="MASTER.html" class="back-link">&larr; Back to Dashboard</a>
+
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">Profile saved successfully!</div>
+
+<script>
+(function() {
+    const STORAGE_KEY = 'flexscribe_profile';
+    const AVATAR_KEY = 'flexscribe_profile_avatar';
+
+    const defaults = {
+        fullName: 'Sarah Mitchell',
+        email: 'sarah.m@email.com',
+        phone: '+27 71 234 5678',
+        dob: '1998-03-15',
+        bio: 'Finance enthusiast and FlexScribe power user.',
+        avatar: ''
+    };
+
+    // Load data
+    function loadProfile() {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        return stored ? JSON.parse(stored) : { ...defaults };
+    }
+
+    function saveProfile(data) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    const profile = loadProfile();
+
+    // Populate fields
+    document.getElementById('fullName').value = profile.fullName || '';
+    document.getElementById('email').value = profile.email || '';
+    document.getElementById('phone').value = profile.phone || '';
+    document.getElementById('dob').value = profile.dob || '';
+    document.getElementById('bio').value = profile.bio || '';
+
+    // Avatar
+    const avatarImg = document.getElementById('avatar-img');
+    const avatarInput = document.getElementById('avatar-input');
+    const storedAvatar = localStorage.getItem(AVATAR_KEY) || profile.avatar;
+    if (storedAvatar) {
+        avatarImg.src = storedAvatar;
+    }
+
+    document.getElementById('avatar-wrapper').addEventListener('click', () => {
+        avatarInput.click();
+    });
+
+    avatarInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const base64 = ev.target.result;
+            avatarImg.src = base64;
+            localStorage.setItem(AVATAR_KEY, base64);
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // Save form
+    document.getElementById('profile-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const data = {
+            fullName: document.getElementById('fullName').value.trim(),
+            email: document.getElementById('email').value.trim(),
+            phone: document.getElementById('phone').value.trim(),
+            dob: document.getElementById('dob').value,
+            bio: document.getElementById('bio').value.trim(),
+            avatar: localStorage.getItem(AVATAR_KEY) || ''
+        };
+        saveProfile(data);
+        showToast();
+    });
+
+    // Toast
+    function showToast() {
+        const toast = document.getElementById('toast');
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+})();
+</script>
+</body>
+</html>

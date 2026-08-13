@@ -1,359 +1,503 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>FlexScribe</title>
-
-    <link rel="stylesheet" href="styles/landing.css">
-
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
-
-
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
-          rel="stylesheet">
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlexScribe — Manage. Track. Save. Smarter.</title>
+<meta name="description" content="FlexScribe helps you take control of subscriptions, wallet and financial goals from one beautiful dashboard.">
+<link rel="stylesheet" href="styles/landing.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 </head>
-
 <body>
 
-<!-- ========================= -->
-<!-- Navigation -->
-<!-- ========================= -->
-
-<header>
-
-    <div class="logo">
-
-        <div class="left-logo">
-            <img src="images/smallLogo.png" alt="FlexScribe Logo">
-        </div>
-
-        <div class="right-logo">
-            <h2>
-                Flex<span>Scribe</span>
-            </h2>
-
-            <p>Manage. Track. Save. Smarter.</p>
-        </div>
-
-    </div>
-    <nav>
-
-        <a href="#">Home</a>
-        <a href="#">Features</a>
-        <a href="#">How It Works</a>
-        <a href="#">Pricing</a>
-        <a href="#">About</a>
-
+<!-- ════════════════════════════════════════════════════════
+     STICKY NAVIGATION
+════════════════════════════════════════════════════════ -->
+<header id="site-header">
+  <div class="nav-inner">
+    <a href="#hero" class="nav-logo" aria-label="FlexScribe home">
+      <img src="images/smallLogo.png" alt="" width="36" height="36">
+      <span class="nav-logo-text">Flex<em>Scribe</em></span>
+    </a>
+    <nav id="main-nav" aria-label="Main navigation">
+      <a href="#features">Features</a>
+      <a href="#how-it-works">How It Works</a>
+      <a href="#security">Security</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#about">About</a>
+      <a href="#faq">FAQ</a>
     </nav>
-
-    <div class="nav-buttons">
-
-        <a href="login.html" class="login-btn">Log In</a>
-
-        <a href="register.html" class="primary-btn">
-            Create Account
-        </a>
-
+    <div class="nav-cta">
+      <a href="pages/login.html?mode=login"    class="btn-ghost">Log In</a>
+      <a href="pages/login.html?mode=register" class="btn-primary ripple-btn">Create Account</a>
     </div>
-
+    <button class="nav-hamburger" id="nav-toggle" aria-label="Open menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+  <div class="nav-drawer" id="nav-drawer" hidden>
+    <a href="#features"    class="nav-drawer-link">Features</a>
+    <a href="#how-it-works"class="nav-drawer-link">How It Works</a>
+    <a href="#security"    class="nav-drawer-link">Security</a>
+    <a href="#pricing"     class="nav-drawer-link">Pricing</a>
+    <a href="#about"       class="nav-drawer-link">About</a>
+    <a href="#faq"         class="nav-drawer-link">FAQ</a>
+    <a href="#contact"     class="nav-drawer-link">Contact</a>
+    <div class="nav-drawer-cta">
+      <a href="pages/login.html?mode=login"    class="btn-ghost w-full">Log In</a>
+      <a href="pages/login.html?mode=register" class="btn-primary w-full ripple-btn">Create Account</a>
+    </div>
+  </div>
 </header>
 
-
-<!-- ========================= -->
-<!-- HERO -->
-<!-- ========================= -->
-
-<section class="hero">
-
-    <div class="hero-left">
-
-        <h1>
-
-            Manage.<br>
-            Track.<br>
-            Save.<br>
-
-            <span>Smarter.</span>
-
-        </h1>
-
-        <p>
-
-            FlexScribe helps you take control of your subscriptions,
-            wallet and financial goals from one place.
-
-        </p>
-
-        <div class="hero-buttons">
-
-            <button class="primary-btn">
-
-                Get Started
-
-            </button>
-
-            <button class="secondary-btn">
-
-                Explore Features
-
-            </button>
-
-        </div>
-
-        <div class="hero-info">
-
-            <span><i class="fa-solid fa-circle-check"></i> Free Forever</span>
-
-            <span><i class="fa-solid fa-credit-card"></i> No Card Required</span>
-
-        </div>
-
+<!-- ════════════════════════════════════════════════════════
+     HERO
+════════════════════════════════════════════════════════ -->
+<section id="hero" class="hero-section">
+  <div class="hero-bg-glow"></div>
+  <div class="hero-inner">
+    <div class="hero-content reveal">
+      <span class="hero-badge"><i class="fa-solid fa-circle-check"></i> Free Forever · No Card Required</span>
+      <h1 class="hero-headline">Manage.<br>Track.<br>Save.<br><span class="accent">Smarter.</span></h1>
+      <p class="hero-sub">FlexScribe gives you one beautiful place to track every subscription, grow your savings and understand where your money actually goes.</p>
+      <div class="hero-actions">
+        <a href="pages/login.html?mode=register" class="btn-primary btn-lg ripple-btn">
+          <i class="fa-solid fa-rocket"></i> Get Started Free
+        </a>
+        <a href="#features" class="btn-ghost btn-lg">
+          <i class="fa-solid fa-play-circle"></i> See Features
+        </a>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat"><span class="hero-stat-num" data-target="2500" data-suffix="+">0</span><span class="hero-stat-label">Happy Users</span></div>
+        <div class="hero-stat-div"></div>
+        <div class="hero-stat"><span class="hero-stat-num" data-target="8000" data-suffix="+">0</span><span class="hero-stat-label">Subscriptions Tracked</span></div>
+        <div class="hero-stat-div"></div>
+        <div class="hero-stat"><span class="hero-stat-num" data-prefix="R" data-target="2.4" data-suffix="M+">0</span><span class="hero-stat-label">Saved by Users</span></div>
+      </div>
     </div>
-
-    <div class="hero-right">
-
-        <img src="images/dashboardPreview.png"
-             alt="Dashboard Preview">
-
+    <div class="hero-visual reveal" style="transition-delay:150ms">
+      <div class="hero-img-wrap">
+        <div class="hero-glow-ring"></div>
+        <img src="images/dashboard.png" alt="FlexScribe dashboard preview" class="hero-screenshot" loading="eager">
+        <div class="hero-float-card card-1">
+          <i class="fa-solid fa-wallet"></i>
+          <div><strong>R1,250</strong><span>Balance</span></div>
+        </div>
+        <div class="hero-float-card card-2">
+          <i class="fa-solid fa-arrow-trend-up" style="color:var(--green)"></i>
+          <div><strong>+R420</strong><span>This month</span></div>
+        </div>
+        <div class="hero-float-card card-3">
+          <i class="fa-solid fa-star" style="color:var(--yellow)"></i>
+          <div><strong>560</strong><span>Scribe Score</span></div>
+        </div>
+      </div>
     </div>
-
+  </div>
+  <div class="section-wave">
+    <svg viewBox="0 0 1440 80" preserveAspectRatio="none"><path d="M0,40 C360,80 1080,0 1440,40 L1440,80 L0,80 Z" fill="var(--section)"/></svg>
+  </div>
 </section>
 
-
-<!-- ========================= -->
-<!-- FEATURES -->
-<!-- ========================= -->
-
-<section class="features">
-
-    <h4>FEATURES</h4>
-<br>
-    <h2>Everything you need to stay in control</h2>
-<br>
-    <p>
-
-        Powerful tools to manage subscriptions,
-        spending and financial goals.
-
-    </p>
-
-    <div class="feature-grid">
-
-        <div class="feature-card">
-
-            <i class="fa-solid fa-wallet"></i>
-
-            <h3>Smart Virtual Wallet</h3>
-
-            <p>
-                Deposit funds, track spending and manage transactions.
-            </p>
-
-        </div>
-
-        <div class="feature-card">
-
-            <i class="fa-solid fa-calendar-days"></i>
-
-            <h3>Subscriptions</h3>
-
-            <p>
-                Never miss a payment again.
-            </p>
-
-        </div>
-
-        <div class="feature-card">
-
-            <i class="fa-solid fa-bullseye"></i>
-
-            <h3>Financial Goals</h3>
-
-            <p>
-                Save towards goals with progress tracking.
-            </p>
-
-        </div>
-
-        <div class="feature-card">
-
-            <i class="fa-solid fa-chart-line"></i>
-
-            <h3>Analytics</h3>
-
-            <p>
-                View spending reports and charts.
-            </p>
-
-        </div>
-
-        <div class="feature-card">
-
-            <i class="fa-solid fa-users"></i>
-
-            <h3>Dependants</h3>
-
-            <p>
-                Manage subscriptions for the whole family.
-            </p>
-
-        </div>
+<!-- ════════════════════════════════════════════════════════
+     FEATURES
+════════════════════════════════════════════════════════ -->
+<section id="features" class="features-section">
+  <div class="section-inner">
+    <div class="section-tag reveal">FEATURES</div>
+    <h2 class="section-title reveal" style="transition-delay:80ms">Everything you need to stay in control</h2>
+    <p class="section-sub reveal" style="transition-delay:160ms">Powerful tools to manage subscriptions, spending and financial goals — all in one place.</p>
+    <div class="features-grid">
+      <div class="feature-card reveal card-hover" style="transition-delay:0ms">
+        <div class="feature-icon"><i class="fa-solid fa-wallet"></i></div>
+        <h3>Smart Wallet</h3>
+        <p>Deposit funds, track every transaction and manage your virtual balance in real time.</p>
+      </div>
+      <div class="feature-card reveal card-hover" style="transition-delay:80ms">
+        <div class="feature-icon"><i class="fa-solid fa-calendar-days"></i></div>
+        <h3>Subscription Tracker</h3>
+        <p>Never miss a payment again. Visualise upcoming charges and cancel what you don't use.</p>
+      </div>
+      <div class="feature-card reveal card-hover" style="transition-delay:160ms">
+        <div class="feature-icon"><i class="fa-solid fa-bullseye"></i></div>
+        <h3>Financial Goals</h3>
+        <p>Set savings targets, track progress with animated charts and celebrate milestones.</p>
+      </div>
+      <div class="feature-card reveal card-hover" style="transition-delay:240ms">
+        <div class="feature-icon"><i class="fa-solid fa-chart-line"></i></div>
+        <h3>Analytics</h3>
+        <p>Rich spending reports, category breakdowns and AI-powered insights updated daily.</p>
+      </div>
+      <div class="feature-card reveal card-hover" style="transition-delay:320ms">
+        <div class="feature-icon"><i class="fa-solid fa-users"></i></div>
+        <h3>Dependants</h3>
+        <p>Manage allowances and subscriptions for the whole family with granular controls.</p>
+      </div>
+      <div class="feature-card reveal card-hover" style="transition-delay:400ms">
+        <div class="feature-icon"><i class="fa-solid fa-bell"></i></div>
+        <h3>Smart Alerts</h3>
+        <p>Get notified before charges hit, when goals are close and when anomalies appear.</p>
+      </div>
     </div>
+  </div>
+  <div class="section-wave section-wave--flip">
+    <svg viewBox="0 0 1440 80" preserveAspectRatio="none"><path d="M0,40 C360,80 1080,0 1440,40 L1440,80 L0,80 Z" fill="var(--background)"/></svg>
+  </div>
 </section>
 
-
-<!-- ========================= -->
-<!-- PHONE SECTION -->
-<!-- ========================= -->
-
-<section class="phone-section">
-
-    <div class="phone-text">
-
-        <h4>ALL IN ONE PLACE</h4>
-
-        <h2>Your finances simplified.</h2>
-
-        <p>
-
-            Wallet, subscriptions,
-            dependants and financial goals together.
-
-        </p>
-
-        <div class="store-buttons">
-
-            <img src="images/AndroidStore.jpg">
-
+<!-- ════════════════════════════════════════════════════════
+     HOW IT WORKS
+════════════════════════════════════════════════════════ -->
+<section id="how-it-works" class="hiw-section">
+  <div class="section-inner">
+    <div class="section-tag reveal">HOW IT WORKS</div>
+    <h2 class="section-title reveal" style="transition-delay:80ms">Up and running in minutes</h2>
+    <p class="section-sub reveal" style="transition-delay:160ms">Three simple steps to financial clarity.</p>
+    <div class="hiw-steps">
+      <div class="hiw-step reveal">
+        <div class="hiw-number">01</div>
+        <div class="hiw-content">
+          <h3>Create your account</h3>
+          <p>Sign up for free in under 60 seconds. No credit card, no commitments — just your email and a password.</p>
+          <ul class="hiw-list">
+            <li><i class="fa-solid fa-check"></i> Email & social sign-in</li>
+            <li><i class="fa-solid fa-check"></i> 500 Scribe Points on registration</li>
+            <li><i class="fa-solid fa-check"></i> Instant access to all features</li>
+          </ul>
         </div>
-
-    </div>
-
-    <div class="phone-image">
-
-        <div class="phone-glow"></div>
-
-        <img src="images/phoneDisplay.png" alt="Phone">
-
-    </div>
-    <div class="security-card">
-
-
-        <i class="fa-solid fa-shield-halved"></i>
-
-        <div class="security-content">
-
-            <h3>Secure & Private</h3>
-
-            <p>
-                Your financial information is protected.
-            </p>
-
+        <div class="hiw-visual reveal" style="transition-delay:120ms">
+          <div class="hiw-mock hiw-mock--login">
+            <div class="mock-bar"><span></span><span></span><span></span></div>
+            <div class="mock-logo"><i class="fa-solid fa-lock" style="color:var(--orange)"></i> FlexScribe</div>
+            <div class="mock-field"></div>
+            <div class="mock-field"></div>
+            <div class="mock-btn">Create Account</div>
+          </div>
         </div>
-
+      </div>
+      <div class="hiw-connector"><i class="fa-solid fa-arrow-down"></i></div>
+      <div class="hiw-step hiw-step--rev reveal">
+        <div class="hiw-number">02</div>
+        <div class="hiw-content">
+          <h3>Add your subscriptions</h3>
+          <p>Pick from our library of 100+ providers or add your own. Track billing dates, costs and categories in one view.</p>
+          <ul class="hiw-list">
+            <li><i class="fa-solid fa-check"></i> Provider library with 1-click add</li>
+            <li><i class="fa-solid fa-check"></i> Manual entry with logo upload</li>
+            <li><i class="fa-solid fa-check"></i> Automatic renewal reminders</li>
+          </ul>
+        </div>
+        <div class="hiw-visual reveal" style="transition-delay:120ms">
+          <div class="hiw-mock hiw-mock--subs">
+            <div class="mock-sub-row"><span class="mock-logo-n">N</span><div class="mock-sub-text"><span>Netflix</span><small>R199 / mo</small></div><span class="mock-badge">Active</span></div>
+            <div class="mock-sub-row"><span class="mock-logo-s">S</span><div class="mock-sub-text"><span>Spotify</span><small>R59.99 / mo</small></div><span class="mock-badge">Active</span></div>
+            <div class="mock-sub-row mock-sub-row--add"><i class="fa-solid fa-plus"></i> Add subscription</div>
+          </div>
+        </div>
+      </div>
+      <div class="hiw-connector"><i class="fa-solid fa-arrow-down"></i></div>
+      <div class="hiw-step reveal">
+        <div class="hiw-number">03</div>
+        <div class="hiw-content">
+          <h3>Track, save and grow</h3>
+          <p>Watch your spending patterns, hit savings goals and let FlexScribe surface insights you'd never spot on your own.</p>
+          <ul class="hiw-list">
+            <li><i class="fa-solid fa-check"></i> AI spending insights</li>
+            <li><i class="fa-solid fa-check"></i> Automated savings goals</li>
+            <li><i class="fa-solid fa-check"></i> Scribe Score rewards</li>
+          </ul>
+        </div>
+        <div class="hiw-visual reveal" style="transition-delay:120ms">
+          <div class="hiw-mock hiw-mock--chart">
+            <div class="mock-chart-bars">
+              <div class="mock-bar-col" style="--h:55%"><span>Dec</span></div>
+              <div class="mock-bar-col" style="--h:70%"><span>Jan</span></div>
+              <div class="mock-bar-col" style="--h:42%"><span>Feb</span></div>
+              <div class="mock-bar-col" style="--h:85%"><span>Mar</span></div>
+              <div class="mock-bar-col" style="--h:62%"><span>Apr</span></div>
+              <div class="mock-bar-col mock-bar-col--active" style="--h:74%"><span>May</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-
+  </div>
 </section>
 
-
-<!-- ========================= -->
-<!-- Statistics -->
-<!-- ========================= -->
-
-<section class="stats">
-
-    <div class="stat">
-
-        <h2>2500+</h2>
-
-        <p>Happy Users</p>
-
+<!-- ════════════════════════════════════════════════════════
+     SECURITY
+════════════════════════════════════════════════════════ -->
+<section id="security" class="security-section">
+  <div class="security-bg"></div>
+  <div class="section-inner">
+    <div class="section-tag reveal">SECURITY</div>
+    <h2 class="section-title reveal" style="transition-delay:80ms">Your money, your data — protected</h2>
+    <p class="section-sub reveal" style="transition-delay:160ms">We take security as seriously as you take your finances.</p>
+    <div class="security-grid">
+      <div class="security-card reveal card-hover" style="transition-delay:0ms">
+        <div class="security-icon"><i class="fa-solid fa-shield-halved"></i></div>
+        <h3>Bank-Grade Encryption</h3>
+        <p>All data is encrypted at rest and in transit using AES-256 and TLS 1.3. Your information never travels unprotected.</p>
+      </div>
+      <div class="security-card reveal card-hover" style="transition-delay:100ms">
+        <div class="security-icon"><i class="fa-solid fa-user-shield"></i></div>
+        <h3>Zero Data Selling</h3>
+        <p>We never sell, rent or share your personal or financial data with third parties. Your privacy is non-negotiable.</p>
+      </div>
+      <div class="security-card reveal card-hover" style="transition-delay:200ms">
+        <div class="security-icon"><i class="fa-solid fa-key"></i></div>
+        <h3>Two-Factor Authentication</h3>
+        <p>Add an extra layer of protection with 2FA via authenticator app or SMS. Every sign-in verified.</p>
+      </div>
     </div>
-
-    <div class="stat">
-
-        <h2>8000+</h2>
-
-        <p>Subscriptions Managed</p>
-
+    <div class="security-badges reveal" style="transition-delay:300ms">
+      <span class="badge-pill"><i class="fa-solid fa-certificate"></i> POPIA Compliant</span>
+      <span class="badge-pill"><i class="fa-solid fa-certificate"></i> GDPR Ready</span>
+      <span class="badge-pill"><i class="fa-solid fa-lock"></i> 256-bit SSL</span>
+      <span class="badge-pill"><i class="fa-solid fa-server"></i> Daily Backups</span>
     </div>
-
-    <div class="stat">
-
-        <h2>R2.4M+</h2>
-
-        <p>Saved by Users</p>
-
-    </div>
-
-    <div class="stat">
-
-        <h2>4.9/5</h2>
-
-        <p>User Rating</p>
-
-    </div>
-
+  </div>
 </section>
 
-
-<!-- ========================= -->
-<!-- Footer -->
-<!-- ========================= -->
-
-<footer>
-
-    <div class="logo">
-
-        <div class="left-logo">
+<!-- ════════════════════════════════════════════════════════
+     PRICING
+════════════════════════════════════════════════════════ -->
+<section id="pricing" class="pricing-section">
+  <div class="section-inner">
+    <div class="section-tag reveal">PRICING</div>
+    <h2 class="section-title reveal" style="transition-delay:80ms">Simple, honest pricing</h2>
+    <p class="section-sub reveal" style="transition-delay:160ms">Start free. Upgrade when you're ready. No hidden fees.</p>
+    <div class="pricing-grid">
+      <div class="pricing-card reveal card-hover" style="transition-delay:0ms">
+        <div class="pricing-header">
+          <h3>Free</h3>
+          <div class="pricing-amount"><span class="pricing-price">R0</span><span class="pricing-period">/month</span></div>
+          <p>Everything you need to get started.</p>
         </div>
-
-        <div class="right-logo">
-            <h2>
-                Flex<span>Scribe</span>
-            </h2>
-
-            <p>Manage. Track. Save. Smarter.</p>
+        <ul class="pricing-features">
+          <li><i class="fa-solid fa-check"></i> Up to 5 subscriptions</li>
+          <li><i class="fa-solid fa-check"></i> Basic wallet</li>
+          <li><i class="fa-solid fa-check"></i> 2 savings goals</li>
+          <li><i class="fa-solid fa-check"></i> Email alerts</li>
+          <li class="disabled"><i class="fa-solid fa-xmark"></i> AI insights</li>
+          <li class="disabled"><i class="fa-solid fa-xmark"></i> Dependants</li>
+          <li class="disabled"><i class="fa-solid fa-xmark"></i> Export reports</li>
+        </ul>
+        <a href="pages/login.html?mode=register" class="btn-ghost btn-full ripple-btn">Get Started Free</a>
+      </div>
+      <div class="pricing-card pricing-card--featured reveal card-hover" style="transition-delay:100ms">
+        <div class="pricing-popular">Most Popular</div>
+        <div class="pricing-header">
+          <h3>Premium</h3>
+          <div class="pricing-amount"><span class="pricing-price">R99</span><span class="pricing-period">/month</span></div>
+          <p>For people serious about their finances.</p>
         </div>
-
+        <ul class="pricing-features">
+          <li><i class="fa-solid fa-check"></i> Unlimited subscriptions</li>
+          <li><i class="fa-solid fa-check"></i> Full wallet + virtual card</li>
+          <li><i class="fa-solid fa-check"></i> Unlimited goals</li>
+          <li><i class="fa-solid fa-check"></i> Push & SMS alerts</li>
+          <li><i class="fa-solid fa-check"></i> AI spending insights</li>
+          <li><i class="fa-solid fa-check"></i> Up to 3 dependants</li>
+          <li><i class="fa-solid fa-check"></i> PDF/CSV reports</li>
+        </ul>
+        <a href="pages/login.html?mode=register" class="btn-primary btn-full ripple-btn">Start Premium</a>
+      </div>
+      <div class="pricing-card reveal card-hover" style="transition-delay:200ms">
+        <div class="pricing-header">
+          <h3>Business</h3>
+          <div class="pricing-amount"><span class="pricing-price">R199</span><span class="pricing-period">/month</span></div>
+          <p>For teams and household managers.</p>
+        </div>
+        <ul class="pricing-features">
+          <li><i class="fa-solid fa-check"></i> Everything in Premium</li>
+          <li><i class="fa-solid fa-check"></i> Up to 10 dependants</li>
+          <li><i class="fa-solid fa-check"></i> Multi-user access</li>
+          <li><i class="fa-solid fa-check"></i> Custom categories</li>
+          <li><i class="fa-solid fa-check"></i> API access</li>
+          <li><i class="fa-solid fa-check"></i> Priority support</li>
+          <li><i class="fa-solid fa-check"></i> White-label export</li>
+        </ul>
+        <a href="pages/login.html?mode=register" class="btn-ghost btn-full ripple-btn">Contact Sales</a>
+      </div>
     </div>
+  </div>
+</section>
 
-        <h4>Company</h4>
-
-        <a href="#">About</a>
-        <a href="#">Careers</a>
-        <a href="#">Blog</a>
-
+<!-- ════════════════════════════════════════════════════════
+     ABOUT
+════════════════════════════════════════════════════════ -->
+<section id="about" class="about-section">
+  <div class="section-inner about-inner">
+    <div class="about-text reveal">
+      <div class="section-tag">ABOUT</div>
+      <h2 class="section-title">Built for people who want more from their money</h2>
+      <p>FlexScribe was born from a simple frustration: financial tools are either too complex, too expensive, or built for someone else. We set out to build something different — a clean, honest app that gives you real clarity over where your money goes.</p>
+      <p style="margin-top:16px">We're a small team obsessed with personal finance, great design and the belief that everyone deserves the tools previously reserved for the wealthy.</p>
+      <a href="#contact" class="btn-primary" style="margin-top:28px;display:inline-flex;align-items:center;gap:8px;padding:12px 24px;border-radius:10px;font-weight:600;font-size:14px">
+        <i class="fa-solid fa-envelope"></i> Get in touch
+      </a>
     </div>
-
-    <div>
-
-        <h4>Support</h4>
-
-        <a href="#">Help Centre</a>
-        <a href="#">Privacy</a>
-        <a href="#">Security</a>
-
+    <div class="about-stats reveal" style="transition-delay:150ms">
+      <div class="about-stat">
+        <span class="about-stat-num counter" data-target="2500" data-suffix="+">2500+</span>
+        <span class="about-stat-label">Happy Users</span>
+      </div>
+      <div class="about-stat">
+        <span class="about-stat-num counter" data-target="8000" data-suffix="+">8000+</span>
+        <span class="about-stat-label">Subscriptions Managed</span>
+      </div>
+      <div class="about-stat">
+        <span class="about-stat-num" style="color:var(--orange)">R2.4M+</span>
+        <span class="about-stat-label">Saved by Users</span>
+      </div>
+      <div class="about-stat">
+        <span class="about-stat-num" style="color:var(--orange)">4.9<i class="fa-solid fa-star" style="font-size:20px;margin-left:4px"></i></span>
+        <span class="about-stat-label">Average Rating</span>
+      </div>
     </div>
+  </div>
+</section>
 
-    <div>
-
-        <h4>Follow Us</h4>
-
-        <i class="fa-brands fa-facebook"></i>
-        <i class="fa-brands fa-instagram"></i>
-        <i class="fa-brands fa-linkedin"></i>
-
+<!-- ════════════════════════════════════════════════════════
+     FAQ
+════════════════════════════════════════════════════════ -->
+<section id="faq" class="faq-section">
+  <div class="section-inner">
+    <div class="section-tag reveal">FAQ</div>
+    <h2 class="section-title reveal" style="transition-delay:80ms">Questions? We've got answers.</h2>
+    <div class="faq-list">
+      <details class="faq-item reveal" style="transition-delay:0ms">
+        <summary>What is FlexScribe?</summary>
+        <p>FlexScribe is a personal finance dashboard that helps you track subscriptions, manage a virtual wallet, set savings goals, and understand your spending — all in one place.</p>
+      </details>
+      <details class="faq-item reveal" style="transition-delay:60ms">
+        <summary>Is it really free?</summary>
+        <p>Yes! The Free plan gives you access to all core features with no time limit. You only upgrade when you want unlimited subscriptions, AI insights or dependant management.</p>
+      </details>
+      <details class="faq-item reveal" style="transition-delay:120ms">
+        <summary>How secure is my financial data?</summary>
+        <p>We use AES-256 encryption at rest and TLS 1.3 in transit. We never sell your data. You can enable two-factor authentication for added protection.</p>
+      </details>
+      <details class="faq-item reveal" style="transition-delay:180ms">
+        <summary>Do I need to link my bank account?</summary>
+        <p>No. FlexScribe works as a standalone tracker. You manually add subscriptions and fund your virtual wallet. Bank linking is an optional future feature.</p>
+      </details>
+      <details class="faq-item reveal" style="transition-delay:240ms">
+        <summary>What is a Scribe Score?</summary>
+        <p>Your Scribe Score (0–850) measures your financial health based on subscription regularity, budget adherence and savings rate. Higher scores unlock rewards and badges.</p>
+      </details>
+      <details class="faq-item reveal" style="transition-delay:300ms">
+        <summary>Can I manage subscriptions for my family?</summary>
+        <p>Yes — with Premium or Business plans you can add Dependants (children, partner) and manage their subscriptions, allowances and spending limits from your account.</p>
+      </details>
+      <details class="faq-item reveal" style="transition-delay:360ms">
+        <summary>Can I cancel my subscription anytime?</summary>
+        <p>Absolutely. There are no long-term contracts. Cancel Premium at any time and you'll revert to the Free plan at the end of your billing period.</p>
+      </details>
+      <details class="faq-item reveal" style="transition-delay:420ms">
+        <summary>Is FlexScribe available on mobile?</summary>
+        <p>The web app is fully responsive and works great on mobile browsers. Native iOS and Android apps are on our roadmap for later this year.</p>
+      </details>
     </div>
+  </div>
+</section>
 
+<!-- ════════════════════════════════════════════════════════
+     CONTACT
+════════════════════════════════════════════════════════ -->
+<section id="contact" class="contact-section">
+  <div class="section-inner contact-inner">
+    <div class="contact-text reveal">
+      <div class="section-tag">CONTACT</div>
+      <h2 class="section-title">Let's talk</h2>
+      <p>Have a question, feedback or partnership proposal? We read every message.</p>
+      <div class="contact-info">
+        <a href="mailto:hello@flexscribe.app" class="contact-link">
+          <i class="fa-solid fa-envelope"></i> hello@flexscribe.app
+        </a>
+        <div class="contact-socials">
+          <a href="#" aria-label="Twitter/X"><i class="fa-brands fa-x-twitter"></i></a>
+          <a href="#" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a>
+          <a href="#" aria-label="GitHub"><i class="fa-brands fa-github"></i></a>
+        </div>
+      </div>
+    </div>
+    <form class="contact-form reveal" id="contact-form" style="transition-delay:150ms" novalidate>
+      <div class="contact-row">
+        <div class="contact-field">
+          <label for="c-name">Name</label>
+          <input type="text" id="c-name" placeholder="Jane Smith" autocomplete="name">
+        </div>
+        <div class="contact-field">
+          <label for="c-email">Email</label>
+          <input type="email" id="c-email" placeholder="jane@email.com" autocomplete="email">
+        </div>
+      </div>
+      <div class="contact-field">
+        <label for="c-msg">Message</label>
+        <textarea id="c-msg" rows="5" placeholder="Tell us what's on your mind..."></textarea>
+      </div>
+      <button type="submit" class="btn-primary btn-full ripple-btn" id="contact-submit">
+        <span class="btn-text"><i class="fa-solid fa-paper-plane"></i> Send Message</span>
+        <span class="btn-spinner" style="display:none">Sending…</span>
+      </button>
+    </form>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════
+     FOOTER
+════════════════════════════════════════════════════════ -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <div class="footer-logo">
+        <img src="images/smallLogo.png" alt="" width="32" height="32">
+        <span>Flex<em>Scribe</em></span>
+      </div>
+      <p>Manage. Track. Save. Smarter.</p>
+      <div class="footer-socials">
+        <a href="#" aria-label="Twitter/X"><i class="fa-brands fa-x-twitter"></i></a>
+        <a href="#" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a>
+        <a href="#" aria-label="GitHub"><i class="fa-brands fa-github"></i></a>
+      </div>
+    </div>
+    <div class="footer-col">
+      <h4>Product</h4>
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#how-it-works">How It Works</a>
+      <a href="pages/login.html?mode=register">Get Started</a>
+    </div>
+    <div class="footer-col">
+      <h4>Company</h4>
+      <a href="#about">About</a>
+      <a href="#contact">Contact</a>
+      <a href="#">Careers</a>
+      <a href="#">Blog</a>
+    </div>
+    <div class="footer-col">
+      <h4>Support</h4>
+      <a href="#">Help Centre</a>
+      <a href="#">Privacy Policy</a>
+      <a href="#">Terms of Service</a>
+      <a href="#security">Security</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2025 FlexScribe. All rights reserved. Built with care in South Africa 🇿🇦</p>
+    <div class="footer-bottom-links">
+      <a href="#">Privacy</a>
+      <a href="#">Terms</a>
+      <a href="#">Cookies</a>
+    </div>
+  </div>
 </footer>
 
+<script src="scripts/ui-utils.js" defer></script>
+<script src="scripts/api.js" defer></script>
+<script src="scripts/landing.js" defer></script>
 </body>
-
 </html>

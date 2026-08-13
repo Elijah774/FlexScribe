@@ -1,0 +1,498 @@
+/* =============================================================
+   FlexScribe — Dependants Panel Styles
+   styles/dependants.css
+============================================================= */
+
+/* ── Card Grid ── */
+.dep-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+@media (max-width: 1024px) {
+    .dep-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+    .dep-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Dependant Card ── */
+.dep-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.dep-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(255, 138, 52, 0.12);
+}
+
+/* ── Avatar ── */
+.dep-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.dep-avatar--blue   { background: #3B82F6; }
+.dep-avatar--purple { background: #A77CFF; }
+.dep-avatar--green  { background: #22C55E; }
+.dep-avatar--orange { background: #FF8A34; }
+.dep-avatar--pink   { background: #EC4899; }
+.dep-avatar--teal   { background: #14B8A6; }
+
+/* ── Card Content ── */
+.dep-card-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    text-align: center;
+}
+
+.dep-card-relationship {
+    font-size: 12px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: rgba(255, 138, 52, 0.1);
+    color: var(--orange);
+}
+
+.dep-card-allowance {
+    font-size: 13px;
+    color: var(--text-light);
+}
+
+.dep-card-allowance strong {
+    color: var(--text);
+    font-weight: 600;
+}
+
+/* ── Status Badge ── */
+.dep-status-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+    text-transform: capitalize;
+}
+
+.dep-status-badge--active {
+    background: rgba(34, 197, 94, 0.12);
+    color: #22C55E;
+}
+
+.dep-status-badge--invited {
+    background: rgba(59, 130, 246, 0.12);
+    color: #3B82F6;
+}
+
+.dep-status-badge--suspended {
+    background: rgba(248, 113, 113, 0.12);
+    color: #F87171;
+}
+
+/* ── Add Card ── */
+.dep-card--add {
+    border: 2px dashed var(--border);
+    background: transparent;
+    justify-content: center;
+    min-height: 200px;
+    gap: 8px;
+    color: var(--text-light);
+    font-size: 14px;
+    font-weight: 500;
+    transition: border-color 200ms ease, color 200ms ease;
+}
+
+.dep-card--add:hover {
+    border-color: var(--orange);
+    color: var(--orange);
+    box-shadow: none;
+    transform: none;
+}
+
+.dep-card--add svg {
+    width: 32px;
+    height: 32px;
+    opacity: 0.6;
+}
+
+.dep-card--add:hover svg {
+    opacity: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ADD DEPENDANT MODAL
+═══════════════════════════════════════════════════════════ */
+.dep-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 200ms ease;
+}
+
+.dep-modal-backdrop[hidden] { display: none !important; }
+
+.dep-modal-box {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideUp 220ms cubic-bezier(.4,0,.2,1);
+}
+
+.dep-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px 0;
+}
+
+.dep-modal-header h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.dep-modal-body {
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.dep-modal-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+@media (max-width: 500px) {
+    .dep-modal-row { grid-template-columns: 1fr; }
+}
+
+.dep-modal-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.dep-modal-field label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-light);
+}
+
+.dep-modal-field input,
+.dep-modal-field select {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 14px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.dep-modal-field input:focus,
+.dep-modal-field select:focus {
+    border-color: var(--orange);
+    box-shadow: 0 0 0 3px rgba(255, 138, 52, 0.15);
+}
+
+.dep-modal-error {
+    font-size: 13px;
+    color: var(--danger);
+    min-height: 18px;
+}
+
+.dep-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 24px 20px;
+    border-top: 1px solid var(--border);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SEND ALLOWANCE MODAL
+═══════════════════════════════════════════════════════════ */
+/* Reuses .dep-modal-backdrop/.dep-modal-box styling */
+
+/* ═══════════════════════════════════════════════════════════
+   DETAIL DRAWER
+═══════════════════════════════════════════════════════════ */
+.dep-drawer-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 900;
+    animation: fadeIn 200ms ease;
+}
+
+.dep-drawer-overlay[hidden] { display: none !important; }
+
+.dep-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 380px;
+    height: 100%;
+    background: var(--card);
+    border-left: 1px solid var(--border);
+    z-index: 910;
+    display: flex;
+    flex-direction: column;
+    animation: slideInRight 280ms cubic-bezier(.4,0,.2,1);
+    overflow-y: auto;
+}
+
+.dep-drawer[hidden] { display: none !important; }
+
+@media (max-width: 640px) {
+    .dep-drawer { width: 100%; }
+}
+
+.dep-drawer-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 24px;
+    border-bottom: 1px solid var(--border);
+}
+
+.dep-drawer-title-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.dep-drawer-name {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.dep-drawer-relationship {
+    font-size: 12px;
+    color: var(--text-light);
+}
+
+.dep-drawer-body {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+}
+
+.dep-drawer-section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+    margin-top: 24px;
+}
+
+.dep-drawer-section-title:first-child {
+    margin-top: 0;
+}
+
+/* ── Permission Toggles ── */
+.dep-permission-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.dep-permission-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+}
+
+.dep-permission-label {
+    font-size: 14px;
+    color: var(--text);
+}
+
+/* Toggle switch */
+.dep-switch {
+    position: relative;
+    width: 40px;
+    height: 22px;
+}
+
+.dep-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.dep-switch-track {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background: var(--border);
+    border-radius: 22px;
+    transition: background 200ms ease;
+}
+
+.dep-switch-track::before {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    left: 3px;
+    top: 3px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 200ms ease;
+}
+
+.dep-switch input:checked + .dep-switch-track {
+    background: var(--orange);
+}
+
+.dep-switch input:checked + .dep-switch-track::before {
+    transform: translateX(18px);
+}
+
+/* ── Activity List ── */
+.dep-activity-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.dep-activity-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: var(--input-bg);
+    border-radius: 10px;
+}
+
+.dep-activity-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.dep-activity-desc {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+}
+
+.dep-activity-date {
+    font-size: 11px;
+    color: var(--text-light);
+}
+
+.dep-activity-amount {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--orange);
+}
+
+.dep-activity-amount--spend {
+    color: var(--danger);
+}
+
+/* ── Drawer Footer ── */
+.dep-drawer-footer {
+    display: flex;
+    gap: 12px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+}
+
+.dep-drawer-btn {
+    flex: 1;
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: background 150ms ease, opacity 150ms ease;
+}
+
+.dep-drawer-btn--send {
+    background: var(--orange);
+    color: #fff;
+}
+
+.dep-drawer-btn--send:hover {
+    background: var(--orange-hover);
+}
+
+.dep-drawer-btn--edit {
+    background: var(--hover);
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+
+.dep-drawer-btn--edit:hover {
+    background: var(--border);
+}
+
+.dep-drawer-btn--delete {
+    background: rgba(248, 113, 113, 0.1);
+    color: var(--danger);
+}
+
+.dep-drawer-btn--delete:hover {
+    background: rgba(248, 113, 113, 0.2);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ANIMATIONS
+═══════════════════════════════════════════════════════════ */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+    from { transform: translateX(100%); }
+    to   { transform: translateX(0); }
+}

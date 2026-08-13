@@ -1,0 +1,7 @@
+﻿window._pageContent = window._pageContent || {};
+window._pageContent['timeline'] = `                <div class="panel coming-soon-panel">
+                    <i data-lucide="history" style="width:48px;height:48px;color:var(--orange);margin-bottom:16px;"></i>
+                    <h3>Billing Timeline</h3>
+                    <p class="stat-label" style="margin-top:8px;">This page is coming soon.</p>
+                </div>
+`;
