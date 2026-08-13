@@ -87,8 +87,8 @@ function closeAllMenus(except) {
 /* ===========================================================
    PAGE ROUTING — shows/hides pre-embedded panels,
    updates titles/headings, and toggles the active nav item.
-   Using embedded panels instead of fetch() so the app works
-   when opened directly as a file:// URL (no server needed).
+   Loads page content from separate .html files using
+   XMLHttpRequest which works with file:// protocol.
 =========================================================== */
 
 function _getDashboardGreeting() {
@@ -106,9 +106,65 @@ const pageTitles = {
     timeline:      { title: "Timeline",       heading: "Billing Timeline",      sub: "Visualise money flowing out of your wallet for the next 30 days." },
     dependants:    { title: "Dependants",     heading: "Dependants",            sub: "Manage family members and their allocations." },
     notifications: { title: "Notifications", heading: "Notifications",         sub: "Stay on top of upcoming payments and alerts." },
-    reports:       { title: "Reports",        heading: "Reports",               sub: "Monthly summary and spending breakdown." },
+    reports:       { title: "Reports",        heading: "Reports",               sub: "View, compile and analyse your financial reports with AI-powered insights." },
     settings:      { title: "Settings",       heading: "Settings",               sub: "Customize your experience and manage your account." }
 };
+
+// Maps page names to their .html file (relative to pages/ folder)
+const pageFiles = {
+    dashboard:     'dashboard.html',
+    wallet:        'wallet.html',
+    subscription:  'subscription.html',
+    goals:         'goals.html',
+    analytics:     'analytics.html',
+    timeline:      'timeline.html',
+    dependants:    'dependants.html',
+    notifications: 'notifications.html',
+    reports:       'reports.html',
+    settings:      'settings.html'
+};
+
+// Cache loaded pages so we don't reload on revisit
+const _pageCache = {};
+
+function _loadPageContent(pageName, panel, callback) {
+    // If already loaded, just callback
+    if (panel.dataset.loaded === 'true') {
+        callback();
+        return;
+    }
+
+    // Content is pre-registered by page script files via window._pageContent
+    if (window._pageContent && window._pageContent[pageName]) {
+        panel.innerHTML = window._pageContent[pageName];
+        panel.dataset.loaded = 'true';
+        callback();
+        return;
+    }
+
+    // Fallback: try synchronous XHR (works on some browsers with file://)
+    const file = pageFiles[pageName];
+    if (!file) {
+        callback();
+        return;
+    }
+
+    try {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', file, false);
+        xhr.send();
+        if (xhr.status === 200 || xhr.status === 0) {
+            const html = xhr.responseText;
+            if (html && html.trim().length > 0) {
+                panel.innerHTML = html;
+                panel.dataset.loaded = 'true';
+            }
+        }
+    } catch (e) {
+        console.warn('Could not load ' + file + ' — page content not available.');
+    }
+    callback();
+}
 
 function loadPage(pageName) {
     // Hide every panel, show the requested one
@@ -138,48 +194,48 @@ function loadPage(pageName) {
     const activeItem = document.querySelector(`.nav-item[data-page="${pageName}"]`);
     if (activeItem) activeItem.classList.add('active');
 
-    // Re-render Lucide icons that may be inside the newly shown panel
-    if (typeof lucide !== 'undefined') lucide.createIcons();
+    // Load content from external file then init the page
+    _loadPageContent(pageName, target, function () {
+        // Re-render Lucide icons that may be inside the newly shown panel
+        if (typeof lucide !== 'undefined') lucide.createIcons();
 
-    // Page-specific init hooks
-    if (pageName === 'dashboard' && typeof DashboardUI !== 'undefined') {
-        DashboardUI.init();
-    }
+        // Page-specific init hooks
+        if (pageName === 'dashboard' && typeof DashboardUI !== 'undefined') {
+            DashboardUI.init();
+        }
 
-    if (pageName === 'subscription' && typeof SubscriptionsUI !== 'undefined') {
-        // init() is idempotent — safe to call on every visit.
-        // First call wires all event listeners + does initial render.
-        // Subsequent calls just re-render from the live store.
-        SubscriptionsUI.init();
-    }
+        if (pageName === 'subscription' && typeof SubscriptionsUI !== 'undefined') {
+            SubscriptionsUI.init();
+        }
 
-    if (pageName === 'wallet' && typeof WalletUI !== 'undefined') {
-        WalletUI.init();
-    }
+        if (pageName === 'wallet' && typeof WalletUI !== 'undefined') {
+            WalletUI.init();
+        }
 
-    if (pageName === 'goals' && typeof GoalsUI !== 'undefined') {
-        GoalsUI.init();
-    }
+        if (pageName === 'goals' && typeof GoalsUI !== 'undefined') {
+            GoalsUI.init();
+        }
 
-    if (pageName === 'analytics' && typeof AnalyticsUI !== 'undefined') {
-        AnalyticsUI.init();
-    }
+        if (pageName === 'analytics' && typeof AnalyticsUI !== 'undefined') {
+            AnalyticsUI.init();
+        }
 
-    if (pageName === 'reports' && typeof ReportsUI !== 'undefined') {
-        ReportsUI.init();
-    }
+        if (pageName === 'reports' && typeof ReportsUI !== 'undefined') {
+            ReportsUI.init();
+        }
 
-    if (pageName === 'dependants' && typeof DependantsUI !== 'undefined') {
-        DependantsUI.init();
-    }
+        if (pageName === 'dependants' && typeof DependantsUI !== 'undefined') {
+            DependantsUI.init();
+        }
 
-    if (pageName === 'notifications') {
-        _initNotificationsPanel();
-    }
+        if (pageName === 'notifications') {
+            _initNotificationsPanel();
+        }
 
-    if (pageName === 'settings') {
-        _initSettingsPanel();
-    }
+        if (pageName === 'settings') {
+            _initSettingsPanel();
+        }
+    });
 }
 
 document.querySelectorAll('.nav-item').forEach(item => {

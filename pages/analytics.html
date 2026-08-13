@@ -1,0 +1,76 @@
+
+                <!-- Header: date range tabs + export -->
+                <div class="analytics-header">
+                    <div class="analytics-range-tabs">
+                        <button class="analytics-range-btn active" data-range="thisMonth">This Month</button>
+                        <button class="analytics-range-btn" data-range="lastMonth">Last Month</button>
+                        <button class="analytics-range-btn" data-range="last3Months">Last 3 Months</button>
+                    </div>
+                    <button class="analytics-export-btn" id="analytics-export-btn">
+                        <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        Export CSV
+                    </button>
+                </div>
+
+                <!-- Summary strip -->
+                <div class="analytics-stats" id="analytics-stats">
+                    <!-- Rendered by AnalyticsUI -->
+                </div>
+
+                <!-- Charts grid: donut + bar chart -->
+                <div class="analytics-charts-grid">
+                    <!-- Donut chart panel -->
+                    <div class="analytics-panel">
+                        <h3 class="analytics-panel-title">Spending by Category</h3>
+                        <div class="analytics-donut-wrap">
+                            <div class="analytics-donut-container">
+                                <svg id="analytics-donut-svg" viewBox="0 0 200 200" class="analytics-donut-svg" aria-hidden="true">
+                                    <circle cx="100" cy="100" r="72" fill="none" stroke="var(--border)" stroke-width="30"/>
+                                </svg>
+                                <div class="analytics-donut-center">
+                                    <span class="analytics-donut-total" id="analytics-donut-total">—</span>
+                                    <span class="analytics-donut-subtitle">total</span>
+                                </div>
+                            </div>
+                            <ul class="analytics-legend" id="analytics-donut-legend">
+                                <!-- Rendered by AnalyticsUI -->
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Monthly trend bar chart -->
+                    <div class="analytics-panel">
+                        <h3 class="analytics-panel-title">Monthly Spending Trend</h3>
+                        <div class="analytics-bar-chart" id="analytics-bar-chart">
+                            <!-- Rendered by AnalyticsUI -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom grid: merchants + budgets -->
+                <div class="analytics-charts-grid">
+                    <!-- Top merchants -->
+                    <div class="analytics-panel">
+                        <h3 class="analytics-panel-title">Top Merchants</h3>
+                        <table class="analytics-merchants-table">
+                            <thead>
+                                <tr>
+                                    <th>Merchant</th>
+                                    <th>Total</th>
+                                    <th>Count</th>
+                                </tr>
+                            </thead>
+                            <tbody id="analytics-merchants-body">
+                                <!-- Rendered by AnalyticsUI -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Budget vs Actual -->
+                    <div class="analytics-panel">
+                        <h3 class="analytics-panel-title">Budget vs Actual</h3>
+                        <div class="analytics-budgets" id="analytics-budgets">
+                            <!-- Rendered by AnalyticsUI -->
+                        </div>
+                    </div>
+                </div>

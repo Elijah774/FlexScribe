@@ -1,241 +1,78 @@
 
-<div class="sub-actions-bar">
-    <button class="primary-btn add-sub-btn" id="add-sub-btn">
-        <i data-lucide="plus"></i> Add Subscription
-    </button>
-
-    <div class="sub-more-wrap">
-        <button class="icon-btn" id="sub-more-btn" aria-label="More options">
-            <i data-lucide="more-vertical"></i>
-        </button>
-        <div class="dropdown-menu sub-more-menu" id="sub-more-menu" hidden>
-            <a href="#" class="dropdown-menu-item"><i data-lucide="arrow-down-to-line"></i> Export CSV</a>
-            <a href="#" class="dropdown-menu-item"><i data-lucide="arrow-up-down"></i> Sort by amount</a>
-            <a href="#" class="dropdown-menu-item"><i data-lucide="filter"></i> Filter categories</a>
-        </div>
-    </div>
-</div>
-
-<!-- Stat cards -->
-<div class="stats-grid">
-    <div class="stat-card">
-        <div class="stat-icon green"><i data-lucide="layout-grid"></i></div>
-        <p class="stat-label">Active Subscriptions</p>
-        <p class="stat-value">5</p>
-    </div>
-
-    <div class="stat-card">
-        <div class="stat-icon orange"><i data-lucide="calendar-days"></i></div>
-        <p class="stat-label">Monthly Total</p>
-        <p class="stat-value">R905.99</p>
-    </div>
-
-    <div class="stat-card">
-        <div class="stat-icon blue"><i data-lucide="banknote"></i></div>
-        <p class="stat-label">Annual Total</p>
-        <p class="stat-value">R10,871.88</p>
-    </div>
-
-    <div class="stat-card">
-        <div class="stat-icon purple"><i data-lucide="piggy-bank"></i></div>
-        <p class="stat-label">Potential Savings</p>
-        <p class="stat-value">R2,180.00</p>
-    </div>
-</div>
-
-<!-- Upcoming payments + top categories -->
-<div class="content-grid">
-
-    <div class="panel">
-        <div class="panel-head">
-            <h3>Upcoming Payments</h3>
-        </div>
-
-        <ul class="pay-list">
-            <li class="pay-row">
-                <span class="pay-logo netflix">N</span>
-                <div class="pay-info">
-                    <p class="pay-title">Netflix</p>
-                    <p class="pay-sub">R199.00</p>
+                <!-- Actions bar -->
+                <div class="sub-actions-bar">
+                    <div class="sub-filters">
+                        <button class="filter-status-btn filter-btn--active" data-status="all">All</button>
+                        <button class="filter-status-btn" data-status="active">Active</button>
+                        <button class="filter-status-btn" data-status="paused">Paused</button>
+                    </div>
+                    <div class="sub-actions-right">
+                        <button class="primary-btn add-sub-btn" id="add-sub-btn" aria-label="Add subscription">
+                            <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+                            Add Subscription
+                        </button>
+                        <div class="sub-more-wrap">
+                            <button class="icon-btn" id="sub-more-btn" aria-label="More options">
+                                <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><circle cx="12" cy="5" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="19" r="1.5" fill="currentColor"/></svg>
+                            </button>
+                            <div class="dropdown-menu sub-more-menu" id="sub-more-menu" hidden>
+                                <button class="dropdown-menu-item" id="sub-export-btn">
+                                    <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    Export CSV
+                                </button>
+                                <button class="dropdown-menu-item sort-btn" data-sort="amount">
+                                    <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M3 6h18M7 12h10M11 18h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                                    Sort by amount <span class="sort-arrow">↑</span>
+                                </button>
+                                <button class="dropdown-menu-item sort-btn" data-sort="name">
+                                    <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M3 6h18M7 12h10M11 18h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                                    Sort by name <span class="sort-arrow">↑</span>
+                                </button>
+                                <button class="dropdown-menu-item sort-btn sort-btn--active" data-sort="date">
+                                    <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                                    Sort by date <span class="sort-arrow">↑</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <p class="pay-date">May 18, 2025</p>
-            </li>
 
-            <li class="pay-row">
-                <span class="pay-logo spotify"><i data-lucide="music"></i></span>
-                <div class="pay-info">
-                    <p class="pay-title">Spotify</p>
-                    <p class="pay-sub">R59.99</p>
+                <!-- Category filter chips -->
+                <div class="sub-cat-filter">
+                    <button class="filter-cat-btn filter-btn--active" data-cat="all">All</button>
+                    <button class="filter-cat-btn" data-cat="Entertainment">Entertainment</button>
+                    <button class="filter-cat-btn" data-cat="Music">Music</button>
+                    <button class="filter-cat-btn" data-cat="Shopping">Shopping</button>
+                    <button class="filter-cat-btn" data-cat="Productivity">Productivity</button>
+                    <button class="filter-cat-btn" data-cat="Education">Education</button>
+                    <button class="filter-cat-btn" data-cat="Utilities">Utilities</button>
+                    <button class="filter-cat-btn" data-cat="Gaming">Gaming</button>
+                    <button class="filter-cat-btn" data-cat="Other">Other</button>
                 </div>
-                <p class="pay-date">May 16, 2025</p>
-            </li>
 
-            <li class="pay-row">
-                <span class="pay-logo youtube"><i data-lucide="play"></i></span>
-                <div class="pay-info">
-                    <p class="pay-title">YouTube Premium</p>
-                    <p class="pay-sub">R79.00</p>
+                <!-- All subscriptions list (current/active subs at top) -->
+                <div class="panel sub-list-panel">
+                    <div class="panel-head">
+                        <h3>Your Subscriptions</h3>
+                    </div>
+                    <ul class="sub-list" id="sub-list" aria-label="Subscriptions list">
+                        <!-- Rendered by SubscriptionsUI -->
+                    </ul>
                 </div>
-                <p class="pay-date">May 20, 2025</p>
-            </li>
-        </ul>
-    </div>
 
-    <div class="panel">
-        <div class="panel-head">
-            <h3>Top Categories</h3>
-            <a href="#" class="view-all">View all upcoming</a>
-        </div>
+                <!-- Recommended For You (auto-scrolling marquee) -->
+                <section class="rec-section" aria-label="Recommended subscriptions">
+                    <div class="panel-head">
+                        <h3>Recommended For You</h3>
+                    </div>
+                    <div class="rec-marquee-wrapper">
+                        <div class="rec-marquee" id="rec-strip" role="list" aria-label="Recommended subscription providers">
+                            <!-- Rendered by SubscriptionsUI — cards duplicated for infinite scroll -->
+                        </div>
+                    </div>
+                </section>
 
-        <div class="spend-body">
-            <div class="donut-wrap">
-                <svg viewBox="0 0 200 200" class="donut">
-                    <circle cx="100" cy="100" r="72" fill="none" stroke-width="30" class="donut-track"/>
-                    <!-- Entertainment 44% -->
-                    <circle cx="100" cy="100" r="72" fill="none" stroke="var(--orange)" stroke-width="30"
-                            stroke-dasharray="199.1 452.4" stroke-dashoffset="0" transform="rotate(-90 100 100)"/>
-                    <!-- Music 22% -->
-                    <circle cx="100" cy="100" r="72" fill="none" stroke="var(--green)" stroke-width="30"
-                            stroke-dasharray="99.5 452.4" stroke-dashoffset="-199.1" transform="rotate(-90 100 100)"/>
-                    <!-- Shopping 17% -->
-                    <circle cx="100" cy="100" r="72" fill="none" stroke="var(--blue)" stroke-width="30"
-                            stroke-dasharray="76.9 452.4" stroke-dashoffset="-298.6" transform="rotate(-90 100 100)"/>
-                    <!-- Productivity 12% -->
-                    <circle cx="100" cy="100" r="72" fill="none" stroke="var(--purple)" stroke-width="30"
-                            stroke-dasharray="54.3 452.4" stroke-dashoffset="-375.5" transform="rotate(-90 100 100)"/>
-                    <!-- Other 5% -->
-                    <circle cx="100" cy="100" r="72" fill="none" stroke="var(--text-light)" stroke-width="30"
-                            stroke-dasharray="22.6 452.4" stroke-dashoffset="-429.8" transform="rotate(-90 100 100)"/>
-                </svg>
-                <div class="donut-center">
-                    <span class="donut-value">R905.99</span>
-                    <span class="donut-label">/month</span>
-                </div>
-            </div>
-
-            <ul class="legend">
-                <li><span class="dot orange"></span><span class="leg-name">Entertainment</span><span class="leg-pct">44%</span></li>
-                <li><span class="dot green"></span><span class="leg-name">Music</span><span class="leg-pct">22%</span></li>
-                <li><span class="dot blue"></span><span class="leg-name">Shopping</span><span class="leg-pct">17%</span></li>
-                <li><span class="dot purple"></span><span class="leg-name">Productivity</span><span class="leg-pct">12%</span></li>
-                <li><span class="dot gray"></span><span class="leg-name">Other</span><span class="leg-pct">5%</span></li>
-            </ul>
-        </div>
-    </div>
-
-</div>
-
-<!-- All subscriptions -->
-<div class="panel sub-list-panel">
-    <div class="panel-head">
-        <h3>All Subscriptions</h3>
-    </div>
-
-    <ul class="sub-list">
-
-        <li class="sub-row">
-            <span class="sub-logo netflix">N</span>
-            <div class="sub-info">
-                <p class="sub-title">Netflix</p>
-                <p class="sub-sub">R199.00 / month</p>
-            </div>
-            <p class="sub-date">May 18, 2025</p>
-
-            <label class="switch">
-                <input type="checkbox" checked>
-                <span class="switch-track"></span>
-            </label>
-
-            <div class="sub-menu-wrap">
-                <button class="icon-btn sub-menu-btn" aria-label="More options">
-                    <i data-lucide="more-vertical"></i>
+                <!-- FAB (mobile + desktop) -->
+                <button class="sub-fab" id="sub-fab" aria-label="Add subscription">
+                    <svg viewBox="0 0 24 24" fill="none" width="24" height="24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
                 </button>
-                <div class="dropdown-menu sub-menu" hidden>
-                    <a href="#" class="dropdown-menu-item"><i data-lucide="eye"></i> View Details</a>
-                    <a href="#" class="dropdown-menu-item"><i data-lucide="pencil"></i> Edit</a>
-                    <a href="#" class="dropdown-menu-item danger"><i data-lucide="x-circle"></i> Cancel</a>
-                </div>
-            </div>
-        </li>
-
-        <li class="sub-row">
-            <span class="sub-logo spotify"><i data-lucide="music"></i></span>
-            <div class="sub-info">
-                <p class="sub-title">Spotify</p>
-                <p class="sub-sub">R59.99 / month</p>
-            </div>
-            <p class="sub-date">May 16, 2025</p>
-
-            <label class="switch">
-                <input type="checkbox" checked>
-                <span class="switch-track"></span>
-            </label>
-
-            <div class="sub-menu-wrap">
-                <button class="icon-btn sub-menu-btn" aria-label="More options">
-                    <i data-lucide="more-vertical"></i>
-                </button>
-                <div class="dropdown-menu sub-menu" hidden>
-                    <a href="#" class="dropdown-menu-item"><i data-lucide="eye"></i> View Details</a>
-                    <a href="#" class="dropdown-menu-item"><i data-lucide="pencil"></i> Edit</a>
-                    <a href="#" class="dropdown-menu-item danger"><i data-lucide="x-circle"></i> Cancel</a>
-                </div>
-            </div>
-        </li>
-
-        <li class="sub-row">
-            <span class="sub-logo disney"><i data-lucide="sparkles"></i></span>
-            <div class="sub-info">
-                <p class="sub-title">Disney+</p>
-                <p class="sub-sub">R89.00 / month</p>
-            </div>
-            <p class="sub-date">May 24, 2025</p>
-
-            <label class="switch">
-                <input type="checkbox" checked>
-                <span class="switch-track"></span>
-            </label>
-
-            <div class="sub-menu-wrap">
-                <button class="icon-btn sub-menu-btn" aria-label="More options">
-                    <i data-lucide="more-vertical"></i>
-                </button>
-                <div class="dropdown-menu sub-menu" hidden>
-                    <a href="#" class="dropdown-menu-item"><i data-lucide="eye"></i> View Details</a>
-                    <a href="#" class="dropdown-menu-item"><i data-lucide="pencil"></i> Edit</a>
-                    <a href="#" class="dropdown-menu-item danger"><i data-lucide="x-circle"></i> Cancel</a>
-                </div>
-            </div>
-        </li>
-
-        <li class="sub-row">
-            <span class="sub-logo prime"><i data-lucide="shopping-cart"></i></span>
-            <div class="sub-info">
-                <p class="sub-title">Amazon Prime</p>
-                <p class="sub-sub">Shopping</p>
-            </div>
-            <p class="sub-date">May 22, 2025</p>
-
-            <label class="switch">
-                <input type="checkbox" checked>
-                <span class="switch-track"></span>
-            </label>
-
-            <div class="sub-menu-wrap">
-                <button class="icon-btn sub-menu-btn" aria-label="More options">
-                    <i data-lucide="more-vertical"></i>
-                </button>
-                <div class="dropdown-menu sub-menu" hidden>
-                    <a href="#" class="dropdown-menu-item"><i data-lucide="eye"></i> View Details</a>
-                    <a href="#" class="dropdown-menu-item"><i data-lucide="pencil"></i> Edit</a>
-                    <a href="#" class="dropdown-menu-item danger"><i data-lucide="x-circle"></i> Cancel</a>
-                </div>
-            </div>
-        </li>
-
-    </ul>
-
-    <a href="#" class="view-all-link" data-page="subscription">
-        View all subscriptions <i data-lucide="chevron-right"></i>
-    </a>
-</div>
