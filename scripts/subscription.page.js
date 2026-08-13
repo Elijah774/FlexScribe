@@ -1,0 +1,80 @@
+﻿window._pageContent = window._pageContent || {};
+window._pageContent['subscription'] = `
+                <!-- Actions bar -->
+                <div class="sub-actions-bar">
+                    <div class="sub-filters">
+                        <button class="filter-status-btn filter-btn--active" data-status="all">All</button>
+                        <button class="filter-status-btn" data-status="active">Active</button>
+                        <button class="filter-status-btn" data-status="paused">Paused</button>
+                    </div>
+                    <div class="sub-actions-right">
+                        <button class="primary-btn add-sub-btn" id="add-sub-btn" aria-label="Add subscription">
+                            <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+                            Add Subscription
+                        </button>
+                        <div class="sub-more-wrap">
+                            <button class="icon-btn" id="sub-more-btn" aria-label="More options">
+                                <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><circle cx="12" cy="5" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="19" r="1.5" fill="currentColor"/></svg>
+                            </button>
+                            <div class="dropdown-menu sub-more-menu" id="sub-more-menu" hidden>
+                                <button class="dropdown-menu-item" id="sub-export-btn">
+                                    <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    Export CSV
+                                </button>
+                                <button class="dropdown-menu-item sort-btn" data-sort="amount">
+                                    <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M3 6h18M7 12h10M11 18h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                                    Sort by amount <span class="sort-arrow">↑</span>
+                                </button>
+                                <button class="dropdown-menu-item sort-btn" data-sort="name">
+                                    <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M3 6h18M7 12h10M11 18h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                                    Sort by name <span class="sort-arrow">↑</span>
+                                </button>
+                                <button class="dropdown-menu-item sort-btn sort-btn--active" data-sort="date">
+                                    <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                                    Sort by date <span class="sort-arrow">↑</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Category filter chips -->
+                <div class="sub-cat-filter">
+                    <button class="filter-cat-btn filter-btn--active" data-cat="all">All</button>
+                    <button class="filter-cat-btn" data-cat="Entertainment">Entertainment</button>
+                    <button class="filter-cat-btn" data-cat="Music">Music</button>
+                    <button class="filter-cat-btn" data-cat="Shopping">Shopping</button>
+                    <button class="filter-cat-btn" data-cat="Productivity">Productivity</button>
+                    <button class="filter-cat-btn" data-cat="Education">Education</button>
+                    <button class="filter-cat-btn" data-cat="Utilities">Utilities</button>
+                    <button class="filter-cat-btn" data-cat="Gaming">Gaming</button>
+                    <button class="filter-cat-btn" data-cat="Other">Other</button>
+                </div>
+
+                <!-- All subscriptions list (current/active subs at top) -->
+                <div class="panel sub-list-panel">
+                    <div class="panel-head">
+                        <h3>Your Subscriptions</h3>
+                    </div>
+                    <ul class="sub-list" id="sub-list" aria-label="Subscriptions list">
+                        <!-- Rendered by SubscriptionsUI -->
+                    </ul>
+                </div>
+
+                <!-- Recommended For You (auto-scrolling marquee) -->
+                <section class="rec-section" aria-label="Recommended subscriptions">
+                    <div class="panel-head">
+                        <h3>Recommended For You</h3>
+                    </div>
+                    <div class="rec-marquee-wrapper">
+                        <div class="rec-marquee" id="rec-strip" role="list" aria-label="Recommended subscription providers">
+                            <!-- Rendered by SubscriptionsUI — cards duplicated for infinite scroll -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- FAB (mobile + desktop) -->
+                <button class="sub-fab" id="sub-fab" aria-label="Add subscription">
+                    <svg viewBox="0 0 24 24" fill="none" width="24" height="24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+                </button>
+`;

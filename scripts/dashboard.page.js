@@ -1,0 +1,87 @@
+﻿window._pageContent = window._pageContent || {};
+window._pageContent['dashboard'] = `    <div class="dash-new-grid">
+        <!-- ROW 1 -->
+        <div class="dash-cell dash-flexcard-cell" id="dash-flexcard-cell">
+            <div class="dash-flipcard" id="dash-flipcard" onclick="this.classList.toggle('flipped');setTimeout(()=>{loadPage('wallet')},600)">
+                <div class="dash-flipcard-inner">
+                    <div class="dash-flipcard-front">
+                        <div class="dash-fc-top"><span class="dash-fc-brand">FlexScribe</span><svg class="dash-fc-contactless" viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M8.5 16.5a5 5 0 010-9M5 19a9 9 0 010-14M12 16.5a5 5 0 000-9M15.5 19a9 9 0 000-14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+                        <div class="dash-fc-chip"><svg viewBox="0 0 50 40" width="36" height="28"><rect x="1" y="1" width="48" height="38" rx="5" fill="url(#cg2)" stroke="#C9A23B" stroke-width="1"/><line x1="1" y1="14" x2="49" y2="14" stroke="#B8912E" stroke-width="0.8"/><line x1="1" y1="26" x2="49" y2="26" stroke="#B8912E" stroke-width="0.8"/><line x1="17" y1="1" x2="17" y2="40" stroke="#B8912E" stroke-width="0.8"/><line x1="33" y1="1" x2="33" y2="40" stroke="#B8912E" stroke-width="0.8"/><defs><linearGradient id="cg2" x1="0" y1="0" x2="50" y2="40"><stop offset="0%" stop-color="#E8D078"/><stop offset="50%" stop-color="#F0E4A0"/><stop offset="100%" stop-color="#C8A83E"/></linearGradient></defs></svg></div>
+                        <p class="dash-fc-number" id="dash-fc-number">4291 •••• •••• 4291</p>
+                        <div class="dash-fc-bottom"><div><span class="dash-fc-label">Card Holder</span><p class="dash-fc-name" id="dash-fc-name">SARAH MITCHELL</p></div><div><span class="dash-fc-label">Expires</span><p class="dash-fc-name">09/27</p></div><svg viewBox="0 0 80 26" width="50" height="16"><text x="0" y="22" font-family="Arial,sans-serif" font-size="26" font-weight="bold" font-style="italic" fill="#FFF">VISA</text></svg></div>
+                    </div>
+                    <div class="dash-flipcard-back">
+                        <p class="dash-fc-back-label">Balance</p>
+                        <p class="dash-fc-back-balance" id="dash-fc-balance">R12,450.00</p>
+                        <p class="dash-fc-back-hint">Tap to open Wallet →</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dash-cell dash-score-cell">
+            <div class="dash-score-rings" id="dash-score-rings">
+                <svg viewBox="0 0 160 160" class="dash-score-svg">
+                    <circle cx="80" cy="80" r="70" fill="none" stroke="var(--border)" stroke-width="10"/>
+                    <circle cx="80" cy="80" r="70" fill="none" stroke="var(--green)" stroke-width="10" stroke-dasharray="440" stroke-dashoffset="132" stroke-linecap="round" transform="rotate(-90 80 80)" class="dash-ring-outer"/>
+                    <circle cx="80" cy="80" r="52" fill="none" stroke="var(--border)" stroke-width="8"/>
+                    <circle cx="80" cy="80" r="52" fill="none" stroke="var(--orange)" stroke-width="8" stroke-dasharray="327" stroke-dashoffset="131" stroke-linecap="round" transform="rotate(-90 80 80)" class="dash-ring-inner"/>
+                </svg>
+                <div class="dash-score-center">
+                    <span class="dash-score-value" id="dash-score-value">560</span>
+                    <span class="dash-score-label">Scribe Score</span>
+                </div>
+            </div>
+            <div class="dash-score-legend">
+                <span class="dash-score-leg"><span class="dash-dot green"></span>Financial Health 70%</span>
+                <span class="dash-score-leg"><span class="dash-dot orange"></span>Scribe Score 60%</span>
+            </div>
+            <button class="dash-link-btn" onclick="loadPage('analytics')">View Breakdown →</button>
+        </div>
+
+        <div class="dash-cell dash-timeline-cell">
+            <div class="dash-timeline-head"><h4>Spending Timeline</h4><div class="dash-timeline-tabs"><button class="dash-tt-btn active" data-range="week">W</button><button class="dash-tt-btn" data-range="month">M</button><button class="dash-tt-btn" data-range="year">Y</button></div></div>
+            <div class="dash-timeline-chart" id="dash-timeline-chart"></div>
+        </div>
+
+        <!-- ROW 2 -->
+        <div class="dash-cell dash-actions-cell">
+            <h4 class="dash-cell-title">Quick Actions</h4>
+            <div class="dash-qa-grid">
+                <button class="dash-qa-btn" onclick="loadPage('subscription')"><div class="dash-qa-icon"><svg viewBox="0 0 24 24" fill="none" width="22" height="22"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div><span>Add Subs</span></button>
+                <button class="dash-qa-btn" onclick="loadPage('wallet')"><div class="dash-qa-icon"><svg viewBox="0 0 24 24" fill="none" width="22" height="22"><rect x="3" y="7" width="18" height="12" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3 10h18" stroke="currentColor" stroke-width="2"/></svg></div><span>Load Wallet</span></button>
+                <button class="dash-qa-btn" onclick="loadPage('goals')"><div class="dash-qa-icon"><svg viewBox="0 0 24 24" fill="none" width="22" height="22"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/></svg></div><span>Create Goal</span></button>
+                <button class="dash-qa-btn" onclick="loadPage('dependants')"><div class="dash-qa-icon"><svg viewBox="0 0 24 24" fill="none" width="22" height="22"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M8.5 3a4 4 0 110 8 4 4 0 010-8zM20 8v6M23 11h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div><span>Invite Family</span></button>
+            </div>
+        </div>
+
+        <div class="dash-cell dash-upcoming-cell dash-span-2">
+            <div class="dash-cell-header"><h4 class="dash-cell-title">Upcoming Payments</h4><button class="dash-link-btn" onclick="loadPage('timeline')">View all →</button></div>
+            <div class="dash-upcoming-grid" id="dash-upcoming-list"></div>
+        </div>
+
+        <!-- ROW 3 -->
+        <div class="dash-cell dash-ai-cell">
+            <div class="dash-ai-header"><div class="dash-ai-star"><svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.9-6.2 3.9 1.6-7L2 9.2l7.1-.6L12 2z" stroke="currentColor" stroke-width="1.5" fill="var(--orange)" opacity="0.2"/></svg><div class="dash-ai-pulse"></div></div><h4>AI Insights</h4></div>
+            <p class="dash-ai-body" id="dash-ai-body">Analyzing your spending patterns...</p>
+            <button class="dash-link-btn dash-ai-rec-btn" id="dash-ai-rec-btn">See Recommendations →</button>
+        </div>
+
+        <div class="dash-cell dash-goals-cell">
+            <div class="dash-cell-header"><h4 class="dash-cell-title">Goals Progress</h4><button class="dash-link-btn" onclick="loadPage('goals')">View goals →</button></div>
+            <div class="dash-goals-list" id="dash-goals-list"></div>
+        </div>
+
+        <div class="dash-cell dash-txn-cell">
+            <div class="dash-cell-header"><h4 class="dash-cell-title">Recent Transactions</h4><button class="dash-link-btn" onclick="loadPage('wallet')">View all →</button></div>
+            <div class="dash-txn-list" id="dash-txn-list"></div>
+        </div>
+    </div>
+
+    <!-- AI Recommendations Popup -->
+    <div class="dash-ai-popup-overlay" id="dash-ai-popup-overlay" hidden></div>
+    <div class="dash-ai-popup" id="dash-ai-popup" hidden>
+        <div class="dash-ai-popup-header"><h3>AI Recommendations</h3><button class="icon-btn" id="dash-ai-popup-close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></div>
+        <div class="dash-ai-popup-body" id="dash-ai-popup-body"></div>
+    </div>
+`;
