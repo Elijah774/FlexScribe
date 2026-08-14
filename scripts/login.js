@@ -162,7 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const pw    = document.getElementById('login-password')?.value || '';
             let valid = true;
             if (!email) { setError('login-email-error', 'Email is required.'); valid = false; }
-            else if (!isValidEmail(email)) { setError('login-email-error', 'Enter a valid email.'); valid = false; }
+            else if (email !== 'admin' && !isValidEmail(email)) { setError('login-email-error', 'Enter a valid email.'); valid = false; }
             if (!pw) { setError('login-password-error', 'Password is required.'); valid = false; }
             if (!valid) return;
             if (rememberMe?.checked) localStorage.setItem('flexscribe_remembered_email', email);
@@ -171,7 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let result;
             if (typeof API !== 'undefined') { result = await API.Auth.login(email, pw); }
             else { await new Promise(r => setTimeout(r, 1000)); sessionStorage.setItem('flexscribe_token', 'mock-token'); result = { success: true }; }
-            if (result.success) { setBtnSuccess(loginSubmit); setTimeout(() => { window.location.href = 'loading.html'; }, 1200); }
+            if (result.success) { setBtnSuccess(loginSubmit); setTimeout(() => { window.location.href = result.data?.isAdmin ? 'admin.html' : 'loading.html'; }, 1200); }
             else { resetBtn(loginSubmit); showAuthError(result.error || 'Invalid credentials.'); }
         });
     }

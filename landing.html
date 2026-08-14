@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FlexScribe — Manage. Track. Save. Smarter.</title>
+<script>
+    // If already logged in, skip landing and go to dashboard
+    if (sessionStorage.getItem('flexscribe_token')) {
+        window.location.href = 'pages/MASTER.html';
+    }
+</script>
 <meta name="description" content="FlexScribe helps you take control of subscriptions, wallet and financial goals from one beautiful dashboard.">
 <link rel="stylesheet" href="styles/landing.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
@@ -57,12 +63,12 @@
   <div class="hero-bg-glow"></div>
   <div class="hero-inner">
     <div class="hero-content reveal">
-      <span class="hero-badge"><i class="fa-solid fa-circle-check"></i> Free Forever · No Card Required</span>
+      <span class="hero-badge"><i class="fa-solid fa-circle-check"></i> Plans from R149/mo · Cancel Anytime</span>
       <h1 class="hero-headline">Manage.<br>Track.<br>Save.<br><span class="accent">Smarter.</span></h1>
       <p class="hero-sub">FlexScribe gives you one beautiful place to track every subscription, grow your savings and understand where your money actually goes.</p>
       <div class="hero-actions">
         <a href="pages/login.html?mode=register" class="btn-primary btn-lg ripple-btn">
-          <i class="fa-solid fa-rocket"></i> Get Started Free
+          <i class="fa-solid fa-rocket"></i> Get Started
         </a>
         <a href="#features" class="btn-ghost btn-lg">
           <i class="fa-solid fa-play-circle"></i> See Features
@@ -159,11 +165,11 @@
         <div class="hiw-number">01</div>
         <div class="hiw-content">
           <h3>Create your account</h3>
-          <p>Sign up for free in under 60 seconds. No credit card, no commitments — just your email and a password.</p>
+          <p>Sign up in under 60 seconds. Pick your plan and get instant access to your dashboard.</p>
           <ul class="hiw-list">
             <li><i class="fa-solid fa-check"></i> Email & social sign-in</li>
             <li><i class="fa-solid fa-check"></i> 500 Scribe Points on registration</li>
-            <li><i class="fa-solid fa-check"></i> Instant access to all features</li>
+            <li><i class="fa-solid fa-check"></i> Instant access to all your plan's features</li>
           </ul>
         </div>
         <div class="hiw-visual reveal" style="transition-delay:120ms">
@@ -267,59 +273,64 @@
   <div class="section-inner">
     <div class="section-tag reveal">PRICING</div>
     <h2 class="section-title reveal" style="transition-delay:80ms">Simple, honest pricing</h2>
-    <p class="section-sub reveal" style="transition-delay:160ms">Start free. Upgrade when you're ready. No hidden fees.</p>
+    <p class="section-sub reveal" style="transition-delay:160ms">Pick the plan that fits your life. No hidden fees, cancel anytime.</p>
     <div class="pricing-grid">
       <div class="pricing-card reveal card-hover" style="transition-delay:0ms">
         <div class="pricing-header">
-          <h3>Free</h3>
-          <div class="pricing-amount"><span class="pricing-price">R0</span><span class="pricing-period">/month</span></div>
-          <p>Everything you need to get started.</p>
+          <h3>Individual</h3>
+          <div class="pricing-amount"><span class="pricing-price">R149</span><span class="pricing-period">/month</span></div>
+          <p>For people getting started with smarter money management.</p>
         </div>
         <ul class="pricing-features">
-          <li><i class="fa-solid fa-check"></i> Up to 5 subscriptions</li>
-          <li><i class="fa-solid fa-check"></i> Basic wallet</li>
-          <li><i class="fa-solid fa-check"></i> 2 savings goals</li>
-          <li><i class="fa-solid fa-check"></i> Email alerts</li>
-          <li class="disabled"><i class="fa-solid fa-xmark"></i> AI insights</li>
+          <li><i class="fa-solid fa-check"></i> Up to 10 subscriptions</li>
+          <li><i class="fa-solid fa-check"></i> Wallet with transactions</li>
+          <li><i class="fa-solid fa-check"></i> Up to 5 savings goals</li>
+          <li><i class="fa-solid fa-check"></i> Email & push alerts</li>
+          <li><i class="fa-solid fa-check"></i> Billing timeline</li>
+          <li class="disabled"><i class="fa-solid fa-xmark"></i> Analytics & reports</li>
+          <li class="disabled"><i class="fa-solid fa-xmark"></i> AI spending insights</li>
           <li class="disabled"><i class="fa-solid fa-xmark"></i> Dependants</li>
-          <li class="disabled"><i class="fa-solid fa-xmark"></i> Export reports</li>
+          <li class="disabled"><i class="fa-solid fa-xmark"></i> User-to-user transfers</li>
+          <li class="disabled"><i class="fa-solid fa-info-circle"></i> Ad-supported</li>
         </ul>
-        <a href="pages/login.html?mode=register" class="btn-ghost btn-full ripple-btn">Get Started Free</a>
+        <a href="pages/login.html?mode=register" class="btn-ghost btn-full ripple-btn">Get Started</a>
       </div>
       <div class="pricing-card pricing-card--featured reveal card-hover" style="transition-delay:100ms">
         <div class="pricing-popular">Most Popular</div>
         <div class="pricing-header">
-          <h3>Premium</h3>
-          <div class="pricing-amount"><span class="pricing-price">R99</span><span class="pricing-period">/month</span></div>
-          <p>For people serious about their finances.</p>
+          <h3>Professional</h3>
+          <div class="pricing-amount"><span class="pricing-price">R299</span><span class="pricing-period">/month</span></div>
+          <p>Full control over your finances with powerful insights.</p>
         </div>
         <ul class="pricing-features">
           <li><i class="fa-solid fa-check"></i> Unlimited subscriptions</li>
           <li><i class="fa-solid fa-check"></i> Full wallet + virtual card</li>
           <li><i class="fa-solid fa-check"></i> Unlimited goals</li>
-          <li><i class="fa-solid fa-check"></i> Push & SMS alerts</li>
+          <li><i class="fa-solid fa-check"></i> Analytics & reports</li>
           <li><i class="fa-solid fa-check"></i> AI spending insights</li>
-          <li><i class="fa-solid fa-check"></i> Up to 3 dependants</li>
-          <li><i class="fa-solid fa-check"></i> PDF/CSV reports</li>
+          <li><i class="fa-solid fa-check"></i> User-to-user transfers</li>
+          <li><i class="fa-solid fa-check"></i> PDF/CSV export</li>
+          <li><i class="fa-solid fa-check"></i> No ads</li>
+          <li class="disabled"><i class="fa-solid fa-xmark"></i> Dependants</li>
         </ul>
-        <a href="pages/login.html?mode=register" class="btn-primary btn-full ripple-btn">Start Premium</a>
+        <a href="pages/login.html?mode=register" class="btn-primary btn-full ripple-btn">Go Professional</a>
       </div>
       <div class="pricing-card reveal card-hover" style="transition-delay:200ms">
         <div class="pricing-header">
-          <h3>Business</h3>
-          <div class="pricing-amount"><span class="pricing-price">R199</span><span class="pricing-period">/month</span></div>
-          <p>For teams and household managers.</p>
+          <h3>Family</h3>
+          <div class="pricing-amount"><span class="pricing-price">R499</span><span class="pricing-period">/month</span></div>
+          <p>Manage finances for the whole household.</p>
         </div>
         <ul class="pricing-features">
-          <li><i class="fa-solid fa-check"></i> Everything in Premium</li>
-          <li><i class="fa-solid fa-check"></i> Up to 10 dependants</li>
-          <li><i class="fa-solid fa-check"></i> Multi-user access</li>
-          <li><i class="fa-solid fa-check"></i> Custom categories</li>
-          <li><i class="fa-solid fa-check"></i> API access</li>
+          <li><i class="fa-solid fa-check"></i> Everything in Professional</li>
+          <li><i class="fa-solid fa-check"></i> Add & manage dependants</li>
+          <li><i class="fa-solid fa-check"></i> Generate dependant logins</li>
+          <li><i class="fa-solid fa-check"></i> Dependant subscription requests</li>
+          <li><i class="fa-solid fa-check"></i> Spending controls per dependant</li>
+          <li><i class="fa-solid fa-check"></i> Family overview dashboard</li>
           <li><i class="fa-solid fa-check"></i> Priority support</li>
-          <li><i class="fa-solid fa-check"></i> White-label export</li>
         </ul>
-        <a href="pages/login.html?mode=register" class="btn-ghost btn-full ripple-btn">Contact Sales</a>
+        <a href="pages/login.html?mode=register" class="btn-ghost btn-full ripple-btn">Start Family Plan</a>
       </div>
     </div>
   </div>
@@ -373,8 +384,8 @@
         <p>FlexScribe is a personal finance dashboard that helps you track subscriptions, manage a virtual wallet, set savings goals, and understand your spending — all in one place.</p>
       </details>
       <details class="faq-item reveal" style="transition-delay:60ms">
-        <summary>Is it really free?</summary>
-        <p>Yes! The Free plan gives you access to all core features with no time limit. You only upgrade when you want unlimited subscriptions, AI insights or dependant management.</p>
+        <summary>What plans are available?</summary>
+        <p>We offer three plans: Individual (R149/mo) for personal use, Professional (R299/mo) with full analytics and AI insights, and Family (R499/mo) which lets you manage dependants and their finances from one account.</p>
       </details>
       <details class="faq-item reveal" style="transition-delay:120ms">
         <summary>How secure is my financial data?</summary>
@@ -390,11 +401,11 @@
       </details>
       <details class="faq-item reveal" style="transition-delay:300ms">
         <summary>Can I manage subscriptions for my family?</summary>
-        <p>Yes — with Premium or Business plans you can add Dependants (children, partner) and manage their subscriptions, allowances and spending limits from your account.</p>
+        <p>Yes — with the Family plan (R499/mo) you can add dependants, generate their own login credentials, and manage their subscriptions. Dependants can request subscriptions which you approve and pay for, or they can add their own independently.</p>
       </details>
       <details class="faq-item reveal" style="transition-delay:360ms">
         <summary>Can I cancel my subscription anytime?</summary>
-        <p>Absolutely. There are no long-term contracts. Cancel Premium at any time and you'll revert to the Free plan at the end of your billing period.</p>
+        <p>Absolutely. There are no long-term contracts. Cancel at any time and you'll retain access until the end of your current billing period.</p>
       </details>
       <details class="faq-item reveal" style="transition-delay:420ms">
         <summary>Is FlexScribe available on mobile?</summary>
