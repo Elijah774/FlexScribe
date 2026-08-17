@@ -186,8 +186,17 @@ const API = (() => {
         async login(email, password) {
             if (USE_MOCK) {
                 if (!email || !password) return _mockErr('Email and password are required.', 100);
-                if (password.length < 4)  return _mockErr('Invalid credentials.', 401);
+
+                // Admin login
+                if (email === 'admin' && password === '1234') {
+                    sessionStorage.setItem('flexscribe_token', 'mock-admin-token');
+                    sessionStorage.setItem('flexscribe_admin', 'true');
+                    return _mock({ token: 'mock-admin-token', user: { ...MOCK.user, name: 'Admin', role: 'admin' }, isAdmin: true });
+                }
+
+                // Normal user login
                 sessionStorage.setItem('flexscribe_token', 'mock-jwt-token-2025');
+                sessionStorage.removeItem('flexscribe_admin');
                 return _mock({ token: 'mock-jwt-token-2025', user: MOCK.user });
             }
             const res = await _fetch('POST', '/auth/login', { email, password });

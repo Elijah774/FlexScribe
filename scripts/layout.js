@@ -238,6 +238,51 @@ function loadPage(pageName) {
     });
 }
 
+/* ===========================================================
+   ROLE-BASED ACCESS CONTROL
+   Reads user tier from localStorage (set at login from DB).
+   Tiers: 'individual', 'professional', 'family', 'dependant'
+   Hides nav items and blocks pages the user cannot access.
+=========================================================== */
+
+// Which pages each tier can access
+const tierAccess = {
+    individual:   ['dashboard', 'wallet', 'subscription', 'goals', 'timeline', 'notifications', 'settings'],
+    professional: ['dashboard', 'wallet', 'subscription', 'goals', 'analytics', 'timeline', 'notifications', 'reports', 'settings'],
+    family:       ['dashboard', 'wallet', 'subscription', 'goals', 'analytics', 'timeline', 'dependants', 'notifications', 'reports', 'settings'],
+    dependant:    ['dashboard', 'wallet', 'subscription', 'notifications']
+};
+
+function getUserTier() {
+    // This will come from the database via the login response.
+    // Stored in localStorage/sessionStorage after successful auth.
+    return localStorage.getItem('flexscribe_tier') || 'professional';
+}
+
+function applyAccessControl() {
+    const tier = getUserTier();
+    const allowed = tierAccess[tier] || tierAccess['individual'];
+
+    // Show/hide nav items based on tier
+    document.querySelectorAll('.nav-item[data-page]').forEach(item => {
+        const page = item.getAttribute('data-page');
+        if (page === 'signout') return; // always visible
+        const li = item.closest('li');
+        if (li) {
+            li.style.display = allowed.includes(page) ? '' : 'none';
+        }
+    });
+}
+
+function canAccessPage(pageName) {
+    const tier = getUserTier();
+    const allowed = tierAccess[tier] || tierAccess['individual'];
+    return allowed.includes(pageName);
+}
+
+// Apply on load
+applyAccessControl();
+
 document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', (e) => {
         e.preventDefault();
@@ -246,6 +291,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
             window.location.href = 'signout.html';
             return;
         }
+        if (!canAccessPage(page)) return; // blocked by tier
         loadPage(page);
     });
 });

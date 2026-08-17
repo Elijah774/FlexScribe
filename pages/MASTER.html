@@ -3,6 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <title>FlexScribe</title>
+    <script>
+        // Auth guard: redirect to landing if not logged in
+        if (!sessionStorage.getItem('flexscribe_token')) {
+            window.location.href = '../landing.html';
+        }
+    </script>
     <link rel="stylesheet" href="../styles/MASTER.css">
     <link rel="stylesheet" href="../styles/dashboard.css">
     <link rel="stylesheet" href="../styles/subscription.css">

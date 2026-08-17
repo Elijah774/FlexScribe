@@ -227,6 +227,7 @@ body::before {
 <script>
 (function() {
     // Store logout timestamp
+    sessionStorage.removeItem('flexscribe_token');
     localStorage.setItem('flexscribe_last_logout', new Date().toISOString());
 
     // Countdown
@@ -238,7 +239,7 @@ body::before {
         countEl.textContent = seconds;
         if (seconds <= 0) {
             clearInterval(interval);
-            window.location.href = 'login.html';
+            window.location.href = '../landing.html';
         }
     }, 1000);
 })();
