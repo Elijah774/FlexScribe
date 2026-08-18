@@ -67,6 +67,29 @@ CREATE TABLE Dependant (
 );
 GO
 
+-- ── DependantTask (tasks assigned to dependants) ─────────────
+CREATE TABLE DependantTask (
+    dependantTaskID INT             NOT NULL IDENTITY(1,1),
+    dependantID     INT             NOT NULL,
+    mainMemberID    INT             NOT NULL,
+    taskName        VARCHAR(200)    NOT NULL,
+    description     VARCHAR(500)        NULL,
+    dueDate         DATE                NULL,
+    reward          DECIMAL(18,2)   NOT NULL DEFAULT 0,
+    taskStatus      VARCHAR(50)     NOT NULL DEFAULT 'pending',
+    recurring       BIT             NOT NULL DEFAULT 0,
+    recurrenceCycle VARCHAR(20)         NULL,
+    completedAt     DATETIME            NULL,
+    createdAt       DATETIME        NOT NULL DEFAULT GETDATE(),
+    updatedAt       DATETIME        NOT NULL DEFAULT GETDATE(),
+    CONSTRAINT PK_DependantTask PRIMARY KEY (dependantTaskID),
+    CONSTRAINT FK_DependantTask_Dependant FOREIGN KEY (dependantID) REFERENCES Dependant(dependantID),
+    CONSTRAINT FK_DependantTask_MainMember FOREIGN KEY (mainMemberID) REFERENCES MainMember(mainMemberID),
+    CONSTRAINT CK_DependantTask_Status CHECK (taskStatus IN ('pending', 'in_progress', 'completed', 'overdue', 'cancelled')),
+    CONSTRAINT CK_DependantTask_Recurrence CHECK (recurrenceCycle IN ('daily', 'weekly', 'monthly', NULL))
+);
+GO
+
 -- ── VirtualWallet (1:1 with Subscriber) ──────────────────────
 CREATE TABLE VirtualWallet (
     walletID        INT             NOT NULL IDENTITY(1,1),
