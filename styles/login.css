@@ -148,7 +148,8 @@ input[type="text"],
 input[type="email"],
 input[type="password"],
 input[type="tel"],
-input[type="number"] {
+input[type="number"],
+input[type="date"] {
     width: 100%;
     padding: 13px 16px;
     background: var(--input-bg);
@@ -159,6 +160,18 @@ input[type="number"] {
     font-family: inherit;
     outline: none;
     transition: border-color var(--t-fast), box-shadow var(--t-fast);
+}
+
+/* Date input calendar icon styling for dark mode */
+input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.8);
+    cursor: pointer;
+}
+
+/* Hide browser's built-in password reveal eye (Edge/IE) so only the custom toggle shows */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+    display: none;
 }
 input::placeholder { color: var(--text-muted, #6B7280); }
 input:focus {
@@ -190,6 +203,45 @@ input.input-error:focus { box-shadow: 0 0 0 3px rgba(248,113,113,0.15); }
     align-items: center;
 }
 .input-group .input-icon:hover { color: var(--orange); }
+
+/* When multiple icons in one input group, offset the second one */
+.input-group .input-icon + .input-icon {
+    right: 40px;
+}
+
+/* Align date input calendar icon to match eye icon position */
+input[type="date"] {
+    padding-right: 44px;
+}
+input[type="date"]::-webkit-calendar-picker-indicator {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 4px;
+}
+
+/* ── Required field indicator ── */
+.required-star {
+    color: var(--danger);
+    font-weight: 600;
+    margin-left: 2px;
+}
+
+.required-note {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    text-align: right;
+}
+
+/* ── Field hint text ── */
+.field-hint {
+    display: block;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
 
 /* ── Field error message ── */
 .field-error {
@@ -270,6 +322,35 @@ input.input-error:focus { box-shadow: 0 0 0 3px rgba(248,113,113,0.15); }
 .strength-fair    .strength-bar:nth-child(-n+2){ background: #FACC15; }
 .strength-strong  .strength-bar:nth-child(-n+3){ background: var(--orange); }
 .strength-vstrong .strength-bar                { background: var(--green); }
+
+/* ── Password hints checklist ── */
+.password-hints {
+    list-style: none;
+    padding: 0;
+    margin: 10px 0 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.password-hints li {
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: color var(--t-fast);
+}
+.password-hints li .hint-bullet {
+    font-weight: 600;
+    width: 12px;
+    text-align: center;
+}
+.password-hints li.met {
+    color: var(--green);
+}
+.password-hints li.met .hint-bullet {
+    color: var(--green);
+}
 
 /* ── Password match indicator ── */
 .match-indicator {

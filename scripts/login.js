@@ -59,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     setupEyeToggle('toggle-login-pw', 'login-password', 'login-pw-icon');
     setupEyeToggle('toggle-reg-pw', 'reg-password', 'reg-pw-icon');
+    setupEyeToggle('toggle-reg-confirm-pw', 'reg-confirm', 'reg-confirm-pw-icon');
 
     // Password strength meter
     const regPassword   = document.getElementById('reg-password');
@@ -81,11 +82,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (regPassword && strengthMeter && strengthLabel) {
         regPassword.addEventListener('input', () => {
-            const { level, label } = getStrength(regPassword.value);
+            const pw = regPassword.value;
+            const { level, label } = getStrength(pw);
             const classes = ['', 'strength-weak', 'strength-fair', 'strength-strong', 'strength-vstrong'];
             strengthMeter.className = 'strength-meter ' + (classes[level] || '');
             strengthLabel.textContent = label;
+
+            // Update password hint checklist
+            updatePasswordHint('hint-length',  pw.length >= 8);
+            updatePasswordHint('hint-upper',   /[A-Z]/.test(pw));
+            updatePasswordHint('hint-lower',   /[a-z]/.test(pw));
+            updatePasswordHint('hint-number',  /[0-9]/.test(pw));
+            updatePasswordHint('hint-special', /[^a-zA-Z0-9]/.test(pw));
         });
+    }
+
+    function updatePasswordHint(id, met) {
+        const li = document.getElementById(id);
+        if (!li) return;
+        const bullet = li.querySelector('.hint-bullet');
+        if (met) {
+            li.classList.add('met');
+            if (bullet) bullet.textContent = '✓';
+        } else {
+            li.classList.remove('met');
+            if (bullet) bullet.textContent = '-';
+        }
     }
 
     // Confirm password match
@@ -176,6 +198,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Set max date for Date of Birth (today)
+    const dobInput = document.getElementById('reg-dob');
+    if (dobInput) {
+        const today = new Date().toISOString().split('T')[0];
+        dobInput.setAttribute('max', today);
+    }
+
     // Register form submit
     const registerForm   = document.getElementById('register-form');
     const registerSubmit = document.getElementById('register-submit');
@@ -187,6 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const lastName  = document.getElementById('reg-lastname')?.value.trim()  || '';
             const email     = document.getElementById('reg-email')?.value.trim()     || '';
             const phone     = document.getElementById('reg-phone')?.value.trim()     || '';
+            const dob       = document.getElementById('reg-dob')?.value || '';
             const password  = regPassword?.value || '';
             const confirm   = regConfirm?.value  || '';
             const terms     = document.getElementById('reg-terms')?.checked;
@@ -196,6 +226,21 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!lastName)  { setError('reg-lastname-error', 'Last name required.'); valid = false; }
             if (!email)     { setError('reg-email-error', 'Email required.'); valid = false; }
             else if (!isValidEmail(email)) { setError('reg-email-error', 'Enter a valid email.'); valid = false; }
+            if (!phone)     { setError('reg-phone-error', 'Phone number required.'); valid = false; }
+            else if (!/^0\d{9}$/.test(phone.replace(/\s/g, ''))) { setError('reg-phone-error', 'Enter a valid 10-digit number starting with 0.'); valid = false; }
+            if (!dob)       { setError('reg-dob-error', 'Date of birth required.'); valid = false; }
+            else {
+                const dobDate = new Date(dob);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                if (dobDate >= today) { setError('reg-dob-error', 'Date of birth must be in the past.'); valid = false; }
+                else {
+                    const age = today.getFullYear() - dobDate.getFullYear();
+                    const monthDiff = today.getMonth() - dobDate.getMonth();
+                    const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < dobDate.getDate()) ? age - 1 : age;
+                    if (actualAge < 13) { setError('reg-dob-error', 'You must be at least 13 years old.'); valid = false; }
+                }
+            }
             if (!password)  { setError('reg-password-error', 'Password required.'); valid = false; }
             else if (password.length < 8) { setError('reg-password-error', 'Minimum 8 characters.'); valid = false; }
             if (password !== confirm) { setError('reg-confirm-error', 'Passwords do not match.'); valid = false; }
@@ -203,7 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!valid) return;
             setBtnLoading(registerSubmit);
             let result;
-            if (typeof API !== 'undefined') { result = await API.Auth.register({ firstName, lastName, email, phone, password, confirmPassword: confirm, marketing }); }
+            if (typeof API !== 'undefined') { result = await API.Auth.register({ firstName, lastName, email, phone, dob, password, confirmPassword: confirm, marketing }); }
             else { await new Promise(r => setTimeout(r, 1200)); sessionStorage.setItem('flexscribe_token', 'mock-token'); result = { success: true, data: { scribePoints: 500 } }; }
             if (result.success) {
                 setBtnSuccess(registerSubmit);
