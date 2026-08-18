@@ -288,7 +288,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
         e.preventDefault();
         const page = item.getAttribute('data-page');
         if (page === 'signout') {
-            window.location.href = 'signout.html';
+            showSignoutConfirm();
             return;
         }
         if (!canAccessPage(page)) return; // blocked by tier

@@ -89,7 +89,7 @@
                 <i data-lucide="chevron-down" class="chevron"></i>
                 <div class="dropdown-menu user-menu" id="user-menu" hidden>
                     <a href="#" class="dropdown-menu-item" onclick="ProfilePanel.open();return false"><i data-lucide="user"></i> Profile</a>
-                    <a href="signout.html"   class="dropdown-menu-item danger"><i data-lucide="log-out"></i> Sign out</a>
+                    <a href="#" class="dropdown-menu-item danger" onclick="showSignoutConfirm();return false"><i data-lucide="log-out"></i> Sign out</a>
                 </div>
             </div>
 
@@ -112,7 +112,7 @@
         <div class="sidebar-bottom">
             <ul>
                 <li><a href="#" class="nav-item" data-page="settings"><i data-lucide="settings"></i> Settings</a></li>
-                <li><a href="signout.html" class="nav-item" data-page="signout"><i data-lucide="log-out"></i> Sign out</a></li>
+                <li><a href="#" class="nav-item" onclick="showSignoutConfirm();return false" data-page="signout"><i data-lucide="log-out"></i> Sign out</a></li>
             </ul>
         </div>
     </nav>
