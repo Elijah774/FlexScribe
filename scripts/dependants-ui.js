@@ -23,6 +23,7 @@ const DependantsUI = (() => {
     let _taskSortBy = 'dueDate';
     let _taskSortOrder = 'asc';
     let _editingTaskId = null; // null = add mode, string = edit mode
+    let _taskSearchQuery = '';
 
     /* ----------------------------------------------------------
        SELECTORS (cached after init)
@@ -122,6 +123,16 @@ const DependantsUI = (() => {
         });
         $taskForm.addEventListener('submit', (e) => {
             e.preventDefault();
+            // Validate before confirming
+            const task = document.getElementById('dep-task-name').value.trim();
+            const dueDate = document.getElementById('dep-task-due').value;
+            const reward = parseFloat(document.getElementById('dep-task-reward').value) || 0;
+
+            $taskError.textContent = '';
+            if (!task) { $taskError.textContent = 'Please enter a task name.'; return; }
+            if (!dueDate) { $taskError.textContent = 'Please select a due date.'; return; }
+            if (!reward || reward <= 0) { $taskError.textContent = 'Please enter a reward amount.'; return; }
+
             const label = _editingTaskId ? 'Save changes to this task?' : 'Add this task?';
             const title = _editingTaskId ? 'Confirm Changes' : 'Confirm Add';
             _showConfirm(label, () => _handleTaskSave(), 'Confirm', title);
@@ -136,6 +147,12 @@ const DependantsUI = (() => {
         document.getElementById('dep-tasks-add-btn').addEventListener('click', () => {
             if (!_drawerDepId) return;
             openTaskModal();
+        });
+
+        // ── Task Search ──
+        document.getElementById('dep-tasks-search-input').addEventListener('input', (e) => {
+            _taskSearchQuery = e.target.value.trim().toLowerCase();
+            _renderTasks();
         });
 
         // ── Task Sort Buttons ──
@@ -276,6 +293,7 @@ const DependantsUI = (() => {
         if (!name) { $addError.textContent = 'Please enter a name.'; return; }
         if (!email) { $addError.textContent = 'Please enter an email.'; return; }
         if (!email.includes('@')) { $addError.textContent = 'Please enter a valid email.'; return; }
+        if (!relationship) { $addError.textContent = 'Please select a relationship.'; return; }
 
         try {
             DependantsStore.add({ name, email, relationship, allowance, spendingLimit });
@@ -432,7 +450,10 @@ const DependantsUI = (() => {
         $drawerOverlay.hidden = false;
         $drawer.hidden = false;
 
-        // Render tasks
+        // Reset search and render tasks
+        _taskSearchQuery = '';
+        const searchInput = document.getElementById('dep-tasks-search-input');
+        if (searchInput) searchInput.value = '';
         _renderTasks();
     }
 
@@ -477,10 +498,21 @@ const DependantsUI = (() => {
         const $tasksList = document.getElementById('dep-drawer-tasks-list');
         if (!_drawerDepId || !$tasksList) return;
 
-        const tasks = DependantsStore.getTasks(_drawerDepId, _taskSortBy, _taskSortOrder);
+        let tasks = DependantsStore.getTasks(_drawerDepId, _taskSortBy, _taskSortOrder);
+
+        // Filter by search query
+        if (_taskSearchQuery) {
+            tasks = tasks.filter(t => {
+                const name = (t.task || '').toLowerCase();
+                const desc = (t.description || '').toLowerCase();
+                return name.includes(_taskSearchQuery) || desc.includes(_taskSearchQuery);
+            });
+        }
 
         if (tasks.length === 0) {
-            $tasksList.innerHTML = '<li class="dep-tasks-empty">No tasks assigned yet.</li>';
+            $tasksList.innerHTML = _taskSearchQuery
+                ? '<li class="dep-tasks-empty">No tasks match your search.</li>'
+                : '<li class="dep-tasks-empty">No tasks assigned yet.</li>';
             return;
         }
 
@@ -494,7 +526,10 @@ const DependantsUI = (() => {
             return `
             <li class="dep-task-item">
                 <div class="dep-task-top">
-                    <span class="dep-task-name">${t.task}</span>
+                    <div class="dep-task-title-wrap">
+                        <span class="dep-task-name">${t.task}</span>
+                        ${t.description ? `<span class="dep-task-desc">${t.description}</span>` : ''}
+                    </div>
                     <div class="dep-task-actions">
                         ${showComplete ? `<button class="dep-task-complete-btn" data-task-id="${t.id}" aria-label="Mark complete" title="Mark Complete">
                             <svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -539,6 +574,7 @@ const DependantsUI = (() => {
             document.getElementById('dep-task-modal-title').textContent = 'Edit Task';
             document.getElementById('dep-task-submit-btn').textContent = 'Save Changes';
             document.getElementById('dep-task-name').value = task.task;
+            document.getElementById('dep-task-desc').value = task.description || '';
             document.getElementById('dep-task-due').value = task.dueDate || '';
             document.getElementById('dep-task-reward').value = task.reward;
             document.getElementById('dep-task-recurring').checked = task.recurring;
@@ -565,19 +601,22 @@ const DependantsUI = (() => {
 
     function _handleTaskSave() {
         const task = document.getElementById('dep-task-name').value.trim();
+        const description = document.getElementById('dep-task-desc').value.trim();
         const dueDate = document.getElementById('dep-task-due').value;
         const reward = parseFloat(document.getElementById('dep-task-reward').value) || 0;
         const recurring = document.getElementById('dep-task-recurring').checked;
         const frequency = recurring ? document.getElementById('dep-task-frequency').value : null;
 
-        if (!task) { $taskError.textContent = 'Please enter a task description.'; return; }
+        if (!task) { $taskError.textContent = 'Please enter a task name.'; return; }
+        if (!dueDate) { $taskError.textContent = 'Please select a due date.'; return; }
+        if (!reward || reward <= 0) { $taskError.textContent = 'Please enter a reward amount.'; return; }
 
         try {
             if (_editingTaskId) {
-                DependantsStore.editTask(_drawerDepId, _editingTaskId, { task, dueDate, reward, recurring, frequency });
+                DependantsStore.editTask(_drawerDepId, _editingTaskId, { task, description, dueDate, reward, recurring, frequency });
                 _showToast('Task updated successfully!', 'success');
             } else {
-                DependantsStore.addTask(_drawerDepId, { task, dueDate, reward, recurring, frequency });
+                DependantsStore.addTask(_drawerDepId, { task, description, dueDate, reward, recurring, frequency });
                 _showToast('Task added successfully!', 'success');
             }
             closeTaskModal();

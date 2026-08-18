@@ -44,9 +44,9 @@ const DependantsStore = (() => {
                     { id: 'da_003', type: 'request', description: 'Requested funds for trip', amount: 800, date: '2025-05-10' }
                 ],
                 tasks: [
-                    { id: 'dt_001', task: 'Complete math homework', dueDate: '2025-06-01', reward: 50, status: 'complete', recurring: false, frequency: null },
-                    { id: 'dt_002', task: 'Clean room', dueDate: '2025-06-07', reward: 30, status: 'pending', recurring: true, frequency: 'weekly' },
-                    { id: 'dt_003', task: 'Read a book chapter', dueDate: '2025-05-20', reward: 20, status: 'pending', recurring: false, frequency: null }
+                    { id: 'dt_001', task: 'Complete math homework', description: 'Chapters 5 and 6 exercises', dueDate: '2025-06-01', reward: 50, status: 'complete', recurring: false, frequency: null },
+                    { id: 'dt_002', task: 'Clean room', description: '', dueDate: '2025-06-07', reward: 30, status: 'pending', recurring: true, frequency: 'weekly' },
+                    { id: 'dt_003', task: 'Read a book chapter', description: 'Any fiction book', dueDate: '2025-05-20', reward: 20, status: 'pending', recurring: false, frequency: null }
                 ],
                 createdAt: '2024-03-01'
             },
@@ -65,7 +65,7 @@ const DependantsStore = (() => {
                     { id: 'da_005', type: 'spend', description: 'Music subscription', amount: 60, date: '2025-05-03' }
                 ],
                 tasks: [
-                    { id: 'dt_004', task: 'Practice piano for 30 min', dueDate: '2025-06-05', reward: 25, status: 'pending', recurring: true, frequency: 'daily' }
+                    { id: 'dt_004', task: 'Practice piano for 30 min', description: 'Scales and one piece', dueDate: '2025-06-05', reward: 25, status: 'pending', recurring: true, frequency: 'daily' }
                 ],
                 createdAt: '2024-06-15'
             }
@@ -160,6 +160,8 @@ const DependantsStore = (() => {
 
     /* ----------------------------------------------------------
        WRITE — Add Dependant
+       SQL: DependantSQL.INSERT_SUBSCRIBER_FOR_DEPENDANT
+            DependantSQL.INSERT_DEPENDANT
     ---------------------------------------------------------- */
     function add({ name, email, relationship, allowance, spendingLimit }) {
         if (!name || !name.trim()) throw new Error('Dependant name is required.');
@@ -184,11 +186,20 @@ const DependantsStore = (() => {
 
         _data.dependants.push(dep);
         _notify();
+
+        // Persist to database when integration is enabled
+        if (typeof DependantsDB !== 'undefined' && DependantsDB.isEnabled()) {
+            DependantsDB.addDependant({ name, email, relationship, allowance, spendingLimit })
+                .catch(err => console.warn('DB: Failed to add dependant', err));
+        }
+
         return dep;
     }
 
     /* ----------------------------------------------------------
        WRITE — Edit Dependant
+       SQL: DependantSQL.UPDATE_SUBSCRIBER_DETAILS
+            DependantSQL.UPDATE_DEPENDANT_DETAILS
     ---------------------------------------------------------- */
     function edit(id, updates) {
         const idx = _data.dependants.findIndex(d => d.id === id);
@@ -207,17 +218,33 @@ const DependantsStore = (() => {
         if (updates.permissions !== undefined) dep.permissions = { ...dep.permissions, ...updates.permissions };
 
         _notify();
+
+        // Persist to database when integration is enabled
+        if (typeof DependantsDB !== 'undefined' && DependantsDB.isEnabled()) {
+            DependantsDB.editDependant(id, updates)
+                .catch(err => console.warn('DB: Failed to edit dependant', err));
+        }
+
         return { ...dep, activity: [...dep.activity], permissions: { ...dep.permissions } };
     }
 
     /* ----------------------------------------------------------
        WRITE — Remove Dependant
+       SQL: DependantSQL.DELETE_DEPENDANT_TASKS
+            DependantSQL.DELETE_DEPENDANT
+            DependantSQL.DELETE_DEPENDANT_SUBSCRIBER
     ---------------------------------------------------------- */
     function remove(id) {
         const idx = _data.dependants.findIndex(d => d.id === id);
         if (idx === -1) throw new Error('Dependant not found.');
         _data.dependants.splice(idx, 1);
         _notify();
+
+        // Persist to database when integration is enabled
+        if (typeof DependantsDB !== 'undefined' && DependantsDB.isEnabled()) {
+            DependantsDB.deleteDependant(id)
+                .catch(err => console.warn('DB: Failed to delete dependant', err));
+        }
     }
 
     /* ----------------------------------------------------------
@@ -281,10 +308,11 @@ const DependantsStore = (() => {
 
     /**
      * Add a task to a dependant.
+     * SQL: DependantSQL.INSERT_TASK
      * @param {string} depId
-     * @param {{ task: string, dueDate: string, reward: number, recurring: boolean, frequency: string|null }} data
+     * @param {{ task: string, description: string, dueDate: string, reward: number, recurring: boolean, frequency: string|null }} data
      */
-    function addTask(depId, { task, dueDate, reward, recurring, frequency }) {
+    function addTask(depId, { task, description, dueDate, reward, recurring, frequency }) {
         const idx = _data.dependants.findIndex(d => d.id === depId);
         if (idx === -1) throw new Error('Dependant not found.');
         if (!task || !task.trim()) throw new Error('Task description is required.');
@@ -292,6 +320,7 @@ const DependantsStore = (() => {
         const entry = {
             id: _tid(),
             task: task.trim(),
+            description: (description || '').trim().slice(0, 100),
             dueDate: dueDate || null,
             reward: parseFloat(reward) || 0,
             status: 'pending',
@@ -302,11 +331,19 @@ const DependantsStore = (() => {
         if (!_data.dependants[idx].tasks) _data.dependants[idx].tasks = [];
         _data.dependants[idx].tasks.push(entry);
         _notify();
+
+        // Persist to database when integration is enabled
+        if (typeof DependantsDB !== 'undefined' && DependantsDB.isEnabled()) {
+            DependantsDB.addTask(depId, { task, description, dueDate, reward, recurring, frequency })
+                .catch(err => console.warn('DB: Failed to add task', err));
+        }
+
         return entry;
     }
 
     /**
      * Edit an existing task.
+     * SQL: DependantSQL.UPDATE_TASK
      * @param {string} depId
      * @param {string} taskId
      * @param {Object} updates
@@ -320,6 +357,7 @@ const DependantsStore = (() => {
         if (!task) throw new Error('Task not found.');
 
         if (updates.task !== undefined) task.task = updates.task.trim();
+        if (updates.description !== undefined) task.description = (updates.description || '').trim().slice(0, 100);
         if (updates.dueDate !== undefined) task.dueDate = updates.dueDate;
         if (updates.reward !== undefined) task.reward = parseFloat(updates.reward) || 0;
         if (updates.recurring !== undefined) {
@@ -329,11 +367,19 @@ const DependantsStore = (() => {
         if (updates.frequency !== undefined && task.recurring) task.frequency = updates.frequency;
 
         _notify();
+
+        // Persist to database when integration is enabled
+        if (typeof DependantsDB !== 'undefined' && DependantsDB.isEnabled()) {
+            DependantsDB.editTask(depId, taskId, updates)
+                .catch(err => console.warn('DB: Failed to edit task', err));
+        }
+
         return { ...task };
     }
 
     /**
      * Mark a task as complete.
+     * SQL: DependantSQL.COMPLETE_TASK
      * @param {string} depId
      * @param {string} taskId
      */
@@ -347,11 +393,19 @@ const DependantsStore = (() => {
 
         task.status = 'complete';
         _notify();
+
+        // Persist to database when integration is enabled
+        if (typeof DependantsDB !== 'undefined' && DependantsDB.isEnabled()) {
+            DependantsDB.completeTask(depId, taskId)
+                .catch(err => console.warn('DB: Failed to complete task', err));
+        }
+
         return { ...task };
     }
 
     /**
      * Remove a task from a dependant.
+     * SQL: DependantSQL.DELETE_TASK
      * @param {string} depId
      * @param {string} taskId
      */
@@ -364,6 +418,12 @@ const DependantsStore = (() => {
         if (idx === -1) throw new Error('Task not found.');
         dep.tasks.splice(idx, 1);
         _notify();
+
+        // Persist to database when integration is enabled
+        if (typeof DependantsDB !== 'undefined' && DependantsDB.isEnabled()) {
+            DependantsDB.deleteTask(depId, taskId)
+                .catch(err => console.warn('DB: Failed to delete task', err));
+        }
     }
 
     /**

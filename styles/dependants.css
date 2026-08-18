@@ -233,6 +233,13 @@
     color: var(--text-light);
 }
 
+.dep-modal-field label .optional {
+    font-weight: 400;
+    font-size: 11px;
+    color: var(--text-light);
+    opacity: 0.7;
+}
+
 .dep-modal-field input,
 .dep-modal-field select {
     background: var(--input-bg);
@@ -554,6 +561,42 @@
 }
 
 /* ── Sort Bar ── */
+.dep-tasks-search {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 10px;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.dep-tasks-search:focus-within {
+    border-color: var(--orange);
+    box-shadow: 0 0 0 3px rgba(255, 138, 52, 0.15);
+}
+
+.dep-tasks-search svg {
+    color: var(--text-light);
+    flex-shrink: 0;
+}
+
+.dep-tasks-search input {
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 13px;
+    color: var(--text);
+    width: 100%;
+}
+
+.dep-tasks-search input::placeholder {
+    color: var(--text-light);
+    opacity: 0.7;
+}
+
 .dep-tasks-sort-bar {
     display: flex;
     align-items: center;
@@ -661,6 +704,21 @@
     font-weight: 600;
     color: var(--text);
     line-height: 1.4;
+    word-break: break-word;
+}
+
+.dep-task-title-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+}
+
+.dep-task-desc {
+    font-size: 12px;
+    color: var(--text-light);
+    line-height: 1.3;
     word-break: break-word;
 }
 
