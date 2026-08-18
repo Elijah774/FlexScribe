@@ -26,6 +26,7 @@ const DependantsUI = (() => {
     ---------------------------------------------------------- */
     let $panel, $grid;
     let $addModal, $addForm, $addError;
+    let $editModal, $editForm, $editError;
     let $sendModal, $sendForm, $sendError, $sendDepName;
     let $drawerOverlay, $drawer;
 
@@ -49,6 +50,9 @@ const DependantsUI = (() => {
         $addModal = document.getElementById('dep-add-modal');
         $addForm  = document.getElementById('dep-add-form');
         $addError = document.getElementById('dep-add-error');
+        $editModal = document.getElementById('dep-edit-modal');
+        $editForm  = document.getElementById('dep-edit-form');
+        $editError = document.getElementById('dep-edit-error');
         $sendModal   = document.getElementById('dep-send-modal');
         $sendForm    = document.getElementById('dep-send-form');
         $sendError   = document.getElementById('dep-send-error');
@@ -84,6 +88,12 @@ const DependantsUI = (() => {
         $addModal.addEventListener('click', (e) => { if (e.target === $addModal) closeAddModal(); });
         $addForm.addEventListener('submit', (e) => { e.preventDefault(); _handleAddSave(); });
 
+        // ── Edit Modal ──
+        document.getElementById('dep-edit-close').addEventListener('click', closeEditModal);
+        document.getElementById('dep-edit-cancel').addEventListener('click', closeEditModal);
+        $editModal.addEventListener('click', (e) => { if (e.target === $editModal) closeEditModal(); });
+        $editForm.addEventListener('submit', (e) => { e.preventDefault(); _handleEditSave(); });
+
         // ── Send Allowance Modal ──
         document.getElementById('dep-send-close').addEventListener('click', closeSendModal);
         document.getElementById('dep-send-cancel').addEventListener('click', closeSendModal);
@@ -97,6 +107,11 @@ const DependantsUI = (() => {
         document.getElementById('dep-drawer-send-btn').addEventListener('click', () => {
             if (!_drawerDepId) return;
             openSendModal(_drawerDepId);
+        });
+
+        document.getElementById('dep-drawer-edit-btn').addEventListener('click', () => {
+            if (!_drawerDepId) return;
+            openEditModal(_drawerDepId);
         });
 
         document.getElementById('dep-drawer-delete-btn').addEventListener('click', () => {
@@ -176,6 +191,56 @@ const DependantsUI = (() => {
             _showToast('Dependant added successfully!', 'success');
         } catch (err) {
             $addError.textContent = err.message;
+        }
+    }
+
+    /* ----------------------------------------------------------
+       EDIT DEPENDANT MODAL
+    ---------------------------------------------------------- */
+    function openEditModal(depId) {
+        const dep = DependantsStore.getById(depId || _drawerDepId);
+        if (!dep) return;
+
+        _drawerDepId = dep.id;
+
+        // Pre-fill form with current values
+        document.getElementById('dep-edit-name').value = dep.name;
+        document.getElementById('dep-edit-email').value = dep.email;
+        document.getElementById('dep-edit-relationship').value = dep.relationship;
+        document.getElementById('dep-edit-allowance').value = dep.allowance;
+        document.getElementById('dep-edit-spending-limit').value = dep.spendingLimit;
+        $editError.textContent = '';
+
+        $editModal.hidden = false;
+        document.getElementById('dep-edit-name').focus();
+    }
+
+    function closeEditModal() {
+        $editModal.hidden = true;
+        $editForm.reset();
+        $editError.textContent = '';
+    }
+
+    function _handleEditSave() {
+        const name = document.getElementById('dep-edit-name').value.trim();
+        const email = document.getElementById('dep-edit-email').value.trim();
+        const relationship = document.getElementById('dep-edit-relationship').value;
+        const allowance = parseFloat(document.getElementById('dep-edit-allowance').value) || 0;
+        const spendingLimit = parseFloat(document.getElementById('dep-edit-spending-limit').value) || 0;
+
+        if (!name) { $editError.textContent = 'Please enter a name.'; return; }
+        if (!email) { $editError.textContent = 'Please enter an email.'; return; }
+        if (!email.includes('@')) { $editError.textContent = 'Please enter a valid email.'; return; }
+
+        try {
+            DependantsStore.edit(_drawerDepId, { name, email, relationship, allowance, spendingLimit });
+            closeEditModal();
+            _showToast('Dependant updated successfully!', 'success');
+
+            // Refresh drawer if still open
+            if (!$drawer.hidden) openDrawer(_drawerDepId);
+        } catch (err) {
+            $editError.textContent = err.message;
         }
     }
 
@@ -325,6 +390,8 @@ const DependantsUI = (() => {
         render,
         openAddModal,
         closeAddModal,
+        openEditModal,
+        closeEditModal,
         openSendModal,
         closeSendModal,
         openDrawer,
