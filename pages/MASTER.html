@@ -1113,34 +1113,41 @@
 
         <div class="pp-field">
             <label for="pp-fullname">Full Name</label>
-            <input type="text" id="pp-fullname" placeholder="Your full name">
+            <input type="text" id="pp-fullname" placeholder="Your full name" readonly>
         </div>
         <div class="pp-field">
             <label for="pp-nickname">Nickname <span style="font-weight:400;color:var(--text-light)">(shown in system)</span></label>
-            <input type="text" id="pp-nickname" placeholder="e.g. Sarah">
+            <input type="text" id="pp-nickname" placeholder="e.g. Sarah" readonly>
         </div>
         <div class="pp-field">
             <label for="pp-email">Email</label>
-            <input type="email" id="pp-email" placeholder="you@email.com">
+            <input type="email" id="pp-email" placeholder="you@email.com" readonly>
         </div>
         <div class="pp-row">
             <div class="pp-field">
                 <label for="pp-phone">Phone</label>
-                <input type="tel" id="pp-phone" placeholder="+27 71 234 5678">
+                <input type="tel" id="pp-phone" placeholder="+27 71 234 5678" readonly>
             </div>
             <div class="pp-field">
                 <label for="pp-dob">Date of Birth</label>
-                <input type="date" id="pp-dob">
+                <input type="date" id="pp-dob" readonly>
             </div>
         </div>
         <div class="pp-field">
             <label for="pp-bio">Bio</label>
-            <textarea id="pp-bio" rows="3" placeholder="A bit about yourself..."></textarea>
+            <textarea id="pp-bio" rows="3" placeholder="A bit about yourself..." readonly></textarea>
         </div>
-        <button class="pp-save-btn" id="pp-save-btn">Save Changes</button>
+        
+        <!-- Edit / Delete buttons -->
+        <button class="pp-edit-btn" id="pp-edit-btn">Edit Profile</button>
+
+        <!-- Delete Account -->
+        <div class="pp-danger-zone">
+            <button class="pp-delete-btn" id="pp-delete-btn">Delete Account</button>
+        </div>
     </div>
 
-    <!-- Profile Save Confirmation Modal -->
+    <!-- Save Changes Confirmation Modal -->
     <div id="pp-confirm-modal" class="pp-confirm-backdrop" hidden aria-modal="true" role="dialog">
         <div class="pp-confirm-box">
             <h3 class="pp-confirm-title">Confirm Changes</h3>
@@ -1148,6 +1155,67 @@
             <div class="pp-confirm-actions">
                 <button type="button" class="pp-confirm-btn pp-confirm-cancel" id="pp-confirm-cancel">Cancel</button>
                 <button type="button" class="pp-confirm-btn pp-confirm-save" id="pp-confirm-ok">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Account Confirmation Modal -->
+    <div id="pp-delete-modal" class="pp-confirm-backdrop" hidden aria-modal="true" role="dialog">
+        <div class="pp-confirm-box">
+            <div class="pp-delete-icon">
+                <svg viewBox="0 0 24 24" fill="none" width="24" height="24"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="10" y1="11" x2="10" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="14" y1="11" x2="14" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </div>
+            <h3 class="pp-confirm-title pp-delete-title">Delete Account</h3>
+            <p class="pp-confirm-body">This action is permanent and cannot be undone. All your data, subscriptions, and goals will be deleted.</p>
+            <div class="pp-confirm-actions">
+                <button type="button" class="pp-confirm-btn pp-confirm-cancel" id="pp-delete-cancel">Cancel</button>
+                <button type="button" class="pp-confirm-btn pp-confirm-delete" id="pp-delete-ok">Delete My Account</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════ EDIT PROFILE MODAL WINDOW ═══════════════ -->
+    <div id="pp-edit-modal" class="pp-edit-modal-backdrop" hidden aria-modal="true" role="dialog" aria-labelledby="pp-edit-modal-title">
+        <div class="pp-edit-modal-box">
+            <div class="pp-edit-modal-header">
+                <h2 id="pp-edit-modal-title">Edit Profile</h2>
+                <button class="icon-btn" id="pp-edit-modal-close" aria-label="Close">
+                    <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                </button>
+            </div>
+            <div class="pp-edit-modal-body">
+                <div class="pp-edit-modal-row">
+                    <div class="pp-edit-modal-field">
+                        <label for="pp-edit-fullname">Full Name</label>
+                        <input type="text" id="pp-edit-fullname" placeholder="Your full name">
+                    </div>
+                    <div class="pp-edit-modal-field">
+                        <label for="pp-edit-nickname">Nickname</label>
+                        <input type="text" id="pp-edit-nickname" placeholder="e.g. Sarah">
+                    </div>
+                </div>
+                <div class="pp-edit-modal-field">
+                    <label for="pp-edit-email">Email</label>
+                    <input type="email" id="pp-edit-email" placeholder="you@email.com">
+                </div>
+                <div class="pp-edit-modal-row">
+                    <div class="pp-edit-modal-field">
+                        <label for="pp-edit-phone">Phone</label>
+                        <input type="tel" id="pp-edit-phone" placeholder="0XX XXX XXXX" maxlength="10">
+                    </div>
+                    <div class="pp-edit-modal-field">
+                        <label for="pp-edit-dob">Date of Birth</label>
+                        <input type="date" id="pp-edit-dob">
+                    </div>
+                </div>
+                <div class="pp-edit-modal-field">
+                    <label for="pp-edit-bio">Bio</label>
+                    <textarea id="pp-edit-bio" rows="3" placeholder="A bit about yourself..."></textarea>
+                </div>
+            </div>
+            <div class="pp-edit-modal-footer">
+                <button type="button" class="pp-confirm-btn pp-confirm-cancel" id="pp-edit-modal-cancel">Cancel</button>
+                <button type="button" class="pp-confirm-btn pp-confirm-save" id="pp-edit-modal-save">Save Changes</button>
             </div>
         </div>
     </div>
@@ -1182,5 +1250,35 @@
 <script src="../scripts/reports.page.js"></script>
 <script src="../scripts/settings.page.js"></script>
 <script src="../scripts/layout.js"></script>
+
+<!-- ═══════════════ SIGN OUT CONFIRMATION MODAL ═══════════════ -->
+<div id="signout-confirm-modal" class="signout-confirm-backdrop" hidden aria-modal="true" role="dialog">
+    <div class="signout-confirm-box">
+        <div class="signout-confirm-icon">
+            <i data-lucide="log-out"></i>
+        </div>
+        <h3 class="signout-confirm-title">Sign Out</h3>
+        <p class="signout-confirm-body">Are you sure you want to sign out of your account?</p>
+        <div class="signout-confirm-actions">
+            <button type="button" class="signout-confirm-btn signout-confirm-cancel" id="signout-cancel">Cancel</button>
+            <button type="button" class="signout-confirm-btn signout-confirm-ok" id="signout-ok">Sign Out</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function showSignoutConfirm() {
+    const modal = document.getElementById('signout-confirm-modal');
+    if (modal) modal.hidden = false;
+    lucide.createIcons();
+}
+document.getElementById('signout-cancel').addEventListener('click', function() {
+    document.getElementById('signout-confirm-modal').hidden = true;
+});
+document.getElementById('signout-ok').addEventListener('click', function() {
+    window.location.href = 'signout.html';
+});
+</script>
+
 </body>
 </html>

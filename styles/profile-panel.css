@@ -305,3 +305,306 @@
     0%, 100% { box-shadow: none; }
     50% { box-shadow: 0 0 0 4px var(--orange-glow); }
 }
+
+/* ── Read-only fields styling ── */
+#profile-tab-content input[readonly],
+#profile-tab-content textarea[readonly] {
+    opacity: 0.7;
+    cursor: default;
+    background: var(--section, #11151B);
+}
+
+/* ── Edit Profile button ── */
+.pp-edit-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--border, #272D35);
+    color: var(--text, #F5F5F5);
+    border: none;
+    border-radius: var(--radius-sm, 8px);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background-color 0.15s ease;
+    margin-top: 12px;
+}
+
+.pp-edit-btn:hover {
+    background: var(--hover, #1E2530);
+}
+
+/* ── Edit actions (save + cancel) ── */
+.pp-edit-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.pp-edit-actions .pp-save-btn {
+    flex: 1;
+    margin-top: 0;
+}
+
+.pp-cancel-edit-btn {
+    flex: 1;
+    padding: 12px;
+    background: var(--border, #272D35);
+    color: var(--text-light, #A3ABB8);
+    border: none;
+    border-radius: var(--radius-sm, 8px);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background-color 0.15s ease;
+}
+
+.pp-cancel-edit-btn:hover {
+    background: var(--hover, #1E2530);
+}
+
+/* ── Danger Zone (Delete Account) ── */
+.pp-danger-zone {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border, #272D35);
+}
+
+.pp-delete-btn {
+    width: 100%;
+    padding: 12px;
+    background: transparent;
+    color: var(--danger, #F87171);
+    border: 1px solid var(--danger, #F87171);
+    border-radius: var(--radius-sm, 8px);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.pp-delete-btn:hover {
+    background: var(--danger, #F87171);
+    color: #fff;
+}
+
+/* ── Confirmation Modals ── */
+.pp-confirm-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10002;
+    backdrop-filter: blur(2px);
+}
+
+.pp-confirm-backdrop[hidden] {
+    display: none;
+}
+
+.pp-confirm-box {
+    background: var(--card, #181D24);
+    border: 1px solid var(--border, #272D35);
+    border-radius: 14px;
+    padding: 28px 32px;
+    max-width: 380px;
+    width: 90%;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+    text-align: center;
+}
+
+.pp-confirm-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text, #F5F5F5);
+    margin-bottom: 10px;
+}
+
+.pp-confirm-body {
+    font-size: 14px;
+    color: var(--text-light, #A3ABB8);
+    margin-bottom: 24px;
+    line-height: 1.5;
+}
+
+.pp-confirm-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.pp-confirm-btn {
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: background 150ms ease, transform 100ms ease;
+}
+
+.pp-confirm-btn:active {
+    transform: scale(0.97);
+}
+
+.pp-confirm-cancel {
+    background: var(--border, #272D35);
+    color: var(--text-light, #A3ABB8);
+}
+
+.pp-confirm-cancel:hover {
+    background: var(--hover, #1E2530);
+}
+
+.pp-confirm-save {
+    background: var(--orange, #FF8A34);
+    color: #fff;
+}
+
+.pp-confirm-save:hover {
+    background: var(--orange-hover, #FF9B54);
+}
+
+/* ── Delete confirmation specific ── */
+.pp-delete-icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(248, 113, 113, 0.12);
+    border-radius: 50%;
+    color: var(--danger, #F87171);
+}
+
+.pp-delete-title {
+    color: var(--danger, #F87171);
+}
+
+.pp-confirm-delete {
+    background: var(--danger, #F87171);
+    color: #fff;
+}
+
+.pp-confirm-delete:hover {
+    background: #EF4444;
+}
+
+/* ═══════════════ Edit Profile Modal Window ═══════════════ */
+.pp-edit-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10001;
+    backdrop-filter: blur(3px);
+}
+
+.pp-edit-modal-backdrop[hidden] {
+    display: none;
+}
+
+.pp-edit-modal-box {
+    background: var(--card, #181D24);
+    border: 1px solid var(--border, #272D35);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+}
+
+.pp-edit-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border, #272D35);
+}
+
+.pp-edit-modal-header h2 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text, #F5F5F5);
+}
+
+.pp-edit-modal-body {
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.pp-edit-modal-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.pp-edit-modal-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.pp-edit-modal-field label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-light, #A3ABB8);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.pp-edit-modal-field input,
+.pp-edit-modal-field textarea {
+    width: 100%;
+    padding: 11px 14px;
+    background: var(--input-bg, #0D1117);
+    color: var(--text, #F5F5F5);
+    border: 1px solid var(--border, #272D35);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 150ms ease;
+}
+
+.pp-edit-modal-field input:focus,
+.pp-edit-modal-field textarea:focus {
+    border-color: var(--orange, #FF8A34);
+}
+
+.pp-edit-modal-field textarea {
+    resize: vertical;
+    min-height: 70px;
+}
+
+.pp-edit-modal-field input[type="date"] {
+    color-scheme: dark;
+}
+
+.pp-edit-modal-footer {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    padding: 16px 24px 20px;
+    border-top: 1px solid var(--border, #272D35);
+}
+
+@media (max-width: 520px) {
+    .pp-edit-modal-row {
+        grid-template-columns: 1fr;
+    }
+    .pp-edit-modal-box {
+        width: 95%;
+        max-height: 90vh;
+    }
+}
