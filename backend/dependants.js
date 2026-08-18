@@ -43,6 +43,11 @@ const DependantsStore = (() => {
                     { id: 'da_002', type: 'spend', description: 'Purchased school supplies', amount: 150, date: '2025-05-05' },
                     { id: 'da_003', type: 'request', description: 'Requested funds for trip', amount: 800, date: '2025-05-10' }
                 ],
+                tasks: [
+                    { id: 'dt_001', task: 'Complete math homework', dueDate: '2025-06-01', reward: 50, status: 'complete', recurring: false, frequency: null },
+                    { id: 'dt_002', task: 'Clean room', dueDate: '2025-06-07', reward: 30, status: 'pending', recurring: true, frequency: 'weekly' },
+                    { id: 'dt_003', task: 'Read a book chapter', dueDate: '2025-05-20', reward: 20, status: 'pending', recurring: false, frequency: null }
+                ],
                 createdAt: '2024-03-01'
             },
             {
@@ -58,6 +63,9 @@ const DependantsStore = (() => {
                 activity: [
                     { id: 'da_004', type: 'allowance', description: 'Monthly allowance sent', amount: 350, date: '2025-05-01' },
                     { id: 'da_005', type: 'spend', description: 'Music subscription', amount: 60, date: '2025-05-03' }
+                ],
+                tasks: [
+                    { id: 'dt_004', task: 'Practice piano for 30 min', dueDate: '2025-06-05', reward: 25, status: 'pending', recurring: true, frequency: 'daily' }
                 ],
                 createdAt: '2024-06-15'
             }
@@ -142,12 +150,12 @@ const DependantsStore = (() => {
        READ
     ---------------------------------------------------------- */
     function getAll() {
-        return _data.dependants.map(d => ({ ...d, activity: [...d.activity], permissions: { ...d.permissions } }));
+        return _data.dependants.map(d => ({ ...d, activity: [...d.activity], tasks: [...(d.tasks || [])], permissions: { ...d.permissions } }));
     }
 
     function getById(id) {
         const dep = _data.dependants.find(d => d.id === id);
-        return dep ? { ...dep, activity: [...dep.activity], permissions: { ...dep.permissions } } : null;
+        return dep ? { ...dep, activity: [...dep.activity], tasks: [...(dep.tasks || [])], permissions: { ...dep.permissions } } : null;
     }
 
     /* ----------------------------------------------------------
@@ -170,6 +178,7 @@ const DependantsStore = (() => {
             status: 'invited',
             permissions: { canSpend: true, canViewWallet: false, canRequestFunds: true },
             activity: [],
+            tasks: [],
             createdAt: new Date().toISOString().slice(0, 10)
         };
 
@@ -264,6 +273,146 @@ const DependantsStore = (() => {
     }
 
     /* ----------------------------------------------------------
+       TASKS — CRUD
+    ---------------------------------------------------------- */
+    function _tid() {
+        return 'dt_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    }
+
+    /**
+     * Add a task to a dependant.
+     * @param {string} depId
+     * @param {{ task: string, dueDate: string, reward: number, recurring: boolean, frequency: string|null }} data
+     */
+    function addTask(depId, { task, dueDate, reward, recurring, frequency }) {
+        const idx = _data.dependants.findIndex(d => d.id === depId);
+        if (idx === -1) throw new Error('Dependant not found.');
+        if (!task || !task.trim()) throw new Error('Task description is required.');
+
+        const entry = {
+            id: _tid(),
+            task: task.trim(),
+            dueDate: dueDate || null,
+            reward: parseFloat(reward) || 0,
+            status: 'pending',
+            recurring: !!recurring,
+            frequency: recurring ? (frequency || 'weekly') : null
+        };
+
+        if (!_data.dependants[idx].tasks) _data.dependants[idx].tasks = [];
+        _data.dependants[idx].tasks.push(entry);
+        _notify();
+        return entry;
+    }
+
+    /**
+     * Edit an existing task.
+     * @param {string} depId
+     * @param {string} taskId
+     * @param {Object} updates
+     */
+    function editTask(depId, taskId, updates) {
+        const dep = _data.dependants.find(d => d.id === depId);
+        if (!dep) throw new Error('Dependant not found.');
+        if (!dep.tasks) dep.tasks = [];
+
+        const task = dep.tasks.find(t => t.id === taskId);
+        if (!task) throw new Error('Task not found.');
+
+        if (updates.task !== undefined) task.task = updates.task.trim();
+        if (updates.dueDate !== undefined) task.dueDate = updates.dueDate;
+        if (updates.reward !== undefined) task.reward = parseFloat(updates.reward) || 0;
+        if (updates.recurring !== undefined) {
+            task.recurring = !!updates.recurring;
+            task.frequency = updates.recurring ? (updates.frequency || task.frequency || 'weekly') : null;
+        }
+        if (updates.frequency !== undefined && task.recurring) task.frequency = updates.frequency;
+
+        _notify();
+        return { ...task };
+    }
+
+    /**
+     * Mark a task as complete.
+     * @param {string} depId
+     * @param {string} taskId
+     */
+    function completeTask(depId, taskId) {
+        const dep = _data.dependants.find(d => d.id === depId);
+        if (!dep) throw new Error('Dependant not found.');
+        if (!dep.tasks) dep.tasks = [];
+
+        const task = dep.tasks.find(t => t.id === taskId);
+        if (!task) throw new Error('Task not found.');
+
+        task.status = 'complete';
+        _notify();
+        return { ...task };
+    }
+
+    /**
+     * Remove a task from a dependant.
+     * @param {string} depId
+     * @param {string} taskId
+     */
+    function removeTask(depId, taskId) {
+        const dep = _data.dependants.find(d => d.id === depId);
+        if (!dep) throw new Error('Dependant not found.');
+        if (!dep.tasks) dep.tasks = [];
+
+        const idx = dep.tasks.findIndex(t => t.id === taskId);
+        if (idx === -1) throw new Error('Task not found.');
+        dep.tasks.splice(idx, 1);
+        _notify();
+    }
+
+    /**
+     * Get all tasks for a dependant, optionally sorted.
+     * Auto-marks pending tasks as overdue if due date has passed.
+     * @param {string} depId
+     * @param {string} sortBy - 'dueDate' | 'reward' | 'status'
+     * @param {string} order - 'asc' | 'desc'
+     */
+    function getTasks(depId, sortBy, order) {
+        const dep = _data.dependants.find(d => d.id === depId);
+        if (!dep) return [];
+
+        const today = new Date().toISOString().slice(0, 10);
+        let changed = false;
+
+        // Auto-mark overdue
+        (dep.tasks || []).forEach(t => {
+            if (t.status === 'pending' && t.dueDate && t.dueDate < today) {
+                t.status = 'overdue';
+                changed = true;
+            }
+        });
+
+        if (changed) _save();
+
+        const tasks = [...(dep.tasks || [])];
+
+        if (sortBy === 'dueDate') {
+            tasks.sort((a, b) => {
+                const da = a.dueDate || '9999-12-31';
+                const db = b.dueDate || '9999-12-31';
+                return order === 'desc' ? db.localeCompare(da) : da.localeCompare(db);
+            });
+        } else if (sortBy === 'reward') {
+            tasks.sort((a, b) => order === 'desc' ? b.reward - a.reward : a.reward - b.reward);
+        } else if (sortBy === 'status') {
+            const STATUS_ORDER = { overdue: 0, pending: 1, complete: 2 };
+            tasks.sort((a, b) => {
+                const sa = STATUS_ORDER[a.status] ?? 1;
+                const sb = STATUS_ORDER[b.status] ?? 1;
+                return order === 'desc' ? sb - sa : sa - sb;
+            });
+        }
+
+        return tasks;
+    }
+
+    /* ----------------------------------------------------------
        PUBLIC API
     ---------------------------------------------------------- */
     _load();
@@ -278,6 +427,12 @@ const DependantsStore = (() => {
         remove,
         sendAllowance,
         updatePermissions,
+        // Tasks
+        addTask,
+        editTask,
+        removeTask,
+        completeTask,
+        getTasks,
         // Events
         onChange,
         offChange,
