@@ -104,7 +104,23 @@ const AnalyticsUI = (() => {
 
     /* ── Render all sections ───────────────────────────────── */
     function render() {
-        const data = getData();
+        // Attempt to fetch from database if integration is enabled
+        if (typeof AnalyticsDB !== 'undefined' && AnalyticsDB.isEnabled()) {
+            AnalyticsDB.getFullAnalytics(currentRange)
+                .then(data => {
+                    if (data) {
+                        _renderWithData(data);
+                    } else {
+                        _renderWithData(getData());
+                    }
+                })
+                .catch(() => _renderWithData(getData()));
+        } else {
+            _renderWithData(getData());
+        }
+    }
+
+    function _renderWithData(data) {
         renderStats(data);
         renderDonut(data);
         renderBarChart(data);

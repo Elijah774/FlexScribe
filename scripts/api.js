@@ -185,6 +185,19 @@ const API = (() => {
          */
         async login(email, password) {
             if (USE_MOCK) {
+                // Attempt real DB call if AuthDB is enabled
+                if (typeof AuthDB !== 'undefined' && AuthDB.isEnabled()) {
+                    try {
+                        const result = await AuthDB.login(email, password);
+                        if (result && result.token) {
+                            sessionStorage.setItem('flexscribe_token', result.token);
+                            return _ok(result);
+                        }
+                    } catch (err) {
+                        return _err(err.message);
+                    }
+                }
+
                 if (!email || !password) return _mockErr('Email and password are required.', 100);
 
                 // Admin login
@@ -210,6 +223,19 @@ const API = (() => {
          */
         async register(fields) {
             if (USE_MOCK) {
+                // Attempt real DB call if AuthDB is enabled
+                if (typeof AuthDB !== 'undefined' && AuthDB.isEnabled()) {
+                    try {
+                        const result = await AuthDB.register(fields);
+                        if (result && result.token) {
+                            sessionStorage.setItem('flexscribe_token', result.token);
+                            return _ok(result);
+                        }
+                    } catch (err) {
+                        return _err(err.message);
+                    }
+                }
+
                 if (!fields.email || !fields.password) return _mockErr('All fields required.', 400);
                 if (fields.password !== fields.confirmPassword) return _mockErr('Passwords do not match.', 422);
                 const token = 'mock-jwt-token-new-' + Date.now();
@@ -250,7 +276,13 @@ const API = (() => {
         },
 
         getUser() {
-            if (USE_MOCK) return Promise.resolve(_ok(MOCK.user));
+            if (USE_MOCK) {
+                // Attempt real DB call if AuthDB is enabled
+                if (typeof AuthDB !== 'undefined' && AuthDB.isEnabled()) {
+                    return AuthDB.getProfile().then(data => _ok(data)).catch(err => _err(err.message));
+                }
+                return Promise.resolve(_ok(MOCK.user));
+            }
             return _fetch('GET', '/auth/me');
         },
     };
