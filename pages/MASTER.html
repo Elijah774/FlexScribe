@@ -73,7 +73,7 @@
                         </li>
                         <li class="notif-item" data-notif-id="notif-3" onclick="navigateToNotification('notif-3')">
                             <span class="notif-dot"></span>
-                            <div>
+                            <div> 
                                 <p class="notif-title">Scribe Score increased to 560</p>
                                 <p class="notif-time">3d ago</p>
                             </div>
@@ -147,7 +147,12 @@
             <div id="panel-timeline" class="page-panel" hidden></div>
 
             <!-- ═══════════════════ DEPENDANTS PANEL ═══════════════════ -->
-            <div id="panel-dependants" class="page-panel" hidden></div>
+            <div id="panel-dependants" class="page-panel" hidden>
+                <!-- Dependant Card Grid -->
+                <div class="dep-grid">
+                    <!-- Rendered by DependantsUI.init() -->
+                </div>
+            </div>
 
             <!-- ═══════════════════ NOTIFICATIONS PANEL ═══════════════════ -->
             <div id="panel-notifications" class="page-panel" hidden></div>
@@ -356,6 +361,44 @@
         <button class="sub-drawer-btn sub-drawer-btn--delete" id="drawer-delete-btn">Delete</button>
     </div>
 </aside>
+
+<!-- ═══════════════ PAUSE CONFIRMATION MODAL ═══════════════ -->
+<div id="sub-pause-modal" class="sub-modal-backdrop" hidden aria-modal="true" role="dialog" aria-labelledby="pause-modal-title">
+    <div class="sub-modal-box sub-modal-box--sm">
+        <div class="sub-modal-header">
+            <h2 id="pause-modal-title">Pause Subscription?</h2>
+            <button class="icon-btn" id="pause-modal-close" aria-label="Close">
+                <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>
+        </div>
+        <div class="sub-modal-body">
+            <p style="margin-bottom:12px; color:var(--text-light); font-size:14px;">
+                Are you sure you'd like to pause <strong id="pause-modal-name" style="color:var(--text)"></strong>?
+            </p>
+            <p style="margin-bottom:4px; font-size:12px; color:var(--text-light);" id="pause-modal-amount"></p>
+            <div class="sub-modal-field" style="margin-top:16px;">
+                <label for="pause-modal-reason" style="font-size:13px; font-weight:600; color:var(--text); margin-bottom:6px; display:block;">Why are you pausing? (optional)</label>
+                <select id="pause-modal-reason" style="width:100%; padding:10px 12px; background:var(--input-bg); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; font-family:inherit;">
+                    <option value="">Select a reason...</option>
+                    <option value="Too expensive">Too expensive</option>
+                    <option value="Not using it enough">Not using it enough</option>
+                    <option value="Taking a break">Taking a break</option>
+                    <option value="Switching to alternative">Switching to an alternative</option>
+                    <option value="Budget constraints">Budget constraints</option>
+                    <option value="Temporary pause">Temporary pause</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <p style="margin-top:12px; font-size:12px; color:var(--text-light);">
+                You can reactivate this subscription at any time from the toggle switch.
+            </p>
+        </div>
+        <div class="sub-modal-footer">
+            <button class="secondary-btn sub-modal-btn" id="pause-modal-cancel">Keep Active</button>
+            <button class="primary-btn sub-modal-btn" id="pause-modal-confirm" style="background:var(--yellow); color:#000;">Pause Subscription</button>
+        </div>
+    </div>
+</div>
 
 <!-- ═══════════════ CONFIRM MODAL ═══════════════ -->
 <div id="sub-confirm-modal" class="sub-modal-backdrop" hidden aria-modal="true" role="dialog">

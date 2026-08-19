@@ -215,7 +215,7 @@ const SubscriptionsUI = (() => {
             <li class="sub-row" data-id="${s.id}"${s.colourTag ? ` data-colour-tag="${s.colourTag}" style="border-left:3px solid ${s.colourTag};padding-left:11px;"` : ''}>
                 ${_logoHtml(s)}
                 <div class="sub-info">
-                    <p class="sub-title"><a href="#" class="sub-name-link" onclick="event.stopPropagation();SubscriptionsUI.openEditModal('${s.id}');return false">${_esc(s.name)}</a></p>
+                    <p class="sub-title"><a href="#" class="sub-name-link" onclick="event.stopPropagation();SubscriptionsUI.openDetailDrawer('${s.id}');return false">${_esc(s.name)}</a></p>
                     <p class="sub-sub">${SubscriptionStore.fmtCurrency(s.amount)} / ${cycleLabel.toLowerCase()} &bull; ${_esc(s.category)}</p>
                 </div>
                 <p class="sub-date ${urgentClass}">${dateLabel}</p>
@@ -606,11 +606,77 @@ const SubscriptionsUI = (() => {
     /* ----------------------------------------------------------
        TOGGLE
     ---------------------------------------------------------- */
+    /* ----------------------------------------------------------
+       TOGGLE — with pause confirmation popup
+    ---------------------------------------------------------- */
     function handleToggle(id) {
-        const sub = SubscriptionStore.toggle(id);
-        if (sub) {
-            toast(`${sub.name} ${sub.active ? 'activated' : 'paused'}.`);
+        const sub = SubscriptionStore.getById(id);
+        if (!sub) return;
+
+        // If currently active → pausing → show confirmation
+        if (sub.active) {
+            _openPauseConfirmModal(id);
+        } else {
+            // Reactivating — no confirmation needed
+            SubscriptionStore.toggle(id);
+            toast(`${sub.name} reactivated.`);
         }
+    }
+
+    let _pauseTargetId = null;
+
+    function _openPauseConfirmModal(id) {
+        _pauseTargetId = id;
+        const sub = SubscriptionStore.getById(id);
+        if (!sub) return;
+
+        const modal = _q('#sub-pause-modal');
+        if (!modal) {
+            // Fallback if modal doesn't exist
+            if (confirm(`Are you sure you want to pause ${sub.name}?`)) {
+                SubscriptionStore.toggle(id);
+                toast(`${sub.name} paused.`);
+            }
+            return;
+        }
+
+        _q('#pause-modal-name').textContent = sub.name;
+        _q('#pause-modal-amount').textContent = SubscriptionStore.fmtCurrency(sub.amount) + ' / ' + sub.billingCycle;
+        _q('#pause-modal-reason').value = '';
+
+        modal.hidden = false;
+        modal.removeAttribute('aria-hidden');
+        document.body.classList.add('modal-open');
+        requestAnimationFrame(() => modal.classList.add('sub-modal--visible'));
+    }
+
+    function closePauseModal() {
+        const modal = _q('#sub-pause-modal');
+        if (!modal) return;
+        modal.classList.remove('sub-modal--visible');
+        modal.addEventListener('transitionend', () => {
+            modal.hidden = true;
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('modal-open');
+        }, { once: true });
+        _pauseTargetId = null;
+    }
+
+    function _handlePauseConfirm() {
+        if (!_pauseTargetId) return;
+        const sub = SubscriptionStore.getById(_pauseTargetId);
+        const reason = _q('#pause-modal-reason')?.value || '';
+
+        SubscriptionStore.toggle(_pauseTargetId);
+        // Store the pause reason in notes (appended)
+        if (reason && sub) {
+            const existingNotes = sub.notes || '';
+            const pauseNote = `[Paused: ${reason}]`;
+            SubscriptionStore.edit(_pauseTargetId, { notes: existingNotes ? existingNotes + ' ' + pauseNote : pauseNote });
+        }
+
+        toast(`${sub?.name || 'Subscription'} paused.`);
+        closePauseModal();
     }
 
     /* ----------------------------------------------------------
@@ -1024,6 +1090,7 @@ const SubscriptionsUI = (() => {
                 else if (!_q('#rec-add-modal')?.hidden)      closeRecAddModal();
                 else if (!_q('#sub-modal')?.hidden)     closeModal();
                 else if (!_q('#sub-drawer')?.hidden)    closeDrawer();
+                else if (!_q('#sub-pause-modal')?.hidden)   closePauseModal();
                 else if (!_q('#sub-confirm-modal')?.hidden) closeConfirmModal();
             }
         });
@@ -1065,6 +1132,17 @@ const SubscriptionsUI = (() => {
         drawerClose?.addEventListener('click', closeDrawer);
         drawerOverlay?.addEventListener('click', closeDrawer);
         confirmCancel?.addEventListener('click', closeConfirmModal);
+
+        // Pause confirmation modal
+        const pauseClose   = _q('#pause-modal-close');
+        const pauseCancel  = _q('#pause-modal-cancel');
+        const pauseConfirm = _q('#pause-modal-confirm');
+        pauseClose?.addEventListener('click', closePauseModal);
+        pauseCancel?.addEventListener('click', closePauseModal);
+        pauseConfirm?.addEventListener('click', _handlePauseConfirm);
+        _q('#sub-pause-modal')?.addEventListener('click', e => {
+            if (e.target.id === 'sub-pause-modal') closePauseModal();
+        });
         exportBtn?.addEventListener('click', () => { SubscriptionStore.exportCSV(); toast('Exported to CSV.'); });
 
         // Advanced options section
@@ -1166,6 +1244,7 @@ const SubscriptionsUI = (() => {
         closeModal,
         closeDrawer,
         closeConfirmModal,
+        closePauseModal,
         closeRecAddModal,
         closeRecQuickViewModal,
         handleToggle,
