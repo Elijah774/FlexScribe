@@ -74,7 +74,12 @@ const DependantsUI = (() => {
             _initialized = true;
         }
 
-        render();
+        // Load from API then render
+        DependantsStore.loadFromAPI().then(function() {
+            render();
+        }).catch(function(err) {
+            console.error('Dependants load error:', err);
+        });
     }
 
     /* ----------------------------------------------------------

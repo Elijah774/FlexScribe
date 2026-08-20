@@ -41,27 +41,57 @@ const WalletStore = (() => {
     /* ----------------------------------------------------------
        PRIVATE STATE
     ---------------------------------------------------------- */
-    let _data = null;
+    let _data = { balance: 0, pendingIn: 0, pendingOut: 0, transactions: [] };
     let _listeners = [];
 
     /* ----------------------------------------------------------
-       PERSISTENCE
+       PERSISTENCE — Backend API (SQL Server)
+       No localStorage. API is the source of truth.
     ---------------------------------------------------------- */
     function _load() {
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            _data = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(SEED));
-        } catch {
-            _data = JSON.parse(JSON.stringify(SEED));
+        // No-op. Data comes from loadFromAPI().
+    }
+
+    async function loadFromAPI() {
+        if (typeof API === 'undefined') {
+            throw new Error('API not available');
         }
+        // Get balance
+        const balResult = await API.Wallet.get();
+        if (balResult.success && balResult.data) {
+            const d = balResult.data.data || balResult.data;
+            _data.balance = (d.balanceCents || 0) / 100;
+            _data.pendingIn = (d.pendingInCents || 0) / 100;
+            _data.pendingOut = (d.pendingOutCents || 0) / 100;
+        } else {
+            throw new Error(balResult.error || 'Failed to load wallet');
+        }
+        // Get history
+        try {
+            const histResult = await API.Wallet.getHistory();
+            if (histResult.success && histResult.data) {
+                const hist = Array.isArray(histResult.data) ? histResult.data : (histResult.data.data || []);
+                _data.transactions = hist.map(function(t) {
+                    return {
+                        id: t.id || ('wt_' + Math.random().toString(36).slice(2)),
+                        type: t.type || 'debit',
+                        description: t.label || t.type || '',
+                        amount: Math.abs((t.amountCents || 0) / 100),
+                        date: t.date || '',
+                        category: t.type || 'transaction'
+                    };
+                });
+            }
+        } catch (histErr) {
+            console.warn('Wallet: could not load history:', histErr);
+            _data.transactions = [];
+        }
+        _listeners.forEach(fn => fn(getSnapshot()));
+        return _data;
     }
 
     function _save() {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(_data));
-        } catch (e) {
-            console.warn('FlexScribe: could not persist wallet data', e);
-        }
+        // No-op. We do not persist to localStorage.
     }
 
     /* ----------------------------------------------------------
@@ -132,19 +162,12 @@ const WalletStore = (() => {
         amount = parseFloat(amount);
         if (!amount || amount <= 0) throw new Error('Amount must be greater than zero.');
 
-        _data.balance += amount;
+        API.Wallet.addFunds(Math.round(amount * 100), source).then(function(result) {
+            if (result.success) { loadFromAPI(); }
+            else { console.error('Add funds failed:', result.error); }
+        }).catch(function(err) { console.error('Add funds network error:', err); });
 
-        const tx = {
-            id: _uid(),
-            type: 'credit',
-            description: `Funds added via ${source}`,
-            amount: amount,
-            date: new Date().toISOString().slice(0, 10),
-            category: 'deposit'
-        };
-        _data.transactions.unshift(tx);
-        _notify();
-        return tx;
+        return { id: 'pending', type: 'credit', description: 'Funds added via ' + (source || 'deposit'), amount: amount, date: new Date().toISOString().slice(0, 10), category: 'deposit' };
     }
 
     /* ----------------------------------------------------------
@@ -160,19 +183,12 @@ const WalletStore = (() => {
         if (!amount || amount <= 0) throw new Error('Amount must be greater than zero.');
         if (amount > _data.balance) throw new Error('Insufficient balance.');
 
-        _data.balance -= amount;
+        API.Wallet.withdraw(Math.round(amount * 100), destination).then(function(result) {
+            if (result.success) { loadFromAPI(); }
+            else { console.error('Withdraw failed:', result.error); }
+        }).catch(function(err) { console.error('Withdraw network error:', err); });
 
-        const tx = {
-            id: _uid(),
-            type: 'debit',
-            description: `Withdrawal to ${destination}`,
-            amount: amount,
-            date: new Date().toISOString().slice(0, 10),
-            category: 'withdrawal'
-        };
-        _data.transactions.unshift(tx);
-        _notify();
-        return tx;
+        return { id: 'pending', type: 'debit', description: 'Withdrawal to ' + (destination || 'bank'), amount: amount, date: new Date().toISOString().slice(0, 10), category: 'withdrawal' };
     }
 
     /* ----------------------------------------------------------
@@ -188,19 +204,12 @@ const WalletStore = (() => {
         if (!amount || amount <= 0) throw new Error('Amount must be greater than zero.');
         if (amount > _data.balance) throw new Error('Insufficient balance.');
 
-        _data.balance -= amount;
+        API.Wallet.transfer(Math.round(amount * 100)).then(function(result) {
+            if (result.success) { loadFromAPI(); }
+            else { console.error('Transfer failed:', result.error); }
+        }).catch(function(err) { console.error('Transfer network error:', err); });
 
-        const tx = {
-            id: _uid(),
-            type: 'debit',
-            description: `Transfer to ${goalName}`,
-            amount: amount,
-            date: new Date().toISOString().slice(0, 10),
-            category: 'transfer'
-        };
-        _data.transactions.unshift(tx);
-        _notify();
-        return tx;
+        return { id: 'pending', type: 'debit', description: 'Transfer to ' + (goalName || 'goal'), amount: amount, date: new Date().toISOString().slice(0, 10), category: 'transfer' };
     }
 
     /* ----------------------------------------------------------
@@ -216,35 +225,30 @@ const WalletStore = (() => {
         if (!amount || amount <= 0) throw new Error('Amount must be greater than zero.');
         if (amount > _data.balance) throw new Error('Insufficient balance.');
 
-        _data.balance -= amount;
+        API.Wallet.withdraw(Math.round(amount * 100), 'dependant').then(function(result) {
+            if (result.success) { loadFromAPI(); }
+            else { console.error('Send to dependant failed:', result.error); }
+        }).catch(function(err) { console.error('Send to dependant network error:', err); });
 
-        const tx = {
-            id: _uid(),
-            type: 'debit',
-            description: `Sent to ${dependantName}`,
-            amount: amount,
-            date: new Date().toISOString().slice(0, 10),
-            category: 'dependant'
-        };
-        _data.transactions.unshift(tx);
-        _notify();
-        return tx;
+        return { id: 'pending', type: 'debit', description: 'Sent to ' + (dependantName || 'dependant'), amount: amount, date: new Date().toISOString().slice(0, 10), category: 'dependant' };
     }
 
     /* ----------------------------------------------------------
        PUBLIC API
     ---------------------------------------------------------- */
-    _load();
+    // Do NOT auto-load. Data comes from loadFromAPI().
 
     return Object.freeze({
         // Data access
         getSnapshot,
         getTransactions,
-        // Mutations
+        // Mutations (API-backed)
         addFunds,
         withdraw,
         transferToGoal,
         sendToDependant,
+        // API loading
+        loadFromAPI,
         // Events
         onChange,
         offChange,

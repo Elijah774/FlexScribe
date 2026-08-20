@@ -271,13 +271,18 @@ const WalletUI = (() => {
     ---------------------------------------------------------- */
     function init() {
         if (_initialized) {
-            // Just re-render on subsequent visits
-            _render();
+            // Re-load from API on subsequent visits
+            WalletStore.loadFromAPI().then(_render).catch(function(err) {
+                console.error('Wallet reload error:', err);
+            });
             return;
         }
         _initialized = true;
         _bindEvents();
-        _render();
+        // Initial load from API
+        WalletStore.loadFromAPI().then(_render).catch(function(err) {
+            console.error('Wallet initial load error:', err);
+        });
     }
 
     /* ----------------------------------------------------------

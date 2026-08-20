@@ -1035,7 +1035,12 @@ const SubscriptionsUI = (() => {
     function init() {
         // Avoid double-init
         if (document.body.dataset.subUiInit === '1') {
-            render(SubscriptionStore.getStats());
+            SubscriptionStore.loadFromAPI().then(function() {
+                render(SubscriptionStore.getStats());
+            }).catch(function(err) {
+                console.error('Subscriptions load error:', err);
+                toast('Could not load subscriptions.', 'error');
+            });
             return;
         }
         document.body.dataset.subUiInit = '1';
@@ -1150,8 +1155,13 @@ const SubscriptionsUI = (() => {
         _bindGlobalClose();
         _bindKeyboard();
 
-        // Initial render
-        render(SubscriptionStore.getStats());
+        // Initial render — load from API first
+        SubscriptionStore.loadFromAPI().then(function() {
+            render(SubscriptionStore.getStats());
+        }).catch(function(err) {
+            console.error('Subscriptions initial load error:', err);
+            toast('Could not load subscriptions from server.', 'error');
+        });
     }
 
     /* ----------------------------------------------------------

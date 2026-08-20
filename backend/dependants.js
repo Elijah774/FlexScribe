@@ -75,27 +75,49 @@ const DependantsStore = (() => {
     /* ----------------------------------------------------------
        PRIVATE STATE
     ---------------------------------------------------------- */
-    let _data = null;
+    let _data = { dependants: [] };
     let _listeners = [];
 
     /* ----------------------------------------------------------
-       PERSISTENCE
+       PERSISTENCE — Backend API (SQL Server)
+       No localStorage. API is the source of truth.
     ---------------------------------------------------------- */
     function _load() {
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            _data = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(SEED));
-        } catch {
-            _data = JSON.parse(JSON.stringify(SEED));
+        // No-op. Data comes from loadFromAPI().
+    }
+
+    async function loadFromAPI() {
+        if (typeof API === 'undefined') {
+            throw new Error('API not available');
+        }
+        const result = await API.Dependants.getAll();
+        if (result.success && result.data) {
+            const apiData = Array.isArray(result.data) ? result.data : (result.data.data || []);
+            _data.dependants = apiData.map(function(d) {
+                return {
+                    id: String(d.id),
+                    name: d.name || '',
+                    email: d.email || '',
+                    relationship: d.relationship || 'Other',
+                    avatar: (d.name || '??').split(' ').map(function(w) { return w[0]; }).join('').toUpperCase(),
+                    allowance: (d.allowanceCents || 0) / 100,
+                    spendingLimit: 0,
+                    status: d.status || 'active',
+                    permissions: { canSpend: true, canViewWallet: false, canRequestFunds: true },
+                    activity: [],
+                    tasks: [],
+                    createdAt: d.createdAt || ''
+                };
+            });
+            _listeners.forEach(fn => fn(getAll()));
+            return _data.dependants;
+        } else {
+            throw new Error(result.error || 'Failed to load dependants');
         }
     }
 
     function _save() {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(_data));
-        } catch (e) {
-            console.warn('FlexScribe: could not persist dependants data', e);
-        }
+        // No-op. We do not persist to localStorage.
     }
 
     /* ----------------------------------------------------------
@@ -167,33 +189,17 @@ const DependantsStore = (() => {
         if (!name || !name.trim()) throw new Error('Dependant name is required.');
         if (!email || !email.trim()) throw new Error('Email is required.');
         allowance = parseFloat(allowance) || 0;
-        spendingLimit = parseFloat(spendingLimit) || 0;
 
-        const dep = {
-            id: _uid(),
-            name: name.trim(),
-            email: email.trim(),
-            relationship: relationship || 'Other',
-            avatar: _initials(name),
-            allowance,
-            spendingLimit,
-            status: 'invited',
-            permissions: { canSpend: true, canViewWallet: false, canRequestFunds: true },
-            activity: [],
-            tasks: [],
-            createdAt: new Date().toISOString().slice(0, 10)
-        };
+        // Call backend API
+        API.Dependants.add({ name: name.trim(), email: email.trim(), relationship: relationship || 'Other', allowanceCents: Math.round(allowance * 100) })
+            .then(function(result) {
+                if (result.success) { loadFromAPI(); }
+                else { console.error('Failed to add dependant:', result.error); }
+            })
+            .catch(function(err) { console.error('Add dependant network error:', err); });
 
-        _data.dependants.push(dep);
-        _notify();
-
-        // Persist to database when integration is enabled
-        if (typeof DependantsDB !== 'undefined' && DependantsDB.isEnabled()) {
-            DependantsDB.addDependant({ name, email, relationship, allowance, spendingLimit })
-                .catch(err => console.warn('DB: Failed to add dependant', err));
-        }
-
-        return dep;
+        return { id: 'pending', name: name.trim(), status: 'invited' };
+    }
     }
 
     /* ----------------------------------------------------------
@@ -205,46 +211,28 @@ const DependantsStore = (() => {
         const idx = _data.dependants.findIndex(d => d.id === id);
         if (idx === -1) throw new Error('Dependant not found.');
 
-        const dep = _data.dependants[idx];
-        if (updates.name !== undefined) {
-            dep.name = updates.name.trim();
-            dep.avatar = _initials(dep.name);
-        }
-        if (updates.email !== undefined) dep.email = updates.email.trim();
-        if (updates.relationship !== undefined) dep.relationship = updates.relationship;
-        if (updates.allowance !== undefined) dep.allowance = parseFloat(updates.allowance) || 0;
-        if (updates.spendingLimit !== undefined) dep.spendingLimit = parseFloat(updates.spendingLimit) || 0;
-        if (updates.status !== undefined) dep.status = updates.status;
-        if (updates.permissions !== undefined) dep.permissions = { ...dep.permissions, ...updates.permissions };
+        // Call backend API
+        API.Dependants.edit(id, {
+            name: updates.name,
+            relationship: updates.relationship,
+            allowanceCents: updates.allowance !== undefined ? Math.round(updates.allowance * 100) : undefined
+        }).then(function(result) {
+            if (result.success) { loadFromAPI(); }
+            else { console.error('Failed to edit dependant:', result.error); }
+        }).catch(function(err) { console.error('Edit dependant network error:', err); });
 
-        _notify();
-
-        // Persist to database when integration is enabled
-        if (typeof DependantsDB !== 'undefined' && DependantsDB.isEnabled()) {
-            DependantsDB.editDependant(id, updates)
-                .catch(err => console.warn('DB: Failed to edit dependant', err));
-        }
-
-        return { ...dep, activity: [...dep.activity], permissions: { ...dep.permissions } };
+        return _data.dependants[idx];
     }
 
     /* ----------------------------------------------------------
        WRITE — Remove Dependant
-       SQL: DependantSQL.DELETE_DEPENDANT_TASKS
-            DependantSQL.DELETE_DEPENDANT
-            DependantSQL.DELETE_DEPENDANT_SUBSCRIBER
     ---------------------------------------------------------- */
     function remove(id) {
-        const idx = _data.dependants.findIndex(d => d.id === id);
-        if (idx === -1) throw new Error('Dependant not found.');
-        _data.dependants.splice(idx, 1);
-        _notify();
-
-        // Persist to database when integration is enabled
-        if (typeof DependantsDB !== 'undefined' && DependantsDB.isEnabled()) {
-            DependantsDB.deleteDependant(id)
-                .catch(err => console.warn('DB: Failed to delete dependant', err));
-        }
+        // Call backend API
+        API.Dependants.remove(id).then(function(result) {
+            if (result.success) { loadFromAPI(); }
+            else { console.error('Failed to delete dependant:', result.error); }
+        }).catch(function(err) { console.error('Delete dependant network error:', err); });
     }
 
     /* ----------------------------------------------------------
@@ -263,29 +251,13 @@ const DependantsStore = (() => {
         const idx = _data.dependants.findIndex(d => d.id === id);
         if (idx === -1) throw new Error('Dependant not found.');
 
-        // Debit wallet if available
-        if (typeof WalletStore !== 'undefined') {
-            const snap = WalletStore.getSnapshot();
-            if (snap.balance < amount) throw new Error('Insufficient wallet balance.');
-            WalletStore.sendToDependant(amount, _data.dependants[idx].name);
-        }
+        // Call backend API
+        API.Dependants.sendAllowance(id, Math.round(amount * 100), frequency).then(function(result) {
+            if (result.success) { loadFromAPI(); }
+            else { console.error('Failed to send allowance:', result.error); }
+        }).catch(function(err) { console.error('Send allowance network error:', err); });
 
-        const dep = _data.dependants[idx];
-        const activityEntry = {
-            id: _aid(),
-            type: 'allowance',
-            description: frequency === 'recurring' ? 'Recurring allowance sent' : 'One-time allowance sent',
-            amount,
-            date: new Date().toISOString().slice(0, 10)
-        };
-
-        dep.activity.push(activityEntry);
-
-        // Update status to active if was invited
-        if (dep.status === 'invited') dep.status = 'active';
-
-        _notify();
-        return activityEntry;
+        return { id: 'pending', type: 'allowance', amount: amount, date: new Date().toISOString().slice(0, 10) };
     }
 
     /* ----------------------------------------------------------
@@ -475,24 +447,26 @@ const DependantsStore = (() => {
     /* ----------------------------------------------------------
        PUBLIC API
     ---------------------------------------------------------- */
-    _load();
+    // Do NOT auto-load. Data comes from loadFromAPI().
 
     return Object.freeze({
         // Data access
         getAll,
         getById,
-        // Mutations
+        // Mutations (API-backed)
         add,
         edit,
         remove,
         sendAllowance,
         updatePermissions,
-        // Tasks
+        // Tasks (local only — no DB table for tasks)
         addTask,
         editTask,
         removeTask,
         completeTask,
         getTasks,
+        // API loading
+        loadFromAPI,
         // Events
         onChange,
         offChange,
