@@ -280,25 +280,54 @@ const SubscriptionStore = (() => {
     ---------------------------------------------------------- */
     let _subs = [];
     let _listeners = [];
+    let _loaded = false;
+    let _loadPromise = null;
 
     /* ----------------------------------------------------------
-       PERSISTENCE
+       PERSISTENCE — Backend API (SQL Server)
+       No localStorage. No fallback data. API is source of truth.
     ---------------------------------------------------------- */
     function _load() {
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            _subs = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(SEED));
-        } catch {
-            _subs = JSON.parse(JSON.stringify(SEED));
+        // No-op on file load. Data is loaded via loadFromAPI().
+    }
+
+    async function loadFromAPI() {
+        if (typeof API === 'undefined') {
+            console.error('SubscriptionStore: API module not available.');
+            throw new Error('API not available');
+        }
+        const result = await API.Subscriptions.getAll();
+        if (result.success && result.data) {
+            const apiData = Array.isArray(result.data) ? result.data : (result.data.data || []);
+            _subs = apiData.map(function(s) {
+                return {
+                    id: String(s.id),
+                    name: s.name || '',
+                    category: s.category || 'Other',
+                    amount: parseFloat(s.amount) || 0,
+                    billingCycle: s.billingCycle || 'monthly',
+                    nextPaymentDate: s.nextPaymentDate || '',
+                    active: s.active !== undefined ? s.active : true,
+                    logoClass: s.logoClass || 'default',
+                    logoText: s.logoText || (s.name || '?').charAt(0).toUpperCase(),
+                    notes: s.notes || '',
+                    createdAt: s.createdAt || '',
+                    customLogo: s.customLogo || '',
+                    colourTag: s.colourTag || '',
+                    reminderDays: s.reminderDays || null,
+                    providerUrl: s.providerUrl || ''
+                };
+            });
+            _loaded = true;
+            _listeners.forEach(fn => fn(getStats()));
+            return _subs;
+        } else {
+            throw new Error(result.error || 'Failed to load subscriptions');
         }
     }
 
     function _save() {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(_subs));
-        } catch (e) {
-            console.warn('FlexScribe: could not persist subscriptions', e);
-        }
+        // No-op. We do not persist to localStorage.
     }
 
     /* ----------------------------------------------------------
@@ -424,31 +453,30 @@ const SubscriptionStore = (() => {
      */
     function add(fields) {
         const sub = {
-            id:              _uid(),
             name:            (fields.name || '').trim(),
             category:        fields.category  || 'Other',
             amount:          parseFloat(fields.amount) || 0,
             billingCycle:    fields.billingCycle || 'monthly',
             nextPaymentDate: fields.nextPaymentDate || '',
-            active:          true,
+            notes:           (fields.notes   || '').trim(),
             logoClass:       fields.logoClass || 'default',
             logoText:        fields.logoText  || (fields.name || '?').charAt(0).toUpperCase(),
-            notes:           (fields.notes   || '').trim(),
-            createdAt:       new Date().toISOString().slice(0, 10),
-            customLogo:      fields.customLogo  || '',
-            colourTag:       fields.colourTag   || '',
-            reminderDays:    fields.reminderDays ? parseInt(fields.reminderDays, 10) : null,
-            providerUrl:     (fields.providerUrl || '').trim(),
         };
 
         if (!sub.name) throw new Error('Subscription name is required.');
         if (sub.amount <= 0) throw new Error('Amount must be greater than zero.');
-        if (sub.reminderDays !== null && (sub.reminderDays < 1 || sub.reminderDays > 30)) {
-            sub.reminderDays = null;
-        }
 
-        _subs.unshift(sub);
-        _notify();
+        // Call API, then refresh from backend
+        API.Subscriptions.add(sub).then(function(result) {
+            if (result.success) {
+                loadFromAPI();
+            } else {
+                console.error('Failed to add subscription:', result.error);
+            }
+        }).catch(function(err) {
+            console.error('Add subscription network error:', err);
+        });
+
         return sub;
     }
 
@@ -464,25 +492,19 @@ const SubscriptionStore = (() => {
         const idx = _subs.findIndex(s => s.id === id);
         if (idx === -1) return null;
 
-        const sub = _subs[idx];
-        if (fields.name            !== undefined) sub.name            = fields.name.trim();
-        if (fields.category        !== undefined) sub.category        = fields.category;
-        if (fields.amount          !== undefined) sub.amount          = parseFloat(fields.amount) || 0;
-        if (fields.billingCycle    !== undefined) sub.billingCycle    = fields.billingCycle;
-        if (fields.nextPaymentDate !== undefined) sub.nextPaymentDate = fields.nextPaymentDate;
-        if (fields.notes           !== undefined) sub.notes           = fields.notes.trim();
-        if (fields.logoClass       !== undefined) sub.logoClass       = fields.logoClass;
-        if (fields.logoText        !== undefined) sub.logoText        = fields.logoText;
-        if (fields.customLogo      !== undefined) sub.customLogo      = fields.customLogo;
-        if (fields.colourTag       !== undefined) sub.colourTag       = fields.colourTag;
-        if (fields.reminderDays    !== undefined) {
-            const rd = fields.reminderDays ? parseInt(fields.reminderDays, 10) : null;
-            sub.reminderDays = (rd && rd >= 1 && rd <= 30) ? rd : null;
-        }
-        if (fields.providerUrl     !== undefined) sub.providerUrl     = (fields.providerUrl || '').trim();
+        // Call API, then refresh from backend
+        API.Subscriptions.edit(id, fields).then(function(result) {
+            if (result.success) {
+                loadFromAPI();
+            } else {
+                console.error('Failed to edit subscription:', result.error);
+            }
+        }).catch(function(err) {
+            console.error('Edit subscription network error:', err);
+        });
 
-        _notify();
-        return sub;
+        // Return current local copy for immediate UI feedback
+        return _subs[idx];
     }
 
     /* ----------------------------------------------------------
@@ -491,19 +513,37 @@ const SubscriptionStore = (() => {
     function toggle(id) {
         const sub = _subs.find(s => s.id === id);
         if (!sub) return null;
-        sub.active = !sub.active;
-        _notify();
-        return sub;
+
+        // Call API, then refresh from backend
+        API.Subscriptions.toggle(id).then(function(result) {
+            if (result.success) {
+                loadFromAPI();
+            } else {
+                console.error('Failed to toggle subscription:', result.error);
+            }
+        }).catch(function(err) {
+            console.error('Toggle subscription network error:', err);
+        });
+
+        // Return toggled copy for immediate UI feedback
+        return { ...sub, active: !sub.active };
     }
 
     /* ----------------------------------------------------------
        WRITE — Delete
     ---------------------------------------------------------- */
     function remove(id) {
-        const before = _subs.length;
-        _subs = _subs.filter(s => s.id !== id);
-        if (_subs.length !== before) _notify();
-        return _subs.length !== before;
+        // Call API, then refresh from backend
+        API.Subscriptions.remove(id).then(function(result) {
+            if (result.success) {
+                loadFromAPI();
+            } else {
+                console.error('Failed to delete subscription:', result.error);
+            }
+        }).catch(function(err) {
+            console.error('Delete subscription network error:', err);
+        });
+        return true;
     }
 
     /* ----------------------------------------------------------
@@ -583,7 +623,8 @@ const SubscriptionStore = (() => {
        PUBLIC API
     ---------------------------------------------------------- */
     // Initialise on first require
-    _load();
+    // Do NOT auto-load from localStorage. Data comes from API via loadFromAPI().
+    // _load() is intentionally not called here.
 
     return Object.freeze({
         // Data access
@@ -593,12 +634,14 @@ const SubscriptionStore = (() => {
         getStats,
         getProviders,
         getRecommendations,
-        // Mutations
+        // Mutations (API-backed)
         add,
         edit,
         toggle,
         remove,
         sort,
+        // API loading
+        loadFromAPI,
         // Export
         exportCSV,
         // Events

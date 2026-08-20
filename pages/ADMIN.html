@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlexScribe — Admin Panel</title>
+<script>
+    // Auth guard: only admin can access this page
+    if (sessionStorage.getItem('flexscribe_admin') !== 'true') {
+        window.location.href = 'login.html';
+    }
+</script>
+<link rel="stylesheet" href="../styles/admin.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+<div class="admin-container">
+
+    <!-- SIDEBAR -->
+    <aside class="admin-sidebar">
+        <div class="admin-sidebar-logo">
+            <img src="../images/smallLogo.png" alt="FlexScribe" width="32" height="32">
+            <div>
+                <span class="admin-logo-text">Flex<em>Scribe</em></span>
+                <span class="admin-logo-sub">Admin Panel</span>
+            </div>
+        </div>
+
+        <nav class="admin-nav">
+            <a href="#" class="admin-nav-item active" data-page="dashboard">
+                <i data-lucide="layout-dashboard"></i> Dashboard
+            </a>
+            <a href="#" class="admin-nav-item" data-page="users">
+                <i data-lucide="users"></i> Users
+            </a>
+            <a href="#" class="admin-nav-item" data-page="analytics">
+                <i data-lucide="bar-chart-3"></i> Analytics
+            </a>
+            <a href="#" class="admin-nav-item" data-page="subscriptions">
+                <i data-lucide="repeat"></i> Subscriptions
+            </a>
+            <a href="#" class="admin-nav-item" data-page="audit">
+                <i data-lucide="scroll-text"></i> Audit Logs
+            </a>
+            <a href="#" class="admin-nav-item" data-page="settings">
+                <i data-lucide="settings"></i> Settings
+            </a>
+        </nav>
+
+        <div class="admin-sidebar-bottom">
+            <a href="MASTER.html" class="admin-nav-item">
+                <i data-lucide="arrow-left"></i> Back to App
+            </a>
+            <a href="#" class="admin-nav-item" id="admin-logout">
+                <i data-lucide="log-out"></i> Sign Out
+            </a>
+        </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="admin-main">
+        <header class="admin-header">
+            <h1 class="admin-page-title" id="admin-page-title">Dashboard</h1>
+            <div class="admin-header-right">
+                <span class="admin-header-badge">Admin</span>
+                <div class="admin-header-user">
+                    <i data-lucide="shield-check"></i>
+                    <span>admin</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="admin-content">
+
+            <!-- ===== DASHBOARD ===== -->
+            <section class="admin-panel" id="panel-dashboard">
+                <div class="admin-stats-row" id="stats-row"></div>
+                <div class="admin-grid-2">
+                    <div class="admin-card">
+                        <h3 class="admin-card-title">Recent Registrations</h3>
+                        <div class="admin-table-wrap" id="recent-users-table"></div>
+                    </div>
+                    <div class="admin-card">
+                        <h3 class="admin-card-title">Platform Activity (7 days)</h3>
+                        <div class="admin-chart" id="activity-chart"></div>
+                    </div>
+                </div>
+                <div class="admin-card">
+                    <h3 class="admin-card-title">Revenue Overview</h3>
+                    <div class="admin-grid-3" id="revenue-cards"></div>
+                </div>
+            </section>
+
+            <!-- ===== USERS ===== -->
+            <section class="admin-panel" id="panel-users" hidden>
+                <div class="admin-toolbar">
+                    <div class="admin-search-box">
+                        <i data-lucide="search"></i>
+                        <input type="text" id="user-search" placeholder="Search users by name or email...">
+                    </div>
+                    <div class="admin-toolbar-filters">
+                        <select id="filter-plan">
+                            <option value="all">All Plans</option>
+                            <option value="individual">Individual</option>
+                            <option value="professional">Professional</option>
+                            <option value="family">Family</option>
+                        </select>
+                        <select id="filter-status">
+                            <option value="all">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="admin-card">
+                    <div class="admin-card-header">
+                        <h3 class="admin-card-title">All Users</h3>
+                        <span class="admin-count" id="user-count"></span>
+                    </div>
+                    <div class="admin-table-wrap" id="users-table"></div>
+                </div>
+            </section>
+
+            <!-- ===== ANALYTICS ===== -->
+            <section class="admin-panel" id="panel-analytics" hidden>
+                <div class="admin-stats-row" id="analytics-stats"></div>
+                <div class="admin-grid-2">
+                    <div class="admin-card">
+                        <h3 class="admin-card-title">Spending by Category (All Users)</h3>
+                        <div class="admin-category-list" id="category-breakdown"></div>
+                    </div>
+                    <div class="admin-card">
+                        <h3 class="admin-card-title">Goals Performance</h3>
+                        <div class="admin-goals-stats" id="goals-stats"></div>
+                    </div>
+                </div>
+                <div class="admin-card">
+                    <h3 class="admin-card-title">Top Subscriptions Across Platform</h3>
+                    <div class="admin-table-wrap" id="top-subs-table"></div>
+                </div>
+                <div class="admin-card">
+                    <h3 class="admin-card-title">Monthly Growth</h3>
+                    <div class="admin-chart" id="growth-chart"></div>
+                </div>
+            </section>
+
+            <!-- ===== SUBSCRIPTIONS ===== -->
+            <section class="admin-panel" id="panel-subscriptions" hidden>
+                <div class="admin-stats-row" id="subs-stats"></div>
+                <div class="admin-card">
+                    <div class="admin-card-header">
+                        <h3 class="admin-card-title">All Active Subscriptions</h3>
+                    </div>
+                    <div class="admin-table-wrap" id="all-subs-table"></div>
+                </div>
+            </section>
+
+            <!-- ===== AUDIT LOGS ===== -->
+            <section class="admin-panel" id="panel-audit" hidden>
+                <div class="admin-toolbar">
+                    <div class="admin-toolbar-filters">
+                        <select id="filter-audit-action">
+                            <option value="all">All Actions</option>
+                            <option value="login">Login</option>
+                            <option value="register">Register</option>
+                            <option value="create">Create</option>
+                            <option value="update">Update</option>
+                            <option value="delete">Delete</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="admin-card">
+                    <h3 class="admin-card-title">System Audit Log</h3>
+                    <div class="admin-table-wrap" id="audit-table"></div>
+                </div>
+            </section>
+
+            <!-- ===== SETTINGS ===== -->
+            <section class="admin-panel" id="panel-settings" hidden>
+                <div class="admin-grid-2">
+                    <div class="admin-card">
+                        <h3 class="admin-card-title">General</h3>
+                        <div class="admin-settings-form">
+                            <div class="admin-setting-row">
+                                <label>Application Name</label>
+                                <input type="text" value="FlexScribe" class="admin-input">
+                            </div>
+                            <div class="admin-setting-row">
+                                <label>Support Email</label>
+                                <input type="email" value="support@flexscribe.co.za" class="admin-input">
+                            </div>
+                            <div class="admin-setting-row">
+                                <label>Max Free Subscriptions</label>
+                                <input type="number" value="5" class="admin-input">
+                            </div>
+                            <div class="admin-setting-row">
+                                <label>Max Dependants (Premium)</label>
+                                <input type="number" value="3" class="admin-input">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="admin-card">
+                        <h3 class="admin-card-title">Security</h3>
+                        <div class="admin-settings-form">
+                            <div class="admin-setting-row">
+                                <label>Session Timeout (min)</label>
+                                <input type="number" value="30" class="admin-input">
+                            </div>
+                            <div class="admin-setting-row">
+                                <label>Max Login Attempts</label>
+                                <input type="number" value="5" class="admin-input">
+                            </div>
+                            <div class="admin-setting-row admin-setting-toggle">
+                                <label>Require 2FA for Admin</label>
+                                <input type="checkbox" checked>
+                            </div>
+                            <div class="admin-setting-row admin-setting-toggle">
+                                <label>Maintenance Mode</label>
+                                <input type="checkbox">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="admin-card">
+                        <h3 class="admin-card-title">Backup & Data</h3>
+                        <div class="admin-settings-form">
+                            <div class="admin-setting-row">
+                                <label>Auto Backup</label>
+                                <select class="admin-input">
+                                    <option>Daily</option>
+                                    <option selected>Weekly</option>
+                                    <option>Monthly</option>
+                                </select>
+                            </div>
+                            <div class="admin-setting-row">
+                                <label>Last Backup</label>
+                                <p class="admin-setting-value">Today, 03:00 AM</p>
+                            </div>
+                            <button class="admin-btn-primary" style="margin-top:12px">Run Backup Now</button>
+                        </div>
+                    </div>
+                    <div class="admin-card">
+                        <h3 class="admin-card-title">Danger Zone</h3>
+                        <div class="admin-settings-form">
+                            <p class="admin-text-muted" style="margin-bottom:12px">These actions are irreversible. Use with caution.</p>
+                            <button class="admin-btn-danger">Clear All User Data</button>
+                            <button class="admin-btn-danger" style="margin-top:8px">Reset Platform</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+</div>
+
+<script>lucide.createIcons();</script>
+<script src="../scripts/admin.js"></script>
+</body>
+</html>

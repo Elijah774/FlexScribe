@@ -22,6 +22,7 @@ const GoalsUI = (() => {
     let _filter = 'all'; // 'all' | 'in_progress' | 'completed'
     let _editingId = null; // null = new goal, string = editing
     let _drawerGoalId = null;
+    let _goals = []; // loaded from API
 
     /* ----------------------------------------------------------
        SELECTORS (cached after init)
@@ -49,11 +50,10 @@ const GoalsUI = (() => {
 
         if (!_initialized) {
             _bindEvents();
-            GoalsStore.onChange(() => render());
             _initialized = true;
         }
 
-        render();
+        _loadGoalsFromAPI();
     }
 
     /* ----------------------------------------------------------
@@ -102,13 +102,58 @@ const GoalsUI = (() => {
 
         document.getElementById('goals-drawer-delete-btn').addEventListener('click', () => {
             if (confirm('Are you sure you want to delete this goal? This cannot be undone.')) {
-                GoalsStore.remove(_drawerGoalId);
-                closeDrawer();
+                API.Goals.remove(_drawerGoalId).then(function(result) {
+                    if (result.success) {
+                        closeDrawer();
+                        _loadGoalsFromAPI();
+                    } else {
+                        alert(result.error || 'Failed to delete goal.');
+                    }
+                }).catch(function() {
+                    alert('Network error. Please try again.');
+                });
             }
         });
 
         // Add Funds inside drawer
         document.getElementById('goals-drawer-addfunds-btn').addEventListener('click', _handleAddFunds);
+    }
+
+    /* ----------------------------------------------------------
+       LOAD GOALS FROM BACKEND API
+    ---------------------------------------------------------- */
+    async function _loadGoalsFromAPI() {
+        try {
+            var result = await API.Goals.getAll();
+            if (result.success && Array.isArray(result.data)) {
+                _goals = result.data.map(function(g) {
+                    return {
+                        id: g.id,
+                        name: g.name,
+                        targetAmount: (g.targetCents || 0) / 100,
+                        savedAmount: (g.savedCents || 0) / 100,
+                        targetDate: g.targetDate || '',
+                        category: g.category || 'Other',
+                        imageUrl: g.imageUrl || '',
+                        status: g.status || 'in_progress',
+                        createdAt: g.createdAt || '',
+                        contributions: g.contributions || []
+                    };
+                });
+            } else {
+                _goals = [];
+            }
+        } catch (err) {
+            console.error('Failed to load goals from API:', err);
+            _goals = [];
+        }
+        render();
+        return _goals;
+    }
+
+    /** Get a goal by ID from the local cache */
+    function _getGoalById(id) {
+        return _goals.find(function(g) { return String(g.id) === String(id); }) || null;
     }
 
     /* ----------------------------------------------------------
@@ -120,25 +165,27 @@ const GoalsUI = (() => {
     }
 
     function _renderStats() {
-        const stats = GoalsStore.getStats();
-        document.getElementById('goals-stat-total-saved').textContent = GoalsStore.fmtCurrency(stats.totalSaved);
-        document.getElementById('goals-stat-active').textContent = stats.active;
-        document.getElementById('goals-stat-completed').textContent = stats.completed;
+        var totalSaved = _goals.reduce(function(s, g) { return s + g.savedAmount; }, 0);
+        var active = _goals.filter(function(g) { return g.status === 'in_progress'; }).length;
+        var completed = _goals.filter(function(g) { return g.status === 'completed'; }).length;
+        document.getElementById('goals-stat-total-saved').textContent = 'R' + totalSaved.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        document.getElementById('goals-stat-active').textContent = active;
+        document.getElementById('goals-stat-completed').textContent = completed;
     }
 
     function _renderGrid() {
-        let goals = GoalsStore.getAll();
+        var goals = _goals.slice();
 
         // Filter
-        if (_filter === 'in_progress') goals = goals.filter(g => g.status === 'in_progress');
-        else if (_filter === 'completed') goals = goals.filter(g => g.status === 'completed');
+        if (_filter === 'in_progress') goals = goals.filter(function(g) { return g.status === 'in_progress'; });
+        else if (_filter === 'completed') goals = goals.filter(function(g) { return g.status === 'completed'; });
 
-        let html = '';
+        var html = '';
 
-        goals.forEach(goal => {
-            const pct = Math.min(100, Math.round((goal.savedAmount / goal.targetAmount) * 100));
-            const isComplete = goal.status === 'completed';
-            const bannerBg = _getBannerColor(goal.category);
+        goals.forEach(function(goal) {
+            var pct = goal.targetAmount > 0 ? Math.min(100, Math.round((goal.savedAmount / goal.targetAmount) * 100)) : 0;
+            var isComplete = goal.status === 'completed';
+            var bannerBg = _getBannerColor(goal.category);
 
             html += `
             <div class="goal-card" data-id="${goal.id}">
@@ -151,8 +198,8 @@ const GoalsUI = (() => {
                 <div class="goal-card-body">
                     <p class="goal-card-title">${goal.name}</p>
                     <p class="goal-card-amounts">
-                        <span class="saved">${GoalsStore.fmtCurrency(goal.savedAmount)}</span>
-                        / ${GoalsStore.fmtCurrency(goal.targetAmount)}
+                        <span class="saved">R${goal.savedAmount.toFixed(2)}</span>
+                        / R${goal.targetAmount.toFixed(2)}
                     </p>
                     <div class="goal-progress-wrap">
                         <div class="goal-progress-bar">
@@ -196,7 +243,7 @@ const GoalsUI = (() => {
         $modalError.textContent = '';
 
         if (_editingId) {
-            const goal = GoalsStore.getById(_editingId);
+            const goal = _getGoalById(_editingId);
             if (!goal) return;
             $modalTitle.textContent = 'Edit Goal';
             document.getElementById('goals-modal-name').value = goal.name;
@@ -230,15 +277,31 @@ const GoalsUI = (() => {
         if (!name) { $modalError.textContent = 'Please enter a goal name.'; return; }
         if (!targetAmount || targetAmount <= 0) { $modalError.textContent = 'Please enter a valid target amount.'; return; }
 
-        try {
-            if (_editingId) {
-                GoalsStore.edit(_editingId, { name, targetAmount, targetDate, category, imageUrl });
-            } else {
-                GoalsStore.add({ name, targetAmount, targetDate, category, imageUrl });
-            }
-            closeModal();
-        } catch (err) {
-            $modalError.textContent = err.message;
+        // Call the real backend API
+        const targetCents = Math.round(targetAmount * 100);
+
+        if (_editingId) {
+            API.Goals.edit(_editingId, { name, targetCents, targetDate }).then(function(result) {
+                if (result.success) {
+                    closeModal();
+                    _loadGoalsFromAPI();
+                } else {
+                    $modalError.textContent = result.error || 'Failed to update goal.';
+                }
+            }).catch(function(err) {
+                $modalError.textContent = 'Network error. Please try again.';
+            });
+        } else {
+            API.Goals.add({ name, targetCents, targetDate }).then(function(result) {
+                if (result.success) {
+                    closeModal();
+                    _loadGoalsFromAPI();
+                } else {
+                    $modalError.textContent = result.error || 'Failed to create goal.';
+                }
+            }).catch(function(err) {
+                $modalError.textContent = 'Network error. Please try again.';
+            });
         }
     }
 
@@ -246,7 +309,7 @@ const GoalsUI = (() => {
        DRAWER — Goal Detail
     ---------------------------------------------------------- */
     function openDrawer(id) {
-        const goal = GoalsStore.getById(id);
+        const goal = _getGoalById(id);
         if (!goal) return;
         _drawerGoalId = id;
 
@@ -255,38 +318,24 @@ const GoalsUI = (() => {
         document.getElementById('goals-drawer-cat').textContent = goal.category;
 
         // Stats
-        document.getElementById('goals-drawer-target').textContent = GoalsStore.fmtCurrency(goal.targetAmount);
-        document.getElementById('goals-drawer-saved').textContent = GoalsStore.fmtCurrency(goal.savedAmount);
-        document.getElementById('goals-drawer-remaining').textContent = GoalsStore.fmtCurrency(Math.max(0, goal.targetAmount - goal.savedAmount));
+        document.getElementById('goals-drawer-target').textContent = 'R' + goal.targetAmount.toFixed(2);
+        document.getElementById('goals-drawer-saved').textContent = 'R' + goal.savedAmount.toFixed(2);
+        document.getElementById('goals-drawer-remaining').textContent = 'R' + Math.max(0, goal.targetAmount - goal.savedAmount).toFixed(2);
         document.getElementById('goals-drawer-status').textContent = goal.status === 'completed' ? 'Completed' : 'In Progress';
-        document.getElementById('goals-drawer-created').textContent = GoalsStore.fmtDate(goal.createdAt);
-        document.getElementById('goals-drawer-deadline').textContent = goal.targetDate ? GoalsStore.fmtDate(goal.targetDate) : '—';
+        document.getElementById('goals-drawer-created').textContent = goal.createdAt || '—';
+        document.getElementById('goals-drawer-deadline').textContent = goal.targetDate || '—';
 
         // Contribution history
         const $list = document.getElementById('goals-contribution-list');
-        if (goal.contributions.length === 0) {
+        if (!goal.contributions || goal.contributions.length === 0) {
             $list.innerHTML = '<li style="color:var(--text-light);font-size:13px;padding:8px 0;">No contributions yet.</li>';
         } else {
-            $list.innerHTML = [...goal.contributions].reverse().map(c => `
-                <li class="goals-contribution-item">
-                    <div class="goals-contribution-info">
-                        <span class="goals-contribution-note">${c.note || 'Contribution'}</span>
-                        <span class="goals-contribution-date">${GoalsStore.fmtDate(c.date)}</span>
-                    </div>
-                    <span class="goals-contribution-amount">+${GoalsStore.fmtCurrency(c.amount)}</span>
-                </li>
-            `).join('');
+            $list.innerHTML = [...goal.contributions].reverse().map(function(c) { return '<li class="goals-contribution-item"><div class="goals-contribution-info"><span class="goals-contribution-note">' + (c.note || 'Contribution') + '</span><span class="goals-contribution-date">' + (c.date || '') + '</span></div><span class="goals-contribution-amount">+R' + (c.amount || 0).toFixed(2) + '</span></li>'; }).join('');
         }
 
-        // Forecast
+        // Forecast — simplified since we no longer have the local forecast function
         const $forecast = document.getElementById('goals-drawer-forecast');
-        const forecast = GoalsStore.getForecast(id);
-        if (forecast) {
-            $forecast.innerHTML = `At your current pace (<strong>${GoalsStore.fmtCurrency(forecast.avgMonthly)}/month</strong>), you'll reach this goal by <strong>${GoalsStore.fmtDate(forecast.forecastDate)}</strong>.`;
-            $forecast.hidden = false;
-        } else {
-            $forecast.hidden = true;
-        }
+        $forecast.hidden = true;
 
         // Wallet balance hint
         const $walletHint = document.getElementById('goals-drawer-wallet-hint');
@@ -319,20 +368,18 @@ const GoalsUI = (() => {
         if (!amount || amount <= 0) { $input.focus(); return; }
 
         try {
-            GoalsStore.contribute(_drawerGoalId, amount, 'Quick fund from wallet');
-
-            // Optionally debit wallet
-            if (typeof WalletStore !== 'undefined') {
-                try {
-                    WalletStore.transferToGoal(amount, GoalsStore.getById(_drawerGoalId)?.name || 'Goal');
-                } catch (e) {
-                    // Wallet insufficient — still recorded as goal contribution
-                    console.warn('Wallet debit skipped:', e.message);
+            var amountCents = Math.round(amount * 100);
+            API.Goals.contribute(_drawerGoalId, amountCents).then(function(result) {
+                if (result.success) {
+                    _loadGoalsFromAPI().then(function() {
+                        openDrawer(_drawerGoalId);
+                    });
+                } else {
+                    alert(result.error || 'Failed to add funds.');
                 }
-            }
-
-            // Refresh drawer
-            openDrawer(_drawerGoalId);
+            }).catch(function() {
+                alert('Network error. Please try again.');
+            });
         } catch (err) {
             alert(err.message);
         }
