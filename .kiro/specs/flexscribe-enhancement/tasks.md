@@ -1,368 +1,308 @@
-# FlexScribe Frontend Enhancement — Tasks (v2)
+# FlexScribe Frontend Enhancement — Tasks (v3)
 
-> Updated to reflect completed work (Tasks 01–07 DONE) and expanded scope from the full product specification. Each task is independently executable and references specific requirements.
+> Updated to include plan system, onboarding, feature restrictions, corrected design tokens, and FlexTap removal. Tasks 01–07 previously completed.
 
 ---
 
 ## ✅ TASK 01 — Design Token Consolidation (DONE)
-All CSS files aligned to `#FF8A34` orange, Inter font, utility variables, global focus ring, utility classes.
-
 ## ✅ TASK 02 — Shared UI Utilities (DONE)
-`scripts/ui-utils.js` created: toast, ripple, animateCounter, revealOnScroll, skeleton, debounce.
-
 ## ✅ TASK 03 — API Module (DONE)
-`scripts/api.js` created: all endpoints stubbed with USE_MOCK flag, consistent response shape, auth token handling.
-
 ## ✅ TASK 04 — Landing Page (DONE)
-9 sections rebuilt: Hero, Features, How It Works, Security, Pricing, About, FAQ, Contact, Footer. Scroll-reveal, counters, sticky nav, responsive.
-
 ## ✅ TASK 05 — Login & Registration (DONE)
-URL param routing, password strength meter, eye toggle, inline validation, success animation, social buttons, loading page transition, redirect to dashboard.
-
 ## ✅ TASK 06 — App Shell & Theme Toggle (DONE)
-Light/dark mode fixed (dark-first baseline, `body.light-mode` toggle), search bar added to header, greeting in page title.
-
 ## ✅ TASK 07 — Customizable Dashboard (DONE)
-16-widget dashboard with DashboardStore, 4 style presets, accent picker, drag-and-drop reorder, customization drawer, vibrant orange glows and gradients.
 
 ---
 
-## TASK 08 — Subscription Recommendations Engine
+## TASK 08 — Design Token Update (v3 colours)
 
-**Objective:** Add "Recommended For You" horizontal strip + provider library to subscriptions panel.
+**Objective:** Update all CSS to use the corrected v3 colour palette.
 
-**Files:** `pages/MASTER.html`, `styles/subscription.css`, `scripts/subscriptions-ui.js`, `backend/subscriptions.js`
+**Files:** `styles/MASTER.css`, all panel CSS files
 
-**Functional requirements:**
-- 14 provider cards in horizontal scroll strip (Netflix, Spotify, Disney+, Showmax, YouTube Premium, Apple Music, Amazon Prime, Microsoft 365, Adobe CC, ChatGPT Plus, Canva Pro, GitHub Pro, Dropbox, NordVPN)
-- Each card: logo chip, name, monthly cost, category, description, star rating, "Quick View" + "Add" buttons
-- Add → confirmation modal with billing cycle, payment source, auto-renew, notifications toggles
-- Quick View → detail modal with benefits and pricing table
-- Already-subscribed providers excluded from recommendations
-- Searchable provider library below recommendations with category chips and sort
+**Changes:**
+- `--background: #050A10` (was #090B10)
+- `--section: #0B111A` (was #11151B)
+- `--card: #111923` (was #181D24)
+- Add `--card-elevated: #151F2B`
+- `--orange: #FF6B00` (was #FF8A34)
+- `--orange-hover: #FF8A1F` (was #FF9B54)
+- `--text-light: #9AA9BD` (was #A3ABB8)
+- `--border: #263342` (was #272D35)
+- `--green: #67E45C` (was #B9F15B)
+- `--yellow: #FFC247` (was #FACC15)
+- `--danger: #FF4D4D` (was #F87171)
 
 **Acceptance criteria:**
-- [x] 14 cards render in horizontal strip with scroll-snap
-- [x] Add confirmation modal pre-fills provider data
-- [x] Quick View modal shows full details
-- [x] Provider library search filters in real-time
-- [x] Category chips and sort work correctly
+- [ ] All pages render with updated colours
+- [ ] No hardcoded hex values from old palette remain
+- [ ] Orange used sparingly: CTAs, active nav, highlights only
 
 ---
 
-## TASK 09 — Manual Subscription Enhancement
+## TASK 09 — Plan System Backend
 
-**Objective:** Extend Add/Edit modal with advanced fields (logo upload, colour tag, reminder days, provider URL).
+**Objective:** Create `backend/user.js` with plan management and user state.
 
-**Files:** `pages/MASTER.html`, `styles/subscription.css`, `scripts/subscriptions-ui.js`, `backend/subscriptions.js`
+**Files to create:** `backend/user.js`, `scripts/plan-gate.js`
 
 **Functional requirements:**
-- Collapsible "Advanced Options" section in modal
-- Logo upload → base64 preview, renders in sub-row
-- Colour tag picker (8 swatches) → left border on row
-- Reminder days (1–30) → shown in detail drawer
-- Provider URL → clickable link in drawer
+- `UserStore` IIFE: manages user plan, onboarding state in localStorage
+- Default plan: `individual`
+- Plans: `{ id, name, price, billingCycle, features[] }`
+- Methods: `getCurrentPlan()`, `setPlan(planId)`, `isFeatureAllowed(featureName)`, `getOnboardingState()`, `setOnboardingCompleted()`
+- `PlanGate` module: `checkAccess(pageName)` returns `{allowed: bool, requiredPlan: string}`
+- Gate checks called in `layout.js` before rendering a panel
 
 **Acceptance criteria:**
-- [x] Advanced section toggles smoothly
-- [x] Logo upload previews and persists
-- [x] Colour tag renders on row
-- [x] All fields save and display in drawer
+- [ ] `UserStore.getCurrentPlan()` returns plan object
+- [ ] `PlanGate.checkAccess('dependants')` returns `{allowed: false, requiredPlan: 'family'}` for Individual users
+- [ ] Plan persists across page refresh
 
 ---
 
-## TASK 10 — Wallet Panel
+## TASK 10 — Plan Selection Page
 
-**Objective:** Full Wallet panel per §3 of product spec.
+**Objective:** Create `pages/plans.html` with plan comparison and selection.
 
-**Files to create:** `styles/wallet.css`, `scripts/wallet-ui.js`, `backend/wallet.js`
-**Files to modify:** `pages/MASTER.html`, `scripts/layout.js`
+**Files to create:** `pages/plans.html`, `styles/plans.css`, `scripts/plans.js`
 
 **Functional requirements:**
-- Balance hero card (large amount + virtual card graphic)
-- 3 stat cards: Available, Pending In, Pending Out
-- Quick Actions row: Add Funds, Withdraw, Transfer to Goal, Send to Dependant
-- Recent Wallet Activity list (5 seed transactions)
-- Add Funds modal: amount, source selector, confirm → updates balance
-- Withdraw modal: amount, destination, confirm
-- Transfer to Goal modal: amount, goal picker, confirm
-- All modals call API module methods
+- 3 plan cards: Individual (R0), Professional (R99/mo), Family (R199/mo)
+- Current plan shows "CURRENT PLAN" badge
+- Selected plan gets orange border + glow
+- Feature comparison table below cards
+- Click plan → confirmation modal (current plan, new plan, changes, price, date)
+- Confirm → updates UserStore → success animation → redirect to dashboard
+- Cancel button for premium plans
+- Accessible from Settings and from post-registration flow
 
 **Acceptance criteria:**
-- [x] Wallet panel shows balance and stats from backend/wallet.js
-- [x] All 3 modals open, validate, and update data
-- [x] Transactions list re-renders after actions
-- [x] Responsive at all breakpoints
+- [ ] All 3 plans render with correct features
+- [ ] Current plan identified correctly
+- [ ] Confirmation modal shows before change
+- [ ] Plan updates in localStorage after confirmation
+- [ ] Success animation plays
 
 ---
 
-## TASK 11 — Goals Panel
+## TASK 11 — Onboarding Questionnaire
 
-**Objective:** Full Goals panel per §4 of product spec.
+**Objective:** Create `pages/onboarding.html` — multi-step new-user setup flow.
 
-**Files to create:** `styles/goals.css`, `scripts/goals-ui.js`, `backend/goals.js`
-**Files to modify:** `pages/MASTER.html`, `scripts/layout.js`
+**Files to create:** `pages/onboarding.html`, `styles/onboarding.css`, `scripts/onboarding.js`
 
 **Functional requirements:**
-- Header stats: Total Saved, Active Goals, Completed Goals
-- Goal card grid (2 seed goals + "+ New Goal" dashed card)
-- Each card: image, title, target, saved, progress bar, % label
-- Filter/sort bar: All / In Progress / Completed
-- New Goal modal: name, target amount, target date, image URL, category
-- Goal detail drawer: contribution history, edit, delete
-- Add Funds to Goal quick action (reads wallet balance)
-- Contribution forecasting text: "At current pace, you'll reach this by..."
+- 6-step wizard with progress indicator
+- Step 1: Welcome screen
+- Step 2: Subscription selection grid (12+ providers + "Add another")
+- Step 3: Subscription detail forms (for each selected)
+- Step 4: Financial info (optional, with "Skip for now")
+- Step 5: Bank setup guidance (provider-neutral, "I'll do this later" / "Done")
+- Step 6: Completion summary + "Go to Dashboard"
+- Data saved to SubscriptionStore and UserStore
+- Sets `onboardingCompleted = true`
+- Redirects to dashboard
 
 **Acceptance criteria:**
-- [x] 2 seed goals render with progress bars
-- [x] New Goal modal creates and persists a goal
-- [x] Detail drawer shows history and allows edit/delete
-- [x] Filter bar works correctly
-- [x] Progress bars animate on first view
+- [ ] All 6 steps navigate correctly
+- [ ] Selected subscriptions persist
+- [ ] Subscription details saved to backend store
+- [ ] Skip buttons work on optional steps
+- [ ] Completion screen shows correct summary
+- [ ] Dashboard loads with onboarding data
 
 ---
 
-## TASK 12 — Analytics Panel
+## TASK 12 — Auth Flow Update (Plan + Onboarding routing)
 
-**Objective:** Full Analytics panel per §5 of product spec.
+**Objective:** Update login/registration flow to include plan selection and onboarding.
 
-**Files to create:** `styles/analytics.css`, `scripts/analytics-ui.js`
-**Files to modify:** `pages/MASTER.html`, `scripts/layout.js`
+**Files to modify:** `scripts/login.js`, `pages/loading.html`
 
 **Functional requirements:**
-- Date range switcher (This Month / Last Month / Last 3 Months)
-- Summary strip: Total Spent, Total Income, Net Savings Rate %
-- Large donut chart (reuse component pattern from dashboard)
-- Category trend 6-bar chart (CSS-only, grouped by month)
-- Top merchants table (5 rows: logo, name, total, count)
-- Budget vs Actual panel (4 category rows with threshold colors)
-- Click donut segment → filters page to that category
-- Export button (CSV download via API.Analytics or SubscriptionStore)
+- New user registration: Register → `plans.html` → `onboarding.html` → `loading.html` → `MASTER.html`
+- Returning user login: Login → `loading.html` → `MASTER.html`
+- `loading.html` checks `onboardingCompleted`; if false, redirects to `onboarding.html`
+- Login.js stores `isNewUser = true` flag for new registrations
 
 **Acceptance criteria:**
-- [x] All chart sections render with seed data
-- [x] Date range switcher updates displayed data
-- [x] Donut click filters correctly
-- [x] Budget bars change color at thresholds
-- [x] Export downloads a CSV file
+- [ ] New user goes through full onboarding flow
+- [ ] Returning user skips onboarding
+- [ ] Loading page routes correctly based on state
 
 ---
 
-## TASK 13 — Dependants Panel
+## TASK 13 — Feature Restriction UI
 
-**Objective:** Full Dependants panel per §6 of product spec.
+**Objective:** Show upgrade prompts when restricted features are accessed.
 
-**Files to create:** `styles/dependants.css`, `scripts/dependants-ui.js`, `backend/dependants.js`
-**Files to modify:** `pages/MASTER.html`, `scripts/layout.js`
+**Files to modify:** `scripts/layout.js`, all panel init functions
 
 **Functional requirements:**
-- Dependant card grid (2 seed dependants + "+ Add" card)
-- Each card: avatar initial, name, relationship tag, allowance, status badge
-- Add Dependant modal: name, email, relationship, avatar, allowance, spending limit
-- Detail drawer: permission toggles, activity list, edit/delete
-- Send Allowance modal: amount, one-time/recurring, source wallet
-- Status management: Active / Invited / Suspended
+- `layout.js loadPage()` calls `PlanGate.checkAccess(pageName)` before rendering
+- If not allowed: inject upgrade prompt card into the panel instead of real content
+- Upgrade prompt: feature icon, "This feature requires [Plan]", benefits list, "Upgrade Now" button → navigates to plans.html
+- Sidebar: Dependants item shows lock icon badge for Individual/Professional users
+- Never show broken/empty pages
 
 **Acceptance criteria:**
-- [x] 2 seed dependants render in grid
-- [x] Add modal creates and persists a dependant
-- [x] Detail drawer shows permissions and activity
-- [x] Send Allowance modal validates and processes
-- [x] Status badge reflects current state
+- [ ] Individual user clicking Dependants sees upgrade prompt
+- [ ] Professional user clicking Dependants sees upgrade prompt
+- [ ] Family user sees full Dependants panel
+- [ ] Lock badge visible on restricted nav items
+- [ ] "Upgrade Now" navigates to plans.html
 
 ---
 
-## TASK 14 — Transactions Panel
+## TASK 14 — Settings: Subscription & Plan section
 
-**Objective:** Full Transactions ledger per §7 of product spec.
+**Objective:** Add plan management to Settings panel.
 
-**Files to create:** `styles/transactions.css`, `scripts/transactions-ui.js`
-**Files to modify:** `pages/MASTER.html`, `scripts/layout.js`
+**Files to modify:** `pages/settings.html`, `scripts/settings-ui.js` (or equivalent)
 
 **Functional requirements:**
-- Search bar (top) with debounced filter
-- Filter chips: Category, Date Range, Type (Income/Expense/Transfer)
-- Sortable list: icon, name+date, category tag, amount (color-coded), running balance
-- Row click → detail drawer: category edit, notes, receipt attach area
-- "Add Manual Transaction" button → modal with all fields
-- Bulk select → "Export CSV" action
-- Paginated (25 per page) or infinite scroll
+- New section "Subscription & Plan" in Settings
+- Shows: current plan name, price, renewal date, feature list
+- "Change Plan" button → navigates to `pages/plans.html`
+- Plan benefits displayed as checkmark list
 
 **Acceptance criteria:**
-- [ ] Transaction list renders with seed data from API mock
-- [ ] Search filters in real-time
-- [ ] Filter chips work (category, type)
-- [ ] Sort by date/amount works
-- [ ] Detail drawer allows category edit
-- [ ] Manual add creates a transaction
+- [ ] Current plan info displays correctly
+- [ ] "Change Plan" navigates to plans.html
+- [ ] Plan info updates after plan change
 
 ---
 
-## TASK 15 — Notifications Panel
+## TASK 15 — Remove FlexTap from Website
 
-**Objective:** Full Notifications feed per §8 of product spec.
+**Objective:** Remove any FlexTap references from the website codebase.
 
-**Files to create:** `styles/notifications.css`, `scripts/notifications-ui.js`
-**Files to modify:** `pages/MASTER.html`, `scripts/layout.js`
+**Files to check:** All HTML, CSS, JS files
 
 **Functional requirements:**
-- Filter tabs: All / Unread / Payments / Goals / Security
-- Notification list: icon, title, body, timestamp, unread dot
-- Click → navigates to linked panel (via linkTo field)
-- "Mark all as read" button
-- Preferences section: channel (Push/Email) × category toggle grid
-- Unread count syncs with header bell badge
+- Remove FlexTap nav item from sidebar (if present)
+- Remove FlexTap widget from dashboard (if present)
+- Remove FlexTap from onboarding (if present)
+- Remove FlexTap from Settings (if present)
+- Do NOT affect Android app code (separate repo/folder)
 
 **Acceptance criteria:**
-- [ ] 5 seed notifications render with correct icons
-- [ ] Filter tabs filter the list
-- [ ] Clicking a notification marks it read and navigates
-- [ ] "Mark all as read" clears all unread dots
-- [ ] Bell badge count updates live
+- [ ] No "FlexTap" text anywhere in website UI
+- [ ] No FlexTap nav item in sidebar
+- [ ] No FlexTap widget on dashboard
+- [ ] Grep for "flextap" returns zero results in website code
 
 ---
 
-## TASK 16 — Settings Panel
+## TASK 16 — Dashboard Personalisation (from onboarding data)
 
-**Objective:** Full Settings panel per §9 of product spec.
+**Objective:** Dashboard reads from backend stores instead of hardcoded data.
 
-**Files to create:** `styles/settings.css`, `scripts/settings-ui.js`
-**Files to modify:** `pages/MASTER.html`, `scripts/layout.js`
+**Files to modify:** `scripts/dashboard-ui.js`
 
 **Functional requirements:**
-- Sub-navigation: Profile, Security, Appearance, Billing
-- Profile: avatar, name, email, phone fields with inline edit + save
-- Security: password change form, 2FA toggle (UI only), active sessions list
-- Appearance: theme toggle (dark/light), accent color picker (6 swatches)
-- Billing: current plan display, "Upgrade to Premium" CTA
-- Danger Zone: Export data button, Delete account (multi-step confirm)
+- Wallet balance reads from WalletStore
+- Active subscriptions count reads from SubscriptionStore
+- Upcoming payments reads from SubscriptionStore (next 7 days)
+- Goals progress reads from GoalsStore
+- Recent transactions reads from WalletStore history
+- If no data yet (fresh user): show empty states with CTAs ("Add your first subscription", etc.)
 
 **Acceptance criteria:**
-- [ ] All sub-sections navigate correctly
-- [ ] Profile fields save to localStorage
-- [ ] Theme toggle works (syncs with layout.js)
-- [ ] Accent picker updates dashboard accent
-- [ ] Delete account shows confirmation flow
+- [ ] Dashboard reflects actual stored data
+- [ ] Empty states shown for new users with no data
+- [ ] After onboarding, dashboard shows onboarding subscriptions
 
 ---
 
-## TASK 17 — Help & Support Panel
+## TASK 17 — Subscription Recommendations
 
-**Objective:** Help & Support per §10 of product spec.
+**Objective:** Add recommended providers strip to subscriptions panel.
 
-**Files to create:** `styles/help.css`, `scripts/help-ui.js`
-**Files to modify:** `pages/MASTER.html`, `scripts/layout.js`
+**Files:** `pages/subscription.html`, `styles/subscription.css`, `scripts/subscriptions-ui.js`, `backend/subscriptions.js`
 
 **Functional requirements:**
-- Search bar + 6 topic tile grid (Getting Started, Wallet, Subscriptions, Goals, Security, Billing)
-- FAQ accordion (8 articles) filtered by search and topic
-- Contact form: subject, category dropdown, description, submit
-- "Was this helpful? 👍 👎" per FAQ item
-- System status indicator ("All systems operational" green dot)
+- 14 provider cards in horizontal scroll strip
+- Each card: logo, name, cost, category, "Add" button
+- Add → pre-fills subscription creation modal
+- Already-subscribed providers excluded
+- Searchable provider library with category chips
 
 **Acceptance criteria:**
-- [ ] Search filters FAQ in real-time
-- [ ] Topic tiles filter to relevant FAQs
-- [ ] Contact form submits with toast
-- [ ] Helpful/unhelpful feedback toggles
-- [ ] System status shows green
+- [ ] Provider strip renders and scrolls
+- [ ] Add pre-fills modal correctly
+- [ ] Already-subscribed excluded
+- [ ] Search/filter works
 
 ---
 
-## TASK 18 — Responsive Pass
+## TASK 18 — Remaining Panels Audit
 
-**Objective:** Full responsive implementation across all panels.
+**Objective:** Ensure all panels (Wallet, Goals, Analytics, Timeline, Dependants, Notifications, Reports) render correctly with their respective UI scripts.
 
-**Files to modify:** `styles/MASTER.css`, all panel CSS files, `scripts/layout.js`
+**Files:** All panel HTML + JS files
 
 **Functional requirements:**
-- Sidebar: icon-only rail at <1024px, bottom tab bar at <768px
-- "More" tab opens sheet drawer with remaining nav items
-- All modals full-screen on mobile
-- All grids collapse to 1-col on mobile
-- Touch-friendly tap targets (min 44px)
-- No horizontal overflow at any breakpoint
+- Each panel has content (not empty divs)
+- Each panel's UI script initialises correctly when navigated to
+- Plan restrictions applied (Dependants for Family only)
+- No console errors on any panel
 
 **Acceptance criteria:**
-- [ ] Icon-only sidebar at 1024px
-- [ ] Bottom tab bar at 768px
-- [ ] All panels usable at 375px width
-- [ ] No overflow on any page
+- [ ] Every sidebar nav item loads a functional panel
+- [ ] No empty/broken pages
+- [ ] Dependants restricted for non-Family plans
+- [ ] Zero console errors
 
 ---
 
-## TASK 19 — Accessibility Pass
+## TASK 19 — Responsive Pass
 
-**Objective:** WCAG 2.1 AA compliance across all components.
-
-**Files to modify:** All HTML and JS files.
+**Objective:** Ensure all pages work on desktop, laptop, tablet.
 
 **Functional requirements:**
-- All buttons have aria-label or visible text
-- All inputs have associated labels
-- All images have alt text
-- Modals/drawers: role="dialog", aria-modal, focus trap, focus return
-- Nav: aria-current="page" on active item
-- Progress bars: role="progressbar" with aria-valuenow
-- Keyboard: Tab, Enter, Space, Escape work everywhere
+- Sidebar: collapsible on smaller screens
+- Grids: 3-col → 2-col → 1-col
+- Modals: adapt to screen size
+- Plans page: cards stack vertically on narrow screens
+- Onboarding: full-width steps on tablet
 
 **Acceptance criteria:**
-- [ ] Tab order logical on all pages
+- [ ] All pages usable at 1280px, 1024px, 768px
+- [ ] No horizontal overflow
+- [ ] No overlapping elements
+
+---
+
+## TASK 20 — Accessibility & Performance
+
+**Objective:** ARIA labels, keyboard nav, lazy loading, no dead code.
+
+**Acceptance criteria:**
+- [ ] All interactive elements keyboard-accessible
+- [ ] Images have alt text, loading="lazy"
 - [ ] Modals trap focus
-- [ ] Screen reader announces panel changes
-- [ ] No missing alt/aria attributes
+- [ ] No unused CSS/JS
+- [ ] Console shows zero errors
 
 ---
 
-## TASK 20 — Performance & Code Quality
-
-**Objective:** Optimize load time and code maintainability.
-
-**Files to modify:** All files.
-
-**Functional requirements:**
-- All images: `loading="lazy"`
-- Scripts: `defer` on landing.html
-- No duplicate CSS rules across panel files
-- debounce on all search inputs
-- requestAnimationFrame for JS animations
-- No synchronous localStorage reads in render loops
-- Remove dead code and unused CSS classes
-
-**Acceptance criteria:**
-- [ ] Dashboard renders in <100ms after nav click
-- [ ] No layout shift on panel transitions
-- [ ] No render-blocking resources on landing page
-- [ ] Console shows zero errors on all pages
-
----
-
-## TASK 21 — Final Integration & QA
-
-**Objective:** End-to-end smoke test of complete feature set.
+## TASK 21 — Final QA
 
 **Test flows:**
-1. Landing → "Create Account" → Register → Loading → Dashboard
-2. Dashboard: all widgets visible, counters animate, calendar works
-3. Customize dashboard: toggle widgets, change preset, change accent
-4. Subscriptions: add from recommendations, manual add, edit, delete, export CSV
-5. Wallet: add funds, transfer to goal, view history
-6. Goals: create goal, contribute, view progress
-7. Analytics: change date range, click donut, export
-8. Dependants: add, send allowance, manage permissions
-9. Transactions: search, filter, add manual, export
-10. Notifications: filter, mark read, navigate from notification
-11. Settings: edit profile, change theme, change accent
-12. Help: search FAQ, submit contact form
-13. Responsive: test at 1280px, 1024px, 768px, 375px
-14. Keyboard: tab through entire app
-15. Theme: toggle light/dark, verify all panels
+1. New user: Register → Plans → Onboarding → Dashboard (with data)
+2. Returning user: Login → Dashboard
+3. Plan change: Settings → Plans → Change → Confirm → Updated
+4. Feature restriction: Individual user → Dependants → Upgrade prompt
+5. All panels load without errors
+6. Responsive at 1280/1024/768px
 
 **Acceptance criteria:**
-- [ ] All 15 flows pass without console errors
-- [ ] No undefined/null/NaN visible in UI
-- [ ] localStorage persists all data across refresh
-- [ ] Both themes render correctly everywhere
+- [ ] All 6 flows pass
+- [ ] No FlexTap anywhere
+- [ ] Plan restrictions work correctly
+- [ ] Onboarding data appears on dashboard
 
 ---
 
@@ -370,10 +310,11 @@ Light/dark mode fixed (dark-first baseline, `body.light-mode` toggle), search ba
 
 ```
 [DONE] 01 → 02 → 03 → 04 → 05 → 06 → 07
-[NEXT] 08 → 09 → 10 → 11 → 12 → 13 → 14 → 15 → 16 → 17
-[FINAL] 18 → 19 → 20 → 21
+[NEXT] 08 → 09 → 10 → 11 → 12 → 13 → 14 → 15
+[THEN] 16 → 17 → 18
+[FINAL] 19 → 20 → 21
 ```
 
-Tasks 08–17 can be parallelized (each is an independent panel).
-Tasks 18–20 should follow once all panels exist.
-Task 21 is always last.
+Tasks 08–15 should be done in order (plan system builds on itself).
+Tasks 16–18 can be parallelised.
+Tasks 19–21 are always last.
