@@ -224,6 +224,10 @@ function loadPage(pageName) {
             ReportsUI.init();
         }
 
+        if (pageName === 'timeline' && typeof TimelineUI !== 'undefined') {
+            TimelineUI.init();
+        }
+
         if (pageName === 'dependants' && typeof DependantsUI !== 'undefined') {
             DependantsUI.init();
         }

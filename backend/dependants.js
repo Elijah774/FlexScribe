@@ -449,6 +449,10 @@ const DependantsStore = (() => {
     ---------------------------------------------------------- */
     // Do NOT auto-load. Data comes from loadFromAPI().
 
+    // TEMPORARY: Load SEED data for local development/testing.
+    // When backend is running, comment this out and use loadFromAPI() instead.
+    _data = JSON.parse(JSON.stringify(SEED));
+
     return Object.freeze({
         // Data access
         getAll,

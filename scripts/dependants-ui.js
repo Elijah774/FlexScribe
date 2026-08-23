@@ -74,12 +74,15 @@ const DependantsUI = (() => {
             _initialized = true;
         }
 
-        // Load from API then render
+        // Render immediately from SEED
+        render();
+        /* COMMENTED OUT: API loading disabled for local dev
         DependantsStore.loadFromAPI().then(function() {
             render();
         }).catch(function(err) {
             console.error('Dependants load error:', err);
         });
+        */
     }
 
     /* ----------------------------------------------------------

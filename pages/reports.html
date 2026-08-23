@@ -74,9 +74,7 @@
                             </div>
                         </div>
                         <button class="rpt-generate-btn" id="rpt-generate-btn">
-                            <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.9-6.2 3.9 1.6-7L2 9.2l7.1-.6L12 2z" stroke="currentColor" stroke-width="1.5"/></svg>
                             Generate Report
-                            <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.9-6.2 3.9 1.6-7L2 9.2l7.1-.6L12 2z" stroke="currentColor" stroke-width="1.5"/></svg>
                         </button>
                     </div>
 
@@ -130,6 +128,7 @@
                             <div class="rpt-upload-item"><span>FNB_Statement_May.pdf</span><span class="rpt-upload-date">31 May 2025</span><span class="rpt-upload-status complete">Complete &#10003;</span></div>
                         </div>
                         <a href="#" class="rpt-link" onclick="return false">View all uploads &rarr;</a>
+                        <button class="rpt-see-full-report-btn" id="rpt-see-full-report-btn" style="display:none;margin-top:12px;width:100%;padding:12px;background:var(--orange);color:#fff;border:none;border-radius:10px;font-weight:600;font-size:14px;cursor:pointer;">See Full Report</button>
                     </div>
 
                     <!-- AI Financial Insights -->
@@ -365,3 +364,282 @@
                         <a href="#" class="rpt-link" onclick="return false">View all recommendations &rarr;</a>
                     </div>
                 </div><!-- /rpt-bottom-grid -->
+
+<!-- ═══════════════ BANK STATEMENT FULL REPORT MODAL ═══════════════ -->
+<div class="rpt-fullreport-modal" id="rpt-fullreport-modal" hidden>
+    <div class="rpt-fullreport-box">
+        <div class="rpt-fullreport-header">
+            <h2>Bank Statement Report</h2>
+            <button class="rpt-fullreport-close" id="rpt-fullreport-close">&times;</button>
+        </div>
+        <div class="rpt-fullreport-body" id="rpt-fullreport-body">
+            <!-- Populated by JS -->
+        </div>
+    </div>
+</div>
+
+<style>
+.rpt-fullreport-modal {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,0.7);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+}
+.rpt-fullreport-box {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 18px; width: 100%; max-width: 750px;
+    max-height: 85vh; overflow-y: auto; padding: 28px;
+}
+.rpt-fullreport-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 20px;
+}
+.rpt-fullreport-header h2 { font-size: 20px; color: var(--text); }
+.rpt-fullreport-close {
+    background: none; border: none; color: var(--text-light);
+    font-size: 24px; cursor: pointer; padding: 4px 10px; border-radius: 8px;
+}
+.rpt-fullreport-close:hover { background: var(--hover); color: var(--text); }
+.rpt-fr-status {
+    display: inline-block; padding: 6px 14px; border-radius: 8px;
+    font-size: 13px; font-weight: 700; margin-bottom: 16px;
+}
+.rpt-fr-status.safe { background: rgba(185,241,91,0.15); color: var(--green); }
+.rpt-fr-status.warning { background: rgba(250,204,21,0.15); color: #FACC15; }
+.rpt-fr-status.danger { background: rgba(248,113,113,0.15); color: #F87171; }
+.rpt-fr-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 20px; }
+.rpt-fr-stat { background: var(--hover); border-radius: 12px; padding: 16px; text-align: center; }
+.rpt-fr-stat-val { font-size: 20px; font-weight: 700; color: var(--text); display: block; }
+.rpt-fr-stat-label { font-size: 12px; color: var(--text-light); margin-top: 4px; }
+.rpt-fr-section { margin-bottom: 20px; }
+.rpt-fr-section h3 { font-size: 15px; font-weight: 600; margin-bottom: 10px; color: var(--text); }
+.rpt-fr-monthly-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.rpt-fr-monthly-table th { text-align: left; padding: 8px; background: var(--hover); color: var(--text-light); font-size: 11px; text-transform: uppercase; }
+.rpt-fr-monthly-table td { padding: 8px; border-bottom: 1px solid var(--border); color: var(--text); }
+.rpt-fr-tx-list { max-height: 250px; overflow-y: auto; }
+.rpt-fr-tx-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.rpt-fr-tx-desc { color: var(--text); }
+.rpt-fr-tx-date { color: var(--text-light); font-size: 11px; }
+.rpt-fr-tx-amount { font-weight: 600; }
+.rpt-fr-tx-amount.credit { color: var(--green); }
+.rpt-fr-tx-amount.debit { color: var(--orange); }
+.rpt-fr-impact { background: var(--hover); border-radius: 12px; padding: 16px; margin-top: 12px; }
+.rpt-fr-impact p { font-size: 13px; color: var(--text-light); line-height: 1.6; }
+.rpt-fr-impact strong { color: var(--text); }
+</style>
+
+<script>
+(function() {
+    // ── Generate Report Button ──
+    var generateBtn = document.getElementById('rpt-generate-btn');
+    if (generateBtn) {
+        generateBtn.addEventListener('click', async function() {
+            var period = document.getElementById('rpt-period').value;
+            var reportType = document.getElementById('rpt-type').value;
+            generateBtn.disabled = true;
+            generateBtn.textContent = 'Generating...';
+            try {
+                var result = await API.Reports.compile({ period: period, reportType: reportType });
+                if (result.success) {
+                    var data = result.data.data || result.data;
+                    if (typeof UIUtils !== 'undefined') UIUtils.toast('Report generated successfully!', 'success');
+                    window._lastCompiledReport = data;
+                    _renderCompiledReport(data);
+                    document.getElementById('rpt-fullreport-modal').hidden = false;
+                } else {
+                    var errMsg = result.error || (result.data && result.data.message) || 'Failed to generate report.';
+                    if (typeof UIUtils !== 'undefined') UIUtils.toast(errMsg, 'error');
+                    else alert(errMsg);
+                }
+            } catch (err) {
+                if (typeof UIUtils !== 'undefined') UIUtils.toast('Network error: ' + (err.message || 'Please try again.'), 'error');
+                else alert('Network error: ' + (err.message || 'Please try again.'));
+            }
+            generateBtn.disabled = false;
+            generateBtn.textContent = 'Generate Report';
+        });
+    }
+
+    function _renderCompiledReport(data) {
+        var reportBody = document.getElementById('rpt-fullreport-body');
+        if (!reportBody) return;
+        var riskColors = { low: 'safe', medium: 'warning', high: 'danger' };
+        var riskLabels = { low: 'Financially Responsible', medium: 'Caution Advised', high: 'Overspending' };
+        var statusClass = riskColors[data.riskLevel] || 'safe';
+        var html = '';
+        html += '<div class="rpt-fr-status ' + statusClass + '">' + (riskLabels[data.riskLevel] || 'Low Risk') + '</div>';
+        html += '<p style="font-size:12px;color:var(--text-light);margin-bottom:16px;">' + (data.reportType || 'Detailed') + ' Report &middot; ' + (data.period ? data.period.start + ' to ' + data.period.end : '') + '</p>';
+        html += '<div class="rpt-fr-stats">';
+        html += '<div class="rpt-fr-stat"><span class="rpt-fr-stat-val">R' + (data.totalIncome || 0).toFixed(2) + '</span><span class="rpt-fr-stat-label">Total Income</span></div>';
+        html += '<div class="rpt-fr-stat"><span class="rpt-fr-stat-val">R' + (data.totalWithdrawals || 0).toFixed(2) + '</span><span class="rpt-fr-stat-label">Total Expenses</span></div>';
+        html += '<div class="rpt-fr-stat"><span class="rpt-fr-stat-val" style="color:' + ((data.savings || 0) >= 0 ? 'var(--green)' : 'var(--danger)') + '">R' + (data.savings || 0).toFixed(2) + '</span><span class="rpt-fr-stat-label">Net Savings</span></div>';
+        html += '</div>';
+        // Wallet & Subscriptions
+        html += '<div class="rpt-fr-impact"><p><strong>Wallet Balance:</strong> R' + (data.walletBalance || 0).toFixed(2) + ' &middot; <strong>Active Subscriptions:</strong> R' + (data.totalSubscriptionCost || 0).toFixed(2) + '/mo &middot; <strong>Scribe Score:</strong> ' + (data.scribeScore || 0) + '</p></div>';
+        // Categories
+        if (data.categories && data.categories.length > 0) {
+            html += '<div class="rpt-fr-section"><h3>Spending by Category</h3>';
+            data.categories.forEach(function(c) { html += '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;"><span>' + c.category + '</span><span style="font-weight:600">R' + (c.amount || 0).toFixed(2) + '</span></div>'; });
+            html += '</div>';
+        }
+        // Goals
+        if (data.goals && data.goals.length > 0) {
+            html += '<div class="rpt-fr-section"><h3>Goals Progress</h3>';
+            data.goals.forEach(function(g) { html += '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;"><span>' + g.name + '</span><span style="font-weight:600">' + g.pct + '% (R' + (g.saved || 0).toFixed(2) + ' / R' + (g.target || 0).toFixed(2) + ')</span></div>'; });
+            html += '</div>';
+        }
+        // Transactions
+        if (data.transactions && data.transactions.length > 0) {
+            html += '<div class="rpt-fr-section"><h3>Transactions (' + data.transactionCount + ')</h3><div class="rpt-fr-tx-list">';
+            data.transactions.forEach(function(t) {
+                var cls = t.type === 'credit' ? 'credit' : 'debit';
+                var sign = t.type === 'credit' ? '+' : '-';
+                html += '<div class="rpt-fr-tx-item"><div><span class="rpt-fr-tx-desc">' + (t.type || '') + '</span><br><span class="rpt-fr-tx-date">' + (t.date || '') + '</span></div><span class="rpt-fr-tx-amount ' + cls + '">' + sign + 'R' + Math.abs(t.amount || 0).toFixed(2) + '</span></div>';
+            });
+            html += '</div></div>';
+        }
+        reportBody.innerHTML = html;
+    }
+
+    // ── Bank Statement Upload ──
+    var fileInput = document.getElementById('rpt-file-input');
+    var chooseBtn = document.getElementById('rpt-choose-file-btn');
+    var uploadZone = document.getElementById('rpt-upload-zone');
+    var seeReportBtn = document.getElementById('rpt-see-full-report-btn');
+    var modal = document.getElementById('rpt-fullreport-modal');
+    var closeBtn = document.getElementById('rpt-fullreport-close');
+    var reportBody = document.getElementById('rpt-fullreport-body');
+
+    if (chooseBtn && fileInput) {
+        chooseBtn.addEventListener('click', function() { fileInput.click(); });
+    }
+
+    if (fileInput) {
+        fileInput.addEventListener('change', function() {
+            if (fileInput.files.length > 0) _uploadFile(fileInput.files[0]);
+        });
+    }
+
+    // Drag and drop
+    if (uploadZone) {
+        uploadZone.addEventListener('dragover', function(e) { e.preventDefault(); uploadZone.style.borderColor = 'var(--orange)'; });
+        uploadZone.addEventListener('dragleave', function() { uploadZone.style.borderColor = ''; });
+        uploadZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadZone.style.borderColor = '';
+            if (e.dataTransfer.files.length > 0) _uploadFile(e.dataTransfer.files[0]);
+        });
+    }
+
+    async function _uploadFile(file) {
+        var ext = file.name.split('.').pop().toLowerCase();
+        if (ext !== 'pdf' && ext !== 'csv') {
+            if (typeof UIUtils !== 'undefined') UIUtils.toast('Only PDF and CSV files are accepted.', 'error');
+            else alert('Only PDF and CSV files are accepted.');
+            return;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+            if (typeof UIUtils !== 'undefined') UIUtils.toast('File too large. Max 10MB.', 'error');
+            else alert('File too large. Max 10MB.');
+            return;
+        }
+        // Show uploading state
+        if (uploadZone) uploadZone.innerHTML = '<p style="color:var(--orange)">Uploading and analysing...</p>';
+
+        var result = await API.BankStatements.upload(file);
+        if (result.success) {
+            var data = result.data.data || result.data;
+            if (typeof UIUtils !== 'undefined') UIUtils.toast('Statement uploaded! +100 Scribe Points earned.', 'success');
+            if (seeReportBtn) seeReportBtn.style.display = 'block';
+            // Restore upload zone
+            if (uploadZone) uploadZone.innerHTML = '<p style="color:var(--green)">&#10003; Upload complete: ' + file.name + '</p>';
+            // Store report data for modal
+            window._lastStatementReport = data;
+        } else {
+            var msg = result.error || 'Upload failed.';
+            if (typeof UIUtils !== 'undefined') UIUtils.toast(msg, 'error');
+            else alert(msg);
+            if (uploadZone) uploadZone.innerHTML = '<p style="color:var(--danger)">' + msg + '</p><button class="rpt-choose-file-btn" onclick="document.getElementById(\'rpt-file-input\').click()">Try Again</button>';
+        }
+    }
+
+    // See Full Report button
+    if (seeReportBtn) {
+        seeReportBtn.addEventListener('click', async function() {
+            var data = window._lastStatementReport;
+            if (!data) {
+                // Try loading from API
+                var result = await API.BankStatements.getReport();
+                if (result.success && result.data) {
+                    data = result.data.data || result.data;
+                }
+            }
+            if (!data) { alert('No report available. Please upload a statement first.'); return; }
+            _renderReportModal(data);
+            modal.hidden = false;
+        });
+    }
+
+    // Close modal
+    if (closeBtn) closeBtn.addEventListener('click', function() { modal.hidden = true; });
+    if (modal) modal.addEventListener('click', function(e) { if (e.target === modal) modal.hidden = true; });
+
+    // Check if report already exists on load
+    (async function() {
+        try {
+            var result = await API.BankStatements.getReport();
+            if (result.success && result.data) {
+                var d = result.data.data || result.data;
+                if (d && d.statementID) {
+                    window._lastStatementReport = d;
+                    if (seeReportBtn) seeReportBtn.style.display = 'block';
+                }
+            }
+        } catch(e) {}
+    })();
+
+    function _renderReportModal(data) {
+        var statusLabel = data.financialStatus === 'safe' ? 'Financially Responsible' : data.financialStatus === 'warning' ? 'Caution Advised' : 'Overspending';
+        var statusClass = data.financialStatus || 'safe';
+        var html = '';
+        html += '<div class="rpt-fr-status ' + statusClass + '">' + statusLabel + '</div>';
+        html += '<div class="rpt-fr-stats">';
+        html += '<div class="rpt-fr-stat"><span class="rpt-fr-stat-val">R' + (data.totalIncome || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + '</span><span class="rpt-fr-stat-label">Total Income</span></div>';
+        html += '<div class="rpt-fr-stat"><span class="rpt-fr-stat-val">R' + (data.totalExpenses || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + '</span><span class="rpt-fr-stat-label">Total Expenses</span></div>';
+        html += '<div class="rpt-fr-stat"><span class="rpt-fr-stat-val" style="color:' + (data.netCashFlow >= 0 ? 'var(--green)' : 'var(--danger)') + '">R' + (data.netCashFlow || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + '</span><span class="rpt-fr-stat-label">Net Cash Flow</span></div>';
+        html += '</div>';
+        // Period
+        if (data.periodStart || data.periodEnd) {
+            html += '<p style="font-size:12px;color:var(--text-light);margin-bottom:16px;">Statement period: ' + (data.periodStart || '?') + ' to ' + (data.periodEnd || '?') + ' &middot; ' + (data.transactionCount || 0) + ' transactions</p>';
+        }
+        // FlexScribe impact
+        html += '<div class="rpt-fr-impact"><p><strong>FlexScribe Subscription Impact:</strong> Your active subscriptions managed through FlexScribe cost <strong>R' + (data.subscriptionImpact || 0).toFixed(2) + '/month</strong>. This is factored into your expenses above.</p></div>';
+        // Monthly breakdown
+        var monthly = data.monthlyBreakdown || {};
+        var months = Object.keys(monthly);
+        if (months.length > 0) {
+            html += '<div class="rpt-fr-section"><h3>Month-by-Month Cash Flow</h3>';
+            html += '<table class="rpt-fr-monthly-table"><thead><tr><th>Month</th><th>Income</th><th>Expenses</th><th>Net</th></tr></thead><tbody>';
+            months.sort().forEach(function(m) {
+                var row = monthly[m];
+                var net = (row.income || 0) - (row.expenses || 0);
+                html += '<tr><td>' + m + '</td><td>R' + (row.income || 0).toFixed(2) + '</td><td>R' + (row.expenses || 0).toFixed(2) + '</td><td style="color:' + (net >= 0 ? 'var(--green)' : 'var(--danger)') + '">R' + net.toFixed(2) + '</td></tr>';
+            });
+            html += '</tbody></table></div>';
+        }
+        // Transactions
+        var txs = data.transactions || [];
+        if (txs.length > 0) {
+            html += '<div class="rpt-fr-section"><h3>Transactions (' + txs.length + ')</h3><div class="rpt-fr-tx-list">';
+            txs.slice(0, 50).forEach(function(t) {
+                var cls = t.amount >= 0 ? 'credit' : 'debit';
+                var sign = t.amount >= 0 ? '+' : '';
+                html += '<div class="rpt-fr-tx-item"><div><span class="rpt-fr-tx-desc">' + (t.description || '') + '</span><br><span class="rpt-fr-tx-date">' + (t.date || '') + '</span></div><span class="rpt-fr-tx-amount ' + cls + '">' + sign + 'R' + Math.abs(t.amount).toFixed(2) + '</span></div>';
+            });
+            if (txs.length > 50) html += '<p style="text-align:center;color:var(--text-light);padding:8px;">...and ' + (txs.length - 50) + ' more transactions</p>';
+            html += '</div></div>';
+        }
+        reportBody.innerHTML = html;
+    }
+})();
+</script>
