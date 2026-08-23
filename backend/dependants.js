@@ -200,7 +200,6 @@ const DependantsStore = (() => {
 
         return { id: 'pending', name: name.trim(), status: 'invited' };
     }
-    }
 
     /* ----------------------------------------------------------
        WRITE — Edit Dependant

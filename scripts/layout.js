@@ -264,24 +264,27 @@ function getUserTier() {
 }
 
 function applyAccessControl() {
-    const tier = getUserTier();
-    const allowed = tierAccess[tier] || tierAccess['individual'];
+    // DEV MODE: Tier restrictions commented out for development — all pages accessible
+    // const tier = getUserTier();
+    // const allowed = tierAccess[tier] || tierAccess['individual'];
 
-    // Show/hide nav items based on tier
-    document.querySelectorAll('.nav-item[data-page]').forEach(item => {
-        const page = item.getAttribute('data-page');
-        if (page === 'signout') return; // always visible
-        const li = item.closest('li');
-        if (li) {
-            li.style.display = allowed.includes(page) ? '' : 'none';
-        }
-    });
+    // // Show/hide nav items based on tier
+    // document.querySelectorAll('.nav-item[data-page]').forEach(item => {
+    //     const page = item.getAttribute('data-page');
+    //     if (page === 'signout') return; // always visible
+    //     const li = item.closest('li');
+    //     if (li) {
+    //         li.style.display = allowed.includes(page) ? '' : 'none';
+    //     }
+    // });
 }
 
 function canAccessPage(pageName) {
-    const tier = getUserTier();
-    const allowed = tierAccess[tier] || tierAccess['individual'];
-    return allowed.includes(pageName);
+    // DEV MODE: All pages accessible during development
+    // const tier = getUserTier();
+    // const allowed = tierAccess[tier] || tierAccess['individual'];
+    // return allowed.includes(pageName);
+    return true;
 }
 
 // Apply on load
