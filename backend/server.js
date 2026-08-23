@@ -851,6 +851,327 @@ app.get("/support/faq", (req, res) => {
 });
 
 /* ===========================================================
+   COMPILE FINANCIAL REPORT
+   Uses: FinancialReport, SpendingReport, VirtualWallet,
+         WalletTransaction, Subscription, FinancialGoal, ScribeScore
+=========================================================== */
+app.post("/reports/compile", authenticate, async (req, res) => {
+    try {
+        var { period, reportType } = req.body;
+        var p = await getPool();
+        var endDate = new Date();
+        var startDate = new Date();
+        switch (period) {
+            case 'Last Month': startDate.setMonth(startDate.getMonth() - 1); startDate.setDate(1); endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0); break;
+            case 'Last 3 Months': startDate.setMonth(startDate.getMonth() - 3); break;
+            case 'Last 6 Months': startDate.setMonth(startDate.getMonth() - 6); break;
+            case 'This Year': startDate = new Date(endDate.getFullYear(), 0, 1); break;
+            default: startDate.setDate(1);
+        }
+        var startStr = startDate.toISOString().slice(0, 10);
+        var endStr = endDate.toISOString().slice(0, 10);
+        var walletResult = await p.request().input("subID", sql.Int, req.user.subscriberID).query("SELECT balance FROM VirtualWallet WHERE subscriberID = @subID");
+        var balance = walletResult.recordset.length > 0 ? walletResult.recordset[0].balance : 0;
+        var subResult = await p.request().input("subID", sql.Int, req.user.subscriberID).query("SELECT ISNULL(SUM(billingAmount), 0) AS total FROM Subscription WHERE subscriberID = @subID AND subStatus = 'active'");
+        var totalSubCost = subResult.recordset[0].total || 0;
+        var walletID = await getUserWalletID(p, req.user.subscriberID);
+        var totalWithdrawals = 0; var totalIncome = 0; var transactions = [];
+        if (walletID) {
+            var txResult = await p.request().input("wid", sql.Int, walletID).input("start", sql.Date, startStr).input("end", sql.Date, endStr)
+                .query("SELECT transactionType, transactionAmount, transactionDate FROM WalletTransaction WHERE walletIDNum = @wid AND transactionDate BETWEEN @start AND @end ORDER BY transactionDate DESC");
+            txResult.recordset.forEach(function(t) {
+                if (t.transactionType === 'credit') totalIncome += (t.transactionAmount || 0);
+                else totalWithdrawals += (t.transactionAmount || 0);
+                transactions.push({ type: t.transactionType, amount: t.transactionAmount, date: t.transactionDate ? new Date(t.transactionDate).toISOString().slice(0, 10) : '' });
+            });
+        }
+        var savings = totalIncome - totalWithdrawals;
+        var goalsResult = await p.request().input("subID", sql.Int, req.user.subscriberID).query("SELECT goalName, targetAmount, currentProgress FROM FinancialGoal WHERE subscriberID = @subID");
+        var goals = goalsResult.recordset.map(function(g) { return { name: g.goalName, target: g.targetAmount, saved: g.currentProgress, pct: g.targetAmount > 0 ? Math.round((g.currentProgress / g.targetAmount) * 100) : 0 }; });
+        var catResult = await p.request().input("subID", sql.Int, req.user.subscriberID).query("SELECT sc.categoryName, SUM(s.billingAmount) AS total FROM Subscription s JOIN SubscriptionCategory sc ON s.categoryID = sc.categoryID WHERE s.subscriberID = @subID AND s.subStatus = 'active' GROUP BY sc.categoryName ORDER BY total DESC");
+        var categories = catResult.recordset.map(function(c) { return { category: c.categoryName, amount: c.total }; });
+        var scoreResult = await p.request().input("subID", sql.Int, req.user.subscriberID).query("SELECT scoreID, scoreValue FROM ScribeScore WHERE subscriberID = @subID ORDER BY generateDate DESC");
+        var scribeScore = scoreResult.recordset.length > 0 ? scoreResult.recordset[0].scoreValue : 0;
+        var scoreID = scoreResult.recordset.length > 0 ? scoreResult.recordset[0].scoreID : null;
+        var riskLevel = 'low';
+        if (totalIncome > 0) { var sr = savings / totalIncome; if (sr < 0) riskLevel = 'high'; else if (sr < 0.1) riskLevel = 'medium'; }
+        else if (totalWithdrawals > 0) riskLevel = 'high';
+        var mmCheck = await p.request().input("subID", sql.Int, req.user.subscriberID).query("SELECT mainMemberID FROM MainMember WHERE mainMemberID = @subID");
+        if (mmCheck.recordset.length === 0) await p.request().input("subID", sql.Int, req.user.subscriberID).query("INSERT INTO MainMember (mainMemberID) VALUES (@subID)");
+        var insertResult = await p.request()
+            .input("mmID", sql.Int, req.user.subscriberID).input("scoreID", sql.Int, scoreID)
+            .input("startDate", sql.Date, startStr).input("endDate", sql.Date, endStr)
+            .input("subCost", sql.Decimal(18, 2), totalSubCost).input("withdrawals", sql.Decimal(18, 2), totalWithdrawals)
+            .input("balance", sql.Decimal(18, 2), balance).input("risk", sql.VarChar(50), riskLevel)
+            .input("income", sql.Decimal(18, 2), totalIncome).input("expenses", sql.Decimal(18, 2), totalWithdrawals)
+            .input("savings", sql.Decimal(18, 2), savings).input("riskFlag", sql.VarChar(50), riskLevel)
+            .query("INSERT INTO FinancialReport (mainMemberID, scoreID, startDate, endDate, totalSubscriptionCost, totalWithdrawals, remainingBalance, riskLevel, income, expenses, savings, riskFlagStatus) OUTPUT INSERTED.reportID VALUES (@mmID, @scoreID, @startDate, @endDate, @subCost, @withdrawals, @balance, @risk, @income, @expenses, @savings, @riskFlag)");
+        await p.request()
+            .input("subID", sql.Int, req.user.subscriberID).input("genDate", sql.Date, new Date().toISOString().slice(0, 10))
+            .input("startDate", sql.Date, startStr).input("endDate", sql.Date, endStr)
+            .input("subCost", sql.Decimal(18, 2), totalSubCost).input("totalSpend", sql.Decimal(18, 2), totalWithdrawals)
+            .input("catJson", sql.VarChar(sql.MAX), JSON.stringify(categories))
+            .input("subBreak", sql.VarChar(sql.MAX), JSON.stringify(categories))
+            .input("txList", sql.VarChar(sql.MAX), JSON.stringify(transactions.slice(0, 100)))
+            .query("INSERT INTO SpendingReport (subscriberID, reportDateGenerate, startDate, endDate, totalSubscriptionCost, totalSpending, spendingPerCategory, subscriptionBreakdown, transactionList) VALUES (@subID, @genDate, @startDate, @endDate, @subCost, @totalSpend, @catJson, @subBreak, @txList)");
+        res.status(201).json({ success: true, data: { reportID: insertResult.recordset[0].reportID, period: { start: startStr, end: endStr }, reportType: reportType || 'Detailed', walletBalance: balance, totalSubscriptionCost: totalSubCost, totalWithdrawals: totalWithdrawals, totalIncome: totalIncome, savings: savings, riskLevel: riskLevel, scribeScore: scribeScore, goals: goals, categories: categories, transactions: transactions.slice(0, 50), transactionCount: transactions.length } });
+    } catch (error) {
+        console.error("Compile report error:", error);
+        res.status(500).json({ success: false, message: "Could not compile report" });
+    }
+});
+
+app.get("/reports", authenticate, async (req, res) => {
+    try {
+        var p = await getPool();
+        var result = await p.request().input("subID", sql.Int, req.user.subscriberID)
+            .query("SELECT reportID, startDate, endDate, totalSubscriptionCost, totalWithdrawals, remainingBalance, riskLevel, income, expenses, savings FROM FinancialReport WHERE mainMemberID = @subID ORDER BY endDate DESC");
+        var data = result.recordset.map(function(r) { return { id: r.reportID, startDate: r.startDate ? new Date(r.startDate).toISOString().slice(0, 10) : '', endDate: r.endDate ? new Date(r.endDate).toISOString().slice(0, 10) : '', totalSubscriptionCost: r.totalSubscriptionCost || 0, totalWithdrawals: r.totalWithdrawals || 0, balance: r.remainingBalance || 0, riskLevel: r.riskLevel || 'low', income: r.income || 0, expenses: r.expenses || 0, savings: r.savings || 0 }; });
+        res.json({ success: true, data: data });
+    } catch (error) {
+        console.error("Get reports error:", error);
+        res.status(500).json({ success: false, message: "Could not retrieve reports" });
+    }
+});
+
+/* ===========================================================
+   BANK STATEMENTS
+   Schema: BankStatement(statementID PK, subscriberID FK, uploadDate, fileReference,
+           statementPeriodStart, statementPeriodEnd, totalIncome, totalExpenses,
+           netCashFlow, transactionCount, parsedData, financialStatus, monthlyBreakdown)
+   Rules: 1 upload per year per user. +100 ScribeScore on upload.
+=========================================================== */
+const multer = require("multer");
+const pdfParse = require("pdf-parse");
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+
+/** Parse CSV text into transaction objects */
+function _parseCSV(text) {
+    var lines = text.split(/\r?\n/).filter(function(l) { return l.trim().length > 0; });
+    if (lines.length < 2) return [];
+    // Detect header
+    var header = lines[0].toLowerCase();
+    var hasHeader = header.includes('date') || header.includes('description') || header.includes('amount');
+    var startIdx = hasHeader ? 1 : 0;
+    var transactions = [];
+    for (var i = startIdx; i < lines.length; i++) {
+        var parts = lines[i].split(',');
+        if (parts.length < 3) continue;
+        var date = parts[0].trim().replace(/"/g, '');
+        var description = parts[1].trim().replace(/"/g, '');
+        var amountStr = parts[2].trim().replace(/"/g, '').replace(/\s/g, '');
+        var amount = parseFloat(amountStr) || 0;
+        if (amount === 0 && parts.length >= 4) {
+            amountStr = parts[3].trim().replace(/"/g, '').replace(/\s/g, '');
+            amount = parseFloat(amountStr) || 0;
+        }
+        if (date && description) {
+            transactions.push({ date: date, description: description, amount: amount });
+        }
+    }
+    return transactions;
+}
+
+/** Parse PDF buffer into transaction objects */
+async function _parsePDF(buffer) {
+    var data = await pdfParse(buffer);
+    var text = data.text || '';
+    var lines = text.split(/\r?\n/).filter(function(l) { return l.trim().length > 0; });
+    var transactions = [];
+    // Look for lines with date patterns and amounts
+    var datePattern = /(\d{4}[\/-]\d{2}[\/-]\d{2}|\d{2}[\/-]\d{2}[\/-]\d{4}|\d{2}\s+\w+\s+\d{4})/;
+    var amountPattern = /(-?\d[\d\s]*[.,]\d{2})/;
+    for (var i = 0; i < lines.length; i++) {
+        var line = lines[i].trim();
+        var dateMatch = line.match(datePattern);
+        var amountMatch = line.match(amountPattern);
+        if (dateMatch && amountMatch) {
+            var date = dateMatch[1];
+            var amtStr = amountMatch[1].replace(/\s/g, '').replace(',', '.');
+            var amount = parseFloat(amtStr) || 0;
+            var desc = line.replace(dateMatch[0], '').replace(amountMatch[0], '').trim();
+            desc = desc.replace(/^[\s,\-]+|[\s,\-]+$/g, '') || 'Transaction';
+            transactions.push({ date: date, description: desc, amount: amount });
+        }
+    }
+    return transactions;
+}
+
+/** Analyze transactions and build report */
+function _analyzeTransactions(transactions, subscriptionCost) {
+    var totalIncome = 0;
+    var totalExpenses = 0;
+    var monthlyMap = {};
+    transactions.forEach(function(t) {
+        if (t.amount > 0) totalIncome += t.amount;
+        else totalExpenses += Math.abs(t.amount);
+        // Group by month
+        var monthKey = (t.date || '').substring(0, 7) || 'unknown';
+        if (!monthlyMap[monthKey]) monthlyMap[monthKey] = { income: 0, expenses: 0 };
+        if (t.amount > 0) monthlyMap[monthKey].income += t.amount;
+        else monthlyMap[monthKey].expenses += Math.abs(t.amount);
+    });
+    // Factor in FlexScribe subscription cost
+    var months = Object.keys(monthlyMap).length || 1;
+    totalExpenses += subscriptionCost * months;
+    Object.keys(monthlyMap).forEach(function(k) {
+        monthlyMap[k].expenses += subscriptionCost;
+        monthlyMap[k].flexscribeCost = subscriptionCost;
+    });
+    var netCashFlow = totalIncome - totalExpenses;
+    // Determine financial status
+    var financialStatus = 'safe';
+    if (totalIncome > 0) {
+        var savingsRate = netCashFlow / totalIncome;
+        if (savingsRate < 0) financialStatus = 'danger';
+        else if (savingsRate < 0.2) financialStatus = 'warning';
+    } else if (totalExpenses > 0) {
+        financialStatus = 'danger';
+    }
+    // Period
+    var dates = transactions.map(function(t) { return t.date; }).filter(Boolean).sort();
+    var periodStart = dates[0] || null;
+    var periodEnd = dates[dates.length - 1] || null;
+    return {
+        totalIncome: Math.round(totalIncome * 100) / 100,
+        totalExpenses: Math.round(totalExpenses * 100) / 100,
+        netCashFlow: Math.round(netCashFlow * 100) / 100,
+        transactionCount: transactions.length,
+        financialStatus: financialStatus,
+        periodStart: periodStart,
+        periodEnd: periodEnd,
+        monthlyBreakdown: monthlyMap,
+        transactions: transactions
+    };
+}
+
+// POST /bank-statements/upload
+app.post("/bank-statements/upload", authenticate, upload.single("statement"), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ success: false, message: "No file uploaded" });
+        var ext = (req.file.originalname || '').split('.').pop().toLowerCase();
+        if (ext !== 'csv' && ext !== 'pdf') {
+            return res.status(400).json({ success: false, message: "Only PDF and CSV files are accepted" });
+        }
+        var p = await getPool();
+        // Check once-per-year rule
+        var recent = await p.request().input("subID", sql.Int, req.user.subscriberID)
+            .query("SELECT statementID, uploadDate FROM BankStatement WHERE subscriberID = @subID AND uploadDate >= DATEADD(year, -1, GETDATE()) ORDER BY uploadDate DESC");
+        if (recent.recordset.length > 0) {
+            var lastDate = new Date(recent.recordset[0].uploadDate).toISOString().slice(0, 10);
+            return res.status(409).json({ success: false, message: "You already uploaded a statement on " + lastDate + ". You can upload again after one year." });
+        }
+        // Parse file
+        var transactions = [];
+        if (ext === 'csv') {
+            var csvText = req.file.buffer.toString('utf-8');
+            transactions = _parseCSV(csvText);
+        } else {
+            transactions = await _parsePDF(req.file.buffer);
+        }
+        if (transactions.length === 0) {
+            return res.status(422).json({ success: false, message: "Could not extract any transactions from the file. Please check the format." });
+        }
+        // Get user's subscription cost for financial analysis
+        var subCostResult = await p.request().input("subID", sql.Int, req.user.subscriberID)
+            .query("SELECT ISNULL(SUM(billingAmount), 0) AS totalSubs FROM Subscription WHERE subscriberID = @subID AND subStatus = 'active'");
+        var subscriptionCost = subCostResult.recordset[0].totalSubs || 0;
+        // Analyze
+        var report = _analyzeTransactions(transactions, subscriptionCost);
+        // Store in BankStatement
+        await p.request()
+            .input("subID", sql.Int, req.user.subscriberID)
+            .input("uploadDate", sql.Date, new Date().toISOString().slice(0, 10))
+            .input("fileRef", sql.VarChar(500), req.file.originalname)
+            .input("periodStart", sql.Date, report.periodStart)
+            .input("periodEnd", sql.Date, report.periodEnd)
+            .input("totalIncome", sql.Decimal(18, 2), report.totalIncome)
+            .input("totalExpenses", sql.Decimal(18, 2), report.totalExpenses)
+            .input("netCashFlow", sql.Decimal(18, 2), report.netCashFlow)
+            .input("txCount", sql.Int, report.transactionCount)
+            .input("parsedData", sql.NVarChar(sql.MAX), JSON.stringify(report.transactions))
+            .input("status", sql.VarChar(50), report.financialStatus)
+            .input("monthly", sql.NVarChar(sql.MAX), JSON.stringify(report.monthlyBreakdown))
+            .query(`INSERT INTO BankStatement (subscriberID, uploadDate, fileReference, statementPeriodStart, statementPeriodEnd, totalIncome, totalExpenses, netCashFlow, transactionCount, parsedData, financialStatus, monthlyBreakdown)
+                    VALUES (@subID, @uploadDate, @fileRef, @periodStart, @periodEnd, @totalIncome, @totalExpenses, @netCashFlow, @txCount, @parsedData, @status, @monthly)`);
+        // Increment ScribeScore by 100
+        var existingScore = await p.request().input("subID", sql.Int, req.user.subscriberID)
+            .query("SELECT scoreID, scoreValue FROM ScribeScore WHERE subscriberID = @subID ORDER BY generateDate DESC");
+        if (existingScore.recordset.length > 0) {
+            var currentScore = existingScore.recordset[0].scoreValue || 0;
+            await p.request().input("id", sql.Int, existingScore.recordset[0].scoreID)
+                .input("newScore", sql.Decimal(10, 4), currentScore + 100)
+                .input("genDate", sql.Date, new Date().toISOString().slice(0, 10))
+                .query("UPDATE ScribeScore SET scoreValue = @newScore, generateDate = @genDate WHERE scoreID = @id");
+        } else {
+            await p.request().input("subID", sql.Int, req.user.subscriberID)
+                .input("score", sql.Decimal(10, 4), 100)
+                .input("genDate", sql.Date, new Date().toISOString().slice(0, 10))
+                .query("INSERT INTO ScribeScore (subscriberID, scoreValue, generateDate) VALUES (@subID, @score, @genDate)");
+        }
+        res.status(201).json({
+            success: true,
+            data: {
+                totalIncome: report.totalIncome,
+                totalExpenses: report.totalExpenses,
+                netCashFlow: report.netCashFlow,
+                transactionCount: report.transactionCount,
+                financialStatus: report.financialStatus,
+                periodStart: report.periodStart,
+                periodEnd: report.periodEnd,
+                monthlyBreakdown: report.monthlyBreakdown,
+                subscriptionImpact: subscriptionCost,
+                scribeScoreBonus: 100
+            }
+        });
+    } catch (error) {
+        console.error("Bank statement upload error:", error);
+        res.status(500).json({ success: false, message: "Could not process bank statement" });
+    }
+});
+
+// GET /bank-statements/report
+app.get("/bank-statements/report", authenticate, async (req, res) => {
+    try {
+        var p = await getPool();
+        var result = await p.request().input("subID", sql.Int, req.user.subscriberID)
+            .query("SELECT statementID, uploadDate, fileReference, statementPeriodStart, statementPeriodEnd, totalIncome, totalExpenses, netCashFlow, transactionCount, parsedData, financialStatus, monthlyBreakdown FROM BankStatement WHERE subscriberID = @subID ORDER BY uploadDate DESC");
+        if (result.recordset.length === 0) {
+            return res.json({ success: true, data: null });
+        }
+        var row = result.recordset[0];
+        var parsedData = [];
+        var monthlyBreakdown = {};
+        try { parsedData = JSON.parse(row.parsedData || '[]'); } catch (e) {}
+        try { monthlyBreakdown = JSON.parse(row.monthlyBreakdown || '{}'); } catch (e) {}
+        // Get current subscription cost for context
+        var subCostResult = await p.request().input("subID", sql.Int, req.user.subscriberID)
+            .query("SELECT ISNULL(SUM(billingAmount), 0) AS totalSubs FROM Subscription WHERE subscriberID = @subID AND subStatus = 'active'");
+        res.json({
+            success: true,
+            data: {
+                statementID: row.statementID,
+                uploadDate: row.uploadDate ? new Date(row.uploadDate).toISOString().slice(0, 10) : null,
+                fileReference: row.fileReference,
+                periodStart: row.statementPeriodStart ? new Date(row.statementPeriodStart).toISOString().slice(0, 10) : null,
+                periodEnd: row.statementPeriodEnd ? new Date(row.statementPeriodEnd).toISOString().slice(0, 10) : null,
+                totalIncome: row.totalIncome || 0,
+                totalExpenses: row.totalExpenses || 0,
+                netCashFlow: row.netCashFlow || 0,
+                transactionCount: row.transactionCount || 0,
+                financialStatus: row.financialStatus || 'unknown',
+                transactions: parsedData,
+                monthlyBreakdown: monthlyBreakdown,
+                subscriptionImpact: subCostResult.recordset[0].totalSubs || 0
+            }
+        });
+    } catch (error) {
+        console.error("Bank statement report error:", error);
+        res.status(500).json({ success: false, message: "Could not retrieve report" });
+    }
+});
+
+/* ===========================================================
    START SERVER
 =========================================================== */
 const PORT = process.env.PORT || 5000;

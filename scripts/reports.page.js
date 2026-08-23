@@ -75,9 +75,7 @@ window._pageContent['reports'] = `
                             </div>
                         </div>
                         <button class="rpt-generate-btn" id="rpt-generate-btn">
-                            <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.9-6.2 3.9 1.6-7L2 9.2l7.1-.6L12 2z" stroke="currentColor" stroke-width="1.5"/></svg>
                             Generate Report
-                            <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.9-6.2 3.9 1.6-7L2 9.2l7.1-.6L12 2z" stroke="currentColor" stroke-width="1.5"/></svg>
                         </button>
                     </div>
 
@@ -131,6 +129,7 @@ window._pageContent['reports'] = `
                             <div class="rpt-upload-item"><span>FNB_Statement_May.pdf</span><span class="rpt-upload-date">31 May 2025</span><span class="rpt-upload-status complete">Complete &#10003;</span></div>
                         </div>
                         <a href="#" class="rpt-link" onclick="return false">View all uploads &rarr;</a>
+                        <button id="rpt-see-full-report-btn" style="display:none;margin-top:12px;width:100%;padding:12px;background:var(--orange);color:#fff;border:none;border-radius:10px;font-weight:600;font-size:14px;cursor:pointer;">See Full Report</button>
                     </div>
 
                     <!-- AI Financial Insights -->
@@ -366,4 +365,15 @@ window._pageContent['reports'] = `
                         <a href="#" class="rpt-link" onclick="return false">View all recommendations &rarr;</a>
                     </div>
                 </div><!-- /rpt-bottom-grid -->
+
+                <!-- Full Report Modal -->
+                <div class="rpt-fullreport-modal" id="rpt-fullreport-modal" hidden style="position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;padding:20px;display:none;">
+                    <div style="background:var(--card);border:1px solid var(--border);border-radius:18px;width:100%;max-width:750px;max-height:85vh;overflow-y:auto;padding:28px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                            <h2 style="font-size:20px;color:var(--text);">Financial Report</h2>
+                            <button id="rpt-fullreport-close" style="background:none;border:none;color:var(--text-light);font-size:24px;cursor:pointer;padding:4px 10px;border-radius:8px;">&times;</button>
+                        </div>
+                        <div id="rpt-fullreport-body"></div>
+                    </div>
+                </div>
 `;

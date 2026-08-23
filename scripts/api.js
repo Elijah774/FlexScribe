@@ -13,7 +13,7 @@ const API = (() => {
        CONFIG
     ---------------------------------------------------------- */
 
-    const USE_MOCK = false;
+    const USE_MOCK = true;  // TEMPORARY: set to false when backend is running
     const BASE_URL = 'http://localhost:5000';
 
 
@@ -941,6 +941,52 @@ const API = (() => {
         }
     };
 
+    /* ==========================================================
+       REPORTS (compile financial report)
+    ========================================================== */
+
+    const Reports = {
+        async compile(options) {
+            return _fetch('POST', '/reports/compile', options);
+        },
+        async getAll() {
+            return _fetch('GET', '/reports');
+        }
+    };
+
+    /* ==========================================================
+       BANK STATEMENTS
+    ========================================================== */
+
+    const BankStatements = {
+
+        async upload(file) {
+            if (typeof API === 'undefined') return _err('API not available');
+            var formData = new FormData();
+            formData.append('statement', file);
+            try {
+                var opts = {
+                    method: 'POST',
+                    headers: {},
+                    body: formData
+                };
+                var tok = _token();
+                if (tok) opts.headers['Authorization'] = 'Bearer ' + tok;
+                var res = await fetch(BASE_URL + '/bank-statements/upload', opts);
+                var json = await res.json();
+                if (!res.ok) return _err(json.message || 'Upload failed', res.status);
+                return _ok(json);
+            } catch (e) {
+                return _err(e.message || 'Network error');
+            }
+        },
+
+        async getReport() {
+            if (USE_MOCK) return _mock(null);
+            return _fetch('GET', '/bank-statements/report');
+        }
+    };
+
 
     /* ==========================================================
        PUBLIC API
@@ -956,6 +1002,8 @@ const API = (() => {
         Notifications,
         Analytics,
         Support,
+        BankStatements,
+        Reports,
 
         get isMock() {
             return USE_MOCK;

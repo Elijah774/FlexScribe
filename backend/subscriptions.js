@@ -3,15 +3,13 @@
    backend/subscriptions.js
 
    Responsibilities:
-   • In-memory data store seeded from localStorage
-   • Full CRUD: add, edit, toggle, cancel/delete
-   • Derived stat recalculation (active count, monthly, annual,
-     potential savings, upcoming payments)
+   • Loads subscription data from SQL Server through API
+   • Full CRUD: add, edit, toggle, delete
+   • Derived stat recalculation
    • Donut chart data computation by category
    • CSV export
-   • All mutations persist to localStorage automatically
-   • Exposes a single global `SubscriptionStore` object consumed
-     by the UI layer (scripts/subscriptions-ui.js)
+   • All database mutations refresh data from API
+   • Exposes a single global SubscriptionStore object
 ============================================================= */
 
 'use strict';
@@ -21,16 +19,29 @@ const SubscriptionStore = (() => {
     /* ----------------------------------------------------------
        CONSTANTS
     ---------------------------------------------------------- */
+
     const STORAGE_KEY = 'flexscribe_subscriptions';
 
     const CATEGORIES = [
-        'Entertainment', 'Music', 'Shopping', 'Productivity',
-        'Education', 'Utilities', 'Fitness', 'News', 'Gaming', 'Other'
+        'Entertainment',
+        'Music',
+        'Shopping',
+        'Productivity',
+        'Education',
+        'Utilities',
+        'Fitness',
+        'News',
+        'Gaming',
+        'Other'
     ];
 
-    const BILLING_CYCLES = ['monthly', 'yearly', 'weekly', 'quarterly'];
+    const BILLING_CYCLES = [
+        'monthly',
+        'yearly',
+        'weekly',
+        'quarterly'
+    ];
 
-    // Category → CSS variable colour for donut slices
     const CATEGORY_COLORS = {
         Entertainment: 'var(--orange)',
         Music:         'var(--green)',
@@ -44,9 +55,11 @@ const SubscriptionStore = (() => {
         Other:         'var(--text-light)',
     };
 
+
     /* ----------------------------------------------------------
-       PROVIDERS LIBRARY  (recommendation engine source data)
+       PROVIDERS LIBRARY
     ---------------------------------------------------------- */
+
     const PROVIDERS = [
         {
             id: 'prov_netflix',
@@ -57,7 +70,11 @@ const SubscriptionStore = (() => {
             rating: 4.5,
             logoClass: 'netflix',
             logoText: 'N',
-            benefits: ['4K Ultra HD streaming', 'Watch on 4 devices', 'Downloads for offline'],
+            benefits: [
+                '4K Ultra HD streaming',
+                'Watch on 4 devices',
+                'Downloads for offline'
+            ],
         },
         {
             id: 'prov_spotify',
@@ -68,7 +85,11 @@ const SubscriptionStore = (() => {
             rating: 4.6,
             logoClass: 'spotify',
             logoText: 'S',
-            benefits: ['Ad-free listening', 'Offline downloads', 'High quality audio'],
+            benefits: [
+                'Ad-free listening',
+                'Offline downloads',
+                'High quality audio'
+            ],
         },
         {
             id: 'prov_disney',
@@ -79,7 +100,11 @@ const SubscriptionStore = (() => {
             rating: 4.3,
             logoClass: 'disney',
             logoText: 'D+',
-            benefits: ['Exclusive originals', '4K streaming included', 'Download for offline'],
+            benefits: [
+                'Exclusive originals',
+                '4K streaming included',
+                'Download for offline'
+            ],
         },
         {
             id: 'prov_showmax',
@@ -90,7 +115,11 @@ const SubscriptionStore = (() => {
             rating: 4.0,
             logoClass: 'default',
             logoText: 'S',
-            benefits: ['Local SA content', 'Live sport streaming', 'Download to watch offline'],
+            benefits: [
+                'Local SA content',
+                'Live sport streaming',
+                'Download to watch offline'
+            ],
         },
         {
             id: 'prov_youtube',
@@ -101,7 +130,11 @@ const SubscriptionStore = (() => {
             rating: 4.4,
             logoClass: 'youtube',
             logoText: '▶',
-            benefits: ['No ads on any video', 'Background play', 'YouTube Music included'],
+            benefits: [
+                'No ads on any video',
+                'Background play',
+                'YouTube Music included'
+            ],
         },
         {
             id: 'prov_apple_music',
@@ -112,7 +145,11 @@ const SubscriptionStore = (() => {
             rating: 4.5,
             logoClass: 'apple',
             logoText: '♫',
-            benefits: ['Spatial Audio with Dolby', 'Lossless audio quality', '100M+ songs'],
+            benefits: [
+                'Spatial Audio with Dolby',
+                'Lossless audio quality',
+                '100M+ songs'
+            ],
         },
         {
             id: 'prov_prime',
@@ -123,7 +160,11 @@ const SubscriptionStore = (() => {
             rating: 4.4,
             logoClass: 'prime',
             logoText: 'P',
-            benefits: ['Free next-day delivery', 'Prime Video included', 'Exclusive deals'],
+            benefits: [
+                'Free next-day delivery',
+                'Prime Video included',
+                'Exclusive deals'
+            ],
         },
         {
             id: 'prov_microsoft365',
@@ -134,7 +175,11 @@ const SubscriptionStore = (() => {
             rating: 4.5,
             logoClass: 'microsoft',
             logoText: 'M',
-            benefits: ['All Office apps', '1TB OneDrive storage', 'Advanced security'],
+            benefits: [
+                'All Office apps',
+                '1TB OneDrive storage',
+                'Advanced security'
+            ],
         },
         {
             id: 'prov_adobe',
@@ -145,7 +190,11 @@ const SubscriptionStore = (() => {
             rating: 4.3,
             logoClass: 'default',
             logoText: 'A',
-            benefits: ['20+ creative apps', '100GB cloud storage', 'Adobe Fonts included'],
+            benefits: [
+                '20+ creative apps',
+                '100GB cloud storage',
+                'Adobe Fonts included'
+            ],
         },
         {
             id: 'prov_chatgpt',
@@ -156,7 +205,11 @@ const SubscriptionStore = (() => {
             rating: 4.7,
             logoClass: 'default',
             logoText: 'C',
-            benefits: ['GPT-4o access', 'DALL-E image generation', 'Priority access'],
+            benefits: [
+                'GPT-4o access',
+                'DALL-E image generation',
+                'Priority access'
+            ],
         },
         {
             id: 'prov_canva',
@@ -167,7 +220,11 @@ const SubscriptionStore = (() => {
             rating: 4.6,
             logoClass: 'default',
             logoText: 'C',
-            benefits: ['Premium templates', 'Brand kit', 'Magic resize'],
+            benefits: [
+                'Premium templates',
+                'Brand kit',
+                'Magic resize'
+            ],
         },
         {
             id: 'prov_github',
@@ -178,7 +235,11 @@ const SubscriptionStore = (() => {
             rating: 4.4,
             logoClass: 'default',
             logoText: 'G',
-            benefits: ['Advanced code review', '3000 CI minutes', 'Required reviewers'],
+            benefits: [
+                'Advanced code review',
+                '3000 CI minutes',
+                'Required reviewers'
+            ],
         },
         {
             id: 'prov_dropbox',
@@ -189,7 +250,11 @@ const SubscriptionStore = (() => {
             rating: 4.1,
             logoClass: 'default',
             logoText: 'D',
-            benefits: ['2TB cloud storage', 'Smart sync', 'File recovery'],
+            benefits: [
+                '2TB cloud storage',
+                'Smart sync',
+                'File recovery'
+            ],
         },
         {
             id: 'prov_nordvpn',
@@ -200,433 +265,835 @@ const SubscriptionStore = (() => {
             rating: 4.5,
             logoClass: 'default',
             logoText: 'N',
-            benefits: ['5500+ servers', 'Threat protection', '6 simultaneous devices'],
+            benefits: [
+                '5500+ servers',
+                'Threat protection',
+                '6 simultaneous devices'
+            ],
         },
     ];
 
-    /* ----------------------------------------------------------
-       SEED DATA  (used only when localStorage is empty)
-    ---------------------------------------------------------- */
-    const SEED = [
-        {
-            id: 'sub_001',
-            name: 'Netflix',
-            category: 'Entertainment',
-            amount: 199.00,
-            billingCycle: 'monthly',
-            nextPaymentDate: '2025-05-18',
-            active: true,
-            logoClass: 'netflix',
-            logoText: 'N',
-            notes: 'Premium 4K plan',
-            createdAt: '2024-01-15',
-        },
-        {
-            id: 'sub_002',
-            name: 'Spotify',
-            category: 'Music',
-            amount: 59.99,
-            billingCycle: 'monthly',
-            nextPaymentDate: '2025-05-16',
-            active: true,
-            logoClass: 'spotify',
-            logoText: '',
-            notes: 'Individual plan',
-            createdAt: '2024-02-01',
-        },
-        {
-            id: 'sub_003',
-            name: 'Disney+',
-            category: 'Entertainment',
-            amount: 89.00,
-            billingCycle: 'monthly',
-            nextPaymentDate: '2025-05-24',
-            active: true,
-            logoClass: 'disney',
-            logoText: 'D+',
-            notes: '',
-            createdAt: '2024-03-10',
-        },
-        {
-            id: 'sub_004',
-            name: 'Amazon Prime',
-            category: 'Shopping',
-            amount: 99.00,
-            billingCycle: 'monthly',
-            nextPaymentDate: '2025-05-22',
-            active: true,
-            logoClass: 'prime',
-            logoText: 'P',
-            notes: 'Includes Prime Video',
-            createdAt: '2024-01-20',
-        },
-        {
-            id: 'sub_005',
-            name: 'YouTube Premium',
-            category: 'Entertainment',
-            amount: 79.00,
-            billingCycle: 'monthly',
-            nextPaymentDate: '2025-05-20',
-            active: false,
-            logoClass: 'youtube',
-            logoText: '▶',
-            notes: '',
-            createdAt: '2024-04-05',
-        },
-    ];
 
     /* ----------------------------------------------------------
        PRIVATE STATE
     ---------------------------------------------------------- */
+
     let _subs = [];
     let _listeners = [];
     let _loaded = false;
     let _loadPromise = null;
 
+
     /* ----------------------------------------------------------
-       PERSISTENCE — Backend API (SQL Server)
-       No localStorage. No fallback data. API is source of truth.
+       LOAD DATA FROM SQL SERVER API
     ---------------------------------------------------------- */
-    function _load() {
-        // No-op on file load. Data is loaded via loadFromAPI().
-    }
 
     async function loadFromAPI() {
+
         if (typeof API === 'undefined') {
-            console.error('SubscriptionStore: API module not available.');
+            console.error(
+                'SubscriptionStore: API module not available.'
+            );
+
             throw new Error('API not available');
         }
+
         const result = await API.Subscriptions.getAll();
-        if (result.success && result.data) {
-            const apiData = Array.isArray(result.data) ? result.data : (result.data.data || []);
-            _subs = apiData.map(function(s) {
-                return {
-                    id: String(s.id),
-                    name: s.name || '',
-                    category: s.category || 'Other',
-                    amount: parseFloat(s.amount) || 0,
-                    billingCycle: s.billingCycle || 'monthly',
-                    nextPaymentDate: s.nextPaymentDate || '',
-                    active: s.active !== undefined ? s.active : true,
-                    logoClass: s.logoClass || 'default',
-                    logoText: s.logoText || (s.name || '?').charAt(0).toUpperCase(),
-                    notes: s.notes || '',
-                    createdAt: s.createdAt || '',
-                    customLogo: s.customLogo || '',
-                    colourTag: s.colourTag || '',
-                    reminderDays: s.reminderDays || null,
-                    providerUrl: s.providerUrl || ''
-                };
-            });
-            _loaded = true;
-            _listeners.forEach(fn => fn(getStats()));
-            return _subs;
-        } else {
-            throw new Error(result.error || 'Failed to load subscriptions');
+
+        if (!result.success) {
+            throw new Error(
+                result.error || 'Failed to load subscriptions'
+            );
         }
+
+        const apiData = Array.isArray(result.data)
+            ? result.data
+            : (result.data?.data || []);
+
+        _subs = apiData.map(function (s) {
+
+            return {
+                id: String(s.id),
+
+                name: s.name || '',
+
+                category: s.category || 'Other',
+
+                amount: parseFloat(s.amount) || 0,
+
+                billingCycle: s.billingCycle || 'monthly',
+
+                nextPaymentDate: s.nextPaymentDate || '',
+
+                active: s.active !== undefined
+                    ? s.active
+                    : true,
+
+                logoClass: s.logoClass || 'default',
+
+                logoText: s.logoText ||
+                    (s.name || '?')
+                        .charAt(0)
+                        .toUpperCase(),
+
+                notes: s.notes || '',
+
+                createdAt: s.createdAt || '',
+
+                customLogo: s.customLogo || '',
+
+                colourTag: s.colourTag || '',
+
+                reminderDays: s.reminderDays || null,
+
+                providerUrl: s.providerUrl || ''
+            };
+        });
+
+        _loaded = true;
+
+        // Notify UI that fresh database data is available.
+        _listeners.forEach(function (fn) {
+            fn(getStats());
+        });
+
+        return _subs;
     }
 
-    function _save() {
-        // No-op. We do not persist to localStorage.
-    }
 
     /* ----------------------------------------------------------
-       CHANGE NOTIFICATION  (pub/sub for UI re-renders)
+       CHANGE NOTIFICATION
     ---------------------------------------------------------- */
+
     function _notify() {
-        _save();
-        _listeners.forEach(fn => fn(getStats()));
+
+        _listeners.forEach(function (fn) {
+            fn(getStats());
+        });
     }
 
+
     function onChange(fn) {
+
+        if (typeof fn !== 'function') {
+            return;
+        }
+
         _listeners.push(fn);
     }
 
+
     function offChange(fn) {
-        _listeners = _listeners.filter(l => l !== fn);
+
+        _listeners = _listeners.filter(function (listener) {
+            return listener !== fn;
+        });
     }
+
 
     /* ----------------------------------------------------------
        HELPERS
     ---------------------------------------------------------- */
+
     function _uid() {
-        return 'sub_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+        return 'sub_' +
+            Date.now().toString(36) +
+            Math.random().toString(36).slice(2, 6);
     }
 
-    /** Convert any billing cycle amount to a monthly equivalent */
+
     function _toMonthly(amount, cycle) {
+
         switch (cycle) {
-            case 'weekly':    return amount * 52 / 12;
-            case 'monthly':   return amount;
-            case 'quarterly': return amount / 3;
-            case 'yearly':    return amount / 12;
-            default:          return amount;
+
+            case 'weekly':
+                return amount * 52 / 12;
+
+            case 'monthly':
+                return amount;
+
+            case 'quarterly':
+                return amount / 3;
+
+            case 'yearly':
+                return amount / 12;
+
+            default:
+                return amount;
         }
     }
 
-    /** Format a date string "YYYY-MM-DD" → "MMM D, YYYY" */
+
     function _fmtDate(iso) {
-        if (!iso) return '—';
-        const [y, m, d] = iso.split('-').map(Number);
-        const months = ['Jan','Feb','Mar','Apr','May','Jun',
-                        'Jul','Aug','Sep','Oct','Nov','Dec'];
+
+        if (!iso) {
+            return '—';
+        }
+
+        const [y, m, d] = iso
+            .split('-')
+            .map(Number);
+
+        const months = [
+            'Jan',
+            'Feb',
+            'Mar',
+            'Apr',
+            'May',
+            'Jun',
+            'Jul',
+            'Aug',
+            'Sep',
+            'Oct',
+            'Nov',
+            'Dec'
+        ];
+
         return `${months[m - 1]} ${d}, ${y}`;
     }
 
-    /** Days until a date from today */
+
     function _daysUntil(iso) {
-        if (!iso) return null;
-        const now  = new Date(); now.setHours(0,0,0,0);
-        const then = new Date(iso); then.setHours(0,0,0,0);
-        return Math.round((then - now) / 86400000);
+
+        if (!iso) {
+            return null;
+        }
+
+        const now = new Date();
+
+        now.setHours(0, 0, 0, 0);
+
+        const then = new Date(iso);
+
+        then.setHours(0, 0, 0, 0);
+
+        return Math.round(
+            (then - now) / 86400000
+        );
     }
 
-    /** Format currency as "R 1,234.56" */
+
     function _fmtCurrency(val) {
-        return 'R' + val.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+        return 'R' +
+            val
+                .toFixed(2)
+                .replace(
+                    /\B(?=(\d{3})+(?!\d))/g,
+                    ','
+                );
     }
+
 
     /* ----------------------------------------------------------
        READ
     ---------------------------------------------------------- */
-    function getAll()    { return [..._subs]; }
-    function getActive() { return _subs.filter(s => s.active); }
-    function getById(id) { return _subs.find(s => s.id === id) || null; }
 
-    /** Returns the full stats object used to drive the UI */
-    function getStats() {
-        const active   = getActive();
-        const monthly  = active.reduce((sum, s) => sum + _toMonthly(s.amount, s.billingCycle), 0);
-        const annual   = monthly * 12;
+    function getAll() {
 
-        // Potential savings = inactive subs that could be cancelled
-        const inactive = _subs.filter(s => !s.active);
-        const savings  = inactive.reduce((sum, s) => sum + _toMonthly(s.amount, s.billingCycle), 0) * 12;
+        return [..._subs];
+    }
 
-        // Upcoming payments in next 30 days (active only), sorted by date
-        const today = new Date(); today.setHours(0,0,0,0);
-        const upcoming = active
-            .filter(s => {
-                const d = _daysUntil(s.nextPaymentDate);
-                return d !== null && d >= 0 && d <= 30;
-            })
-            .sort((a, b) => new Date(a.nextPaymentDate) - new Date(b.nextPaymentDate));
 
-        // Category breakdown for donut chart (active only)
-        const byCategory = {};
-        active.forEach(s => {
-            const m = _toMonthly(s.amount, s.billingCycle);
-            byCategory[s.category] = (byCategory[s.category] || 0) + m;
+    function getActive() {
+
+        return _subs.filter(function (s) {
+            return s.active;
         });
-        const categorySlices = Object.entries(byCategory)
-            .sort((a, b) => b[1] - a[1])
-            .map(([cat, amt]) => ({
-                category: cat,
-                amount:   amt,
-                pct:      monthly > 0 ? Math.round((amt / monthly) * 100) : 0,
-                color:    CATEGORY_COLORS[cat] || CATEGORY_COLORS.Other,
-            }));
+    }
+
+
+    function getById(id) {
+
+        return _subs.find(function (s) {
+            return s.id === id;
+        }) || null;
+    }
+
+
+    /* ----------------------------------------------------------
+       STATISTICS
+    ---------------------------------------------------------- */
+
+    function getStats() {
+
+        const active = getActive();
+
+        const monthly = active.reduce(
+            function (sum, s) {
+
+                return sum +
+                    _toMonthly(
+                        s.amount,
+                        s.billingCycle
+                    );
+            },
+            0
+        );
+
+        const annual = monthly * 12;
+
+
+        // Potential savings from inactive subscriptions
+        const inactive = _subs.filter(function (s) {
+            return !s.active;
+        });
+
+        const savings =
+            inactive.reduce(
+                function (sum, s) {
+
+                    return sum +
+                        _toMonthly(
+                            s.amount,
+                            s.billingCycle
+                        );
+                },
+                0
+            ) * 12;
+
+
+        // Upcoming payments in next 30 days
+        const upcoming = active
+            .filter(function (s) {
+
+                const d = _daysUntil(
+                    s.nextPaymentDate
+                );
+
+                return (
+                    d !== null &&
+                    d >= 0 &&
+                    d <= 30
+                );
+            })
+            .sort(function (a, b) {
+
+                return new Date(
+                    a.nextPaymentDate
+                ) -
+                new Date(
+                    b.nextPaymentDate
+                );
+            });
+
+
+        // Category breakdown
+        const byCategory = {};
+
+        active.forEach(function (s) {
+
+            const m = _toMonthly(
+                s.amount,
+                s.billingCycle
+            );
+
+            byCategory[s.category] =
+                (byCategory[s.category] || 0) + m;
+        });
+
+
+        const categorySlices =
+            Object.entries(byCategory)
+                .sort(function (a, b) {
+                    return b[1] - a[1];
+                })
+                .map(function ([cat, amt]) {
+
+                    return {
+                        category: cat,
+
+                        amount: amt,
+
+                        pct: monthly > 0
+                            ? Math.round(
+                                (amt / monthly) * 100
+                            )
+                            : 0,
+
+                        color:
+                            CATEGORY_COLORS[cat] ||
+                            CATEGORY_COLORS.Other,
+                    };
+                });
+
 
         return {
-            activeCount:  active.length,
-            totalCount:   _subs.length,
+
+            activeCount: active.length,
+
+            totalCount: _subs.length,
+
             monthly,
+
             annual,
-            savings:      Math.max(0, savings),
+
+            savings: Math.max(
+                0,
+                savings
+            ),
+
             upcoming,
-            byCategory:   categorySlices,
-            all:          getAll(),
-            fmtMonthly:   _fmtCurrency(monthly),
-            fmtAnnual:    _fmtCurrency(annual),
-            fmtSavings:   _fmtCurrency(Math.max(0, savings)),
+
+            byCategory: categorySlices,
+
+            all: getAll(),
+
+            fmtMonthly:
+                _fmtCurrency(monthly),
+
+            fmtAnnual:
+                _fmtCurrency(annual),
+
+            fmtSavings:
+                _fmtCurrency(
+                    Math.max(0, savings)
+                ),
         };
     }
 
+
     /* ----------------------------------------------------------
-       WRITE — Add
+       WRITE — ADD
     ---------------------------------------------------------- */
-    /**
-     * @param {Object} fields  { name, category, amount, billingCycle,
-     *                           nextPaymentDate, notes, logoClass?, logoText?,
-     *                           customLogo?, colourTag?, reminderDays?, providerUrl? }
-     * @returns {Object} newly created subscription
-     */
-    function add(fields) {
+
+    async function add(fields) {
+
         const sub = {
-            name:            (fields.name || '').trim(),
-            category:        fields.category  || 'Other',
-            amount:          parseFloat(fields.amount) || 0,
-            billingCycle:    fields.billingCycle || 'monthly',
-            nextPaymentDate: fields.nextPaymentDate || '',
-            notes:           (fields.notes   || '').trim(),
-            logoClass:       fields.logoClass || 'default',
-            logoText:        fields.logoText  || (fields.name || '?').charAt(0).toUpperCase(),
+
+            name:
+                (fields.name || '').trim(),
+
+            category:
+                fields.category || 'Other',
+
+            amount:
+                parseFloat(fields.amount) || 0,
+
+            billingCycle:
+                fields.billingCycle || 'monthly',
+
+            nextPaymentDate:
+                fields.nextPaymentDate || '',
+
+            notes:
+                (fields.notes || '').trim(),
+
+            logoClass:
+                fields.logoClass || 'default',
+
+            logoText:
+                fields.logoText ||
+                (fields.name || '?')
+                    .charAt(0)
+                    .toUpperCase(),
+
+            customLogo:
+                fields.customLogo || '',
+
+            colourTag:
+                fields.colourTag || '',
+
+            reminderDays:
+                fields.reminderDays || null,
+
+            providerUrl:
+                fields.providerUrl || ''
         };
 
-        if (!sub.name) throw new Error('Subscription name is required.');
-        if (sub.amount <= 0) throw new Error('Amount must be greater than zero.');
 
-        // Call API, then refresh from backend
-        API.Subscriptions.add(sub).then(function(result) {
-            if (result.success) {
-                loadFromAPI();
-            } else {
-                console.error('Failed to add subscription:', result.error);
-            }
-        }).catch(function(err) {
-            console.error('Add subscription network error:', err);
-        });
+        if (!sub.name) {
 
-        return sub;
+            throw new Error(
+                'Subscription name is required.'
+            );
+        }
+
+
+        if (sub.amount <= 0) {
+
+            throw new Error(
+                'Amount must be greater than zero.'
+            );
+        }
+
+
+        if (typeof API === 'undefined') {
+
+            throw new Error(
+                'API module not available.'
+            );
+        }
+
+
+        // Send to SQL Server
+        const result =
+            await API.Subscriptions.add(sub);
+
+
+        if (!result.success) {
+
+            throw new Error(
+                result.error ||
+                'Failed to add subscription.'
+            );
+        }
+
+
+        // Reload from SQL Server
+        await loadFromAPI();
+
+
+        // Return actual database record
+        return result.data;
     }
 
+
     /* ----------------------------------------------------------
-       WRITE — Edit
+       WRITE — EDIT
     ---------------------------------------------------------- */
-    /**
-     * @param {string} id
-     * @param {Object} fields  same shape as add(), partial OK
-     * @returns {Object|null} updated sub or null if not found
-     */
-    function edit(id, fields) {
-        const idx = _subs.findIndex(s => s.id === id);
-        if (idx === -1) return null;
 
-        // Call API, then refresh from backend
-        API.Subscriptions.edit(id, fields).then(function(result) {
-            if (result.success) {
-                loadFromAPI();
-            } else {
-                console.error('Failed to edit subscription:', result.error);
-            }
-        }).catch(function(err) {
-            console.error('Edit subscription network error:', err);
-        });
+    async function edit(id, fields) {
 
-        // Return current local copy for immediate UI feedback
-        return _subs[idx];
+        const existing =
+            _subs.find(function (s) {
+                return s.id === id;
+            });
+
+
+        if (!existing) {
+            return null;
+        }
+
+
+        if (typeof API === 'undefined') {
+
+            throw new Error(
+                'API module not available.'
+            );
+        }
+
+
+        const result =
+            await API.Subscriptions.edit(
+                id,
+                fields
+            );
+
+
+        if (!result.success) {
+
+            throw new Error(
+                result.error ||
+                'Failed to edit subscription.'
+            );
+        }
+
+
+        await loadFromAPI();
+
+
+        return getById(id);
     }
 
+
     /* ----------------------------------------------------------
-       WRITE — Toggle active/paused
+       WRITE — TOGGLE ACTIVE / PAUSED
     ---------------------------------------------------------- */
-    function toggle(id) {
-        const sub = _subs.find(s => s.id === id);
-        if (!sub) return null;
 
-        // Call API, then refresh from backend
-        API.Subscriptions.toggle(id).then(function(result) {
-            if (result.success) {
-                loadFromAPI();
-            } else {
-                console.error('Failed to toggle subscription:', result.error);
-            }
-        }).catch(function(err) {
-            console.error('Toggle subscription network error:', err);
-        });
+    async function toggle(id) {
 
-        // Return toggled copy for immediate UI feedback
-        return { ...sub, active: !sub.active };
+        const existing =
+            _subs.find(function (s) {
+                return s.id === id;
+            });
+
+
+        if (!existing) {
+            return null;
+        }
+
+
+        if (typeof API === 'undefined') {
+
+            throw new Error(
+                'API module not available.'
+            );
+        }
+
+
+        const result =
+            await API.Subscriptions.toggle(id);
+
+
+        if (!result.success) {
+
+            throw new Error(
+                result.error ||
+                'Failed to toggle subscription.'
+            );
+        }
+
+
+        await loadFromAPI();
+
+
+        return getById(id);
     }
 
+
     /* ----------------------------------------------------------
-       WRITE — Delete
+       WRITE — DELETE
     ---------------------------------------------------------- */
-    function remove(id) {
-        // Call API, then refresh from backend
-        API.Subscriptions.remove(id).then(function(result) {
-            if (result.success) {
-                loadFromAPI();
-            } else {
-                console.error('Failed to delete subscription:', result.error);
-            }
-        }).catch(function(err) {
-            console.error('Delete subscription network error:', err);
-        });
+
+    async function remove(id) {
+
+        const existing =
+            _subs.find(function (s) {
+                return s.id === id;
+            });
+
+
+        if (!existing) {
+            return false;
+        }
+
+
+        if (typeof API === 'undefined') {
+
+            throw new Error(
+                'API module not available.'
+            );
+        }
+
+
+        const result =
+            await API.Subscriptions.remove(id);
+
+
+        if (!result.success) {
+
+            throw new Error(
+                result.error ||
+                'Failed to delete subscription.'
+            );
+        }
+
+
+        await loadFromAPI();
+
+
         return true;
     }
+
 
     /* ----------------------------------------------------------
        EXPORT — CSV
     ---------------------------------------------------------- */
-    function exportCSV() {
-        const headers = ['Name','Category','Amount','Billing Cycle','Next Payment','Status','Notes'];
-        const rows = _subs.map(s => [
-            `"${s.name}"`,
-            s.category,
-            s.amount.toFixed(2),
-            s.billingCycle,
-            s.nextPaymentDate,
-            s.active ? 'Active' : 'Paused',
-            `"${s.notes}"`,
-        ]);
 
-        const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url  = URL.createObjectURL(blob);
-        const a    = document.createElement('a');
-        a.href     = url;
-        a.download = `flexscribe-subscriptions-${new Date().toISOString().slice(0,10)}.csv`;
+    function exportCSV() {
+
+        const headers = [
+            'Name',
+            'Category',
+            'Amount',
+            'Billing Cycle',
+            'Next Payment',
+            'Status',
+            'Notes'
+        ];
+
+
+        const rows = _subs.map(function (s) {
+
+            return [
+
+                `"${s.name}"`,
+
+                s.category,
+
+                s.amount.toFixed(2),
+
+                s.billingCycle,
+
+                s.nextPaymentDate,
+
+                s.active
+                    ? 'Active'
+                    : 'Paused',
+
+                `"${s.notes}"`
+            ];
+        });
+
+
+        const csv =
+            [
+                headers.join(','),
+                ...rows.map(function (r) {
+                    return r.join(',');
+                })
+            ].join('\n');
+
+
+        const blob =
+            new Blob(
+                [csv],
+                { type: 'text/csv' }
+            );
+
+
+        const url =
+            URL.createObjectURL(blob);
+
+
+        const a =
+            document.createElement('a');
+
+
+        a.href = url;
+
+        a.download =
+            `flexscribe-subscriptions-${
+                new Date()
+                    .toISOString()
+                    .slice(0, 10)
+            }.csv`;
+
+
         a.click();
+
+
         URL.revokeObjectURL(url);
     }
+
 
     /* ----------------------------------------------------------
        SORT
     ---------------------------------------------------------- */
-    /**
-     * @param {'name'|'amount'|'date'|'category'} key
-     * @param {'asc'|'desc'} dir
-     */
+
     function sort(key, dir = 'asc') {
-        _subs.sort((a, b) => {
-            let av, bv;
+
+        _subs.sort(function (a, b) {
+
+            let av;
+            let bv;
+
+
             if (key === 'amount') {
-                av = _toMonthly(a.amount, a.billingCycle);
-                bv = _toMonthly(b.amount, b.billingCycle);
+
+                av =
+                    _toMonthly(
+                        a.amount,
+                        a.billingCycle
+                    );
+
+                bv =
+                    _toMonthly(
+                        b.amount,
+                        b.billingCycle
+                    );
+
             } else if (key === 'date') {
-                av = a.nextPaymentDate || '';
-                bv = b.nextPaymentDate || '';
+
+                av =
+                    a.nextPaymentDate || '';
+
+                bv =
+                    b.nextPaymentDate || '';
+
             } else if (key === 'category') {
+
                 av = a.category;
+
                 bv = b.category;
+
             } else {
-                av = a.name.toLowerCase();
-                bv = b.name.toLowerCase();
+
+                av =
+                    a.name.toLowerCase();
+
+                bv =
+                    b.name.toLowerCase();
             }
-            if (av < bv) return dir === 'asc' ? -1 :  1;
-            if (av > bv) return dir === 'asc' ?  1 : -1;
+
+
+            if (av < bv) {
+
+                return dir === 'asc'
+                    ? -1
+                    : 1;
+            }
+
+
+            if (av > bv) {
+
+                return dir === 'asc'
+                    ? 1
+                    : -1;
+            }
+
+
             return 0;
         });
+
+
         _notify();
     }
 
+
     /* ----------------------------------------------------------
-       RECOMMENDATIONS — exclude already-subscribed providers
+       RECOMMENDATIONS
     ---------------------------------------------------------- */
+
     function getProviders() {
+
         return [...PROVIDERS];
     }
 
-    /**
-     * Returns providers NOT already in the user's subscription list.
-     * Matching is done by normalised name comparison.
-     */
+
     function getRecommendations() {
-        const subscribedNames = new Set(
-            _subs.map(s => s.name.toLowerCase().trim())
+
+        const subscribedNames =
+            new Set(
+                _subs.map(function (s) {
+                    return s.name
+                        .toLowerCase()
+                        .trim();
+                })
+            );
+
+
+        return PROVIDERS.filter(
+            function (p) {
+
+                return !subscribedNames.has(
+                    p.name
+                        .toLowerCase()
+                        .trim()
+                );
+            }
         );
-        return PROVIDERS.filter(p => !subscribedNames.has(p.name.toLowerCase().trim()));
     }
+
 
     /* ----------------------------------------------------------
        PUBLIC API
     ---------------------------------------------------------- */
-    // Initialise on first require
-    // Do NOT auto-load from localStorage. Data comes from API via loadFromAPI().
-    // _load() is intentionally not called here.
+
+    // TEMPORARY: Load mock data for local development/testing.
+    // When backend is running, comment this out and use loadFromAPI() instead.
+    _subs = [
+        { id: 'sub_001', name: 'Netflix', category: 'Entertainment', amount: 199.00, billingCycle: 'monthly', nextPaymentDate: '2025-08-18', active: true, logoClass: 'netflix', logoText: 'N', notes: 'Premium 4K plan', createdAt: '2024-01-15', customLogo: '', colourTag: '', reminderDays: null, providerUrl: '' },
+        { id: 'sub_002', name: 'Spotify', category: 'Music', amount: 59.99, billingCycle: 'monthly', nextPaymentDate: '2025-08-16', active: true, logoClass: 'spotify', logoText: 'S', notes: 'Individual plan', createdAt: '2024-02-01', customLogo: '', colourTag: '', reminderDays: null, providerUrl: '' },
+        { id: 'sub_003', name: 'Disney+', category: 'Entertainment', amount: 89.00, billingCycle: 'monthly', nextPaymentDate: '2025-08-24', active: true, logoClass: 'disney', logoText: 'D+', notes: '', createdAt: '2024-03-10', customLogo: '', colourTag: '', reminderDays: null, providerUrl: '' },
+        { id: 'sub_004', name: 'Amazon Prime', category: 'Shopping', amount: 99.00, billingCycle: 'monthly', nextPaymentDate: '2025-08-22', active: true, logoClass: 'prime', logoText: 'P', notes: 'Includes Prime Video', createdAt: '2024-01-20', customLogo: '', colourTag: '', reminderDays: null, providerUrl: '' },
+        { id: 'sub_005', name: 'YouTube Premium', category: 'Entertainment', amount: 79.00, billingCycle: 'monthly', nextPaymentDate: '2025-08-20', active: false, logoClass: 'youtube', logoText: '▶', notes: '', createdAt: '2024-04-05', customLogo: '', colourTag: '', reminderDays: null, providerUrl: '' }
+    ];
 
     return Object.freeze({
+
         // Data access
         getAll,
         getActive,
@@ -634,28 +1101,34 @@ const SubscriptionStore = (() => {
         getStats,
         getProviders,
         getRecommendations,
-        // Mutations (API-backed)
+
+        // Database mutations
         add,
         edit,
         toggle,
         remove,
         sort,
-        // API loading
+
+        // Database loading
         loadFromAPI,
+
         // Export
         exportCSV,
+
         // Events
         onChange,
         offChange,
-        // Constants (for populating form dropdowns)
+
+        // Constants
         CATEGORIES,
         BILLING_CYCLES,
         CATEGORY_COLORS,
         PROVIDERS,
-        // Utility (exposed for UI layer)
-        fmtDate:     _fmtDate,
+
+        // Utilities
+        fmtDate: _fmtDate,
         fmtCurrency: _fmtCurrency,
-        daysUntil:   _daysUntil,
+        daysUntil: _daysUntil,
     });
 
 })();

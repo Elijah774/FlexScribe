@@ -159,10 +159,19 @@ GO
 -- BankStatement
 -- Depends on Subscriber.
 CREATE TABLE BankStatement (
-    statementID     INT             NOT NULL IDENTITY(1,1),
-    subscriberID    INT             NOT NULL,
-    uploadDate      DATE                NULL,
-    fileReference   VARCHAR(500)        NULL,
+    statementID             INT             NOT NULL IDENTITY(1,1),
+    subscriberID            INT             NOT NULL,
+    uploadDate              DATE                NULL,
+    fileReference           VARCHAR(500)        NULL,
+    statementPeriodStart    DATE                NULL,
+    statementPeriodEnd      DATE                NULL,
+    totalIncome             DECIMAL(18,2)       NULL,
+    totalExpenses           DECIMAL(18,2)       NULL,
+    netCashFlow             DECIMAL(18,2)       NULL,
+    transactionCount        INT                 NULL,
+    parsedData              NVARCHAR(MAX)       NULL,   -- JSON array of extracted transactions
+    financialStatus         VARCHAR(50)         NULL,   -- 'safe', 'warning', 'danger'
+    monthlyBreakdown        NVARCHAR(MAX)       NULL,   -- JSON: month-by-month income/expenses
 
     CONSTRAINT PK_BankStatement PRIMARY KEY (statementID),
     CONSTRAINT FK_BankStatement_Subscriber

@@ -3,14 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>FlexScribe</title>
-    <script>
-        // Auth guard: if logged in, go to dashboard. Otherwise, go to landing page.
-        if (sessionStorage.getItem('flexscribe_token')) {
-            window.location.href = 'pages/MASTER.html';
-        } else {
-            window.location.href = 'landing.html';
-        }
-    </script>
+    <meta http-equiv="refresh" content="0; url=pages/MASTER.html">
 </head>
 <body>
     <p>Redirecting...</p>

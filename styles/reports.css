@@ -9,25 +9,27 @@
     grid-template-columns: 1fr 340px;
     grid-template-rows: auto auto auto auto;
     gap: 20px;
+    overflow-x: hidden;
+    max-width: 100%;
 }
 
 .rpt-stats-strip    { grid-column: 1 / -1; }
-.rpt-middle-row     { grid-column: 1 / 2; }
-.rpt-right-col      { grid-column: 2 / 3; grid-row: 2 / 4; display: flex; flex-direction: column; gap: 20px; }
-.rpt-table-section  { grid-column: 1 / 2; }
-.rpt-bottom-grid    { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.rpt-middle-row     { grid-column: 1 / 2; min-width: 0; }
+.rpt-right-col      { grid-column: 2 / 3; grid-row: 2 / 4; display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.rpt-table-section  { grid-column: 1 / 2; min-width: 0; overflow: hidden; }
+.rpt-bottom-grid    { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
 
 /* ---------- Stats Strip ---------- */
 .rpt-stats-strip {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 16px;
 }
 
 .rpt-stat-card {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: var(--radius-lg);
     padding: 20px;
     display: flex;
     align-items: center;
@@ -147,7 +149,7 @@
 .rpt-compile-card {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: var(--radius-lg);
     padding: 24px;
 }
 
@@ -215,7 +217,7 @@
 .rpt-ai-analysis-card {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: var(--radius-lg);
     padding: 24px;
 }
 
@@ -242,7 +244,7 @@
 
 .rpt-analysis-metrics {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
     gap: 12px;
 }
 
@@ -270,7 +272,7 @@
 .rpt-upload-card {
     background: var(--card);
     border: 1px solid var(--orange);
-    border-radius: var(--radius);
+    border-radius: var(--radius-lg);
     padding: 20px;
 }
 
@@ -339,7 +341,7 @@
 .rpt-insights-card {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: var(--radius-lg);
     padding: 20px;
 }
 
@@ -370,7 +372,7 @@
 .rpt-breakdown-card {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: var(--radius-lg);
     padding: 20px;
 }
 
@@ -426,7 +428,7 @@
 .rpt-table-section {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: var(--radius-lg);
     padding: 24px;
 }
 
@@ -466,6 +468,7 @@
 
 .rpt-table-wrap {
     overflow-x: auto;
+    max-width: 100%;
 }
 
 .rpt-table {
@@ -523,8 +526,9 @@
 .rpt-health-card {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: var(--radius-lg);
     padding: 20px;
+    overflow: hidden;
 }
 
 .rpt-health-body {
@@ -532,6 +536,7 @@
     align-items: center;
     gap: 16px;
     margin-top: 14px;
+    flex-wrap: wrap;
 }
 
 .rpt-health-ring-wrap {
@@ -572,8 +577,10 @@
 .rpt-trends-card {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: var(--radius-lg);
     padding: 20px;
+    overflow: hidden;
+    min-width: 0;
 }
 
 .rpt-trends-legend {
@@ -627,8 +634,10 @@
 .rpt-topcats-card {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: var(--radius-lg);
     padding: 20px;
+    overflow: hidden;
+    min-width: 0;
 }
 
 .rpt-topcats-list {
@@ -660,8 +669,10 @@
 .rpt-recommendations-card {
     background: var(--card);
     border: 1px solid var(--orange);
-    border-radius: var(--radius);
+    border-radius: var(--radius-lg);
     padding: 20px;
+    overflow: hidden;
+    min-width: 0;
 }
 
 .rpt-rec-list {
