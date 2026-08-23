@@ -136,6 +136,11 @@ const DependantsUI = (() => {
             $taskError.textContent = '';
             if (!task) { $taskError.textContent = 'Please enter a task name.'; return; }
             if (!dueDate) { $taskError.textContent = 'Please select a due date.'; return; }
+
+            // Prevent past due dates — only today or future dates are allowed
+            const today = new Date().toISOString().split('T')[0];
+            if (dueDate < today) { $taskError.textContent = 'Due date cannot be in the past. Please select today or a future date.'; return; }
+
             if (!reward || reward <= 0) { $taskError.textContent = 'Please enter a reward amount.'; return; }
 
             const label = _editingTaskId ? 'Save changes to this task?' : 'Add this task?';
@@ -570,6 +575,10 @@ const DependantsUI = (() => {
         $taskError.textContent = '';
         document.getElementById('dep-task-frequency-field').hidden = true;
 
+        // Restrict due date to today or later
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('dep-task-due').setAttribute('min', today);
+
         if (_editingTaskId) {
             // Edit mode — pre-fill
             const dep = DependantsStore.getById(_drawerDepId);
@@ -614,6 +623,11 @@ const DependantsUI = (() => {
 
         if (!task) { $taskError.textContent = 'Please enter a task name.'; return; }
         if (!dueDate) { $taskError.textContent = 'Please select a due date.'; return; }
+
+        // Prevent past due dates — only today or future dates are allowed
+        const today = new Date().toISOString().split('T')[0];
+        if (dueDate < today) { $taskError.textContent = 'Due date cannot be in the past. Please select today or a future date.'; return; }
+
         if (!reward || reward <= 0) { $taskError.textContent = 'Please enter a reward amount.'; return; }
 
         try {
