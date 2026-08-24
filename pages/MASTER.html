@@ -46,40 +46,20 @@
             <div class="notif-wrap">
                 <button id="notif-btn" class="icon-btn" aria-label="Notifications">
                     <i data-lucide="bell"></i>
-                    <span class="badge" id="notif-badge">3</span>
+                    <span class="badge is-hidden" id="notif-badge">0</span>
                 </button>
                 <div class="dropdown-menu notif-menu" id="notif-menu" hidden>
                     <div class="dropdown-menu-header">Notifications</div>
                     <ul class="notif-list" id="notif-dropdown-list">
-                        <li class="notif-item" data-notif-id="notif-1" onclick="navigateToNotification('notif-1')">
-                            <span class="notif-dot"></span>
-                            <div>
-                                <p class="notif-title">Netflix payment due tomorrow</p>
-                                <p class="notif-time">2h ago</p>
-                            </div>
-                        </li>
-                        <li class="notif-item" data-notif-id="notif-2" onclick="navigateToNotification('notif-2')">
-                            <span class="notif-dot"></span>
-                            <div>
-                                <p class="notif-title">You're close to your Vacation goal</p>
-                                <p class="notif-time">1d ago</p>
-                            </div>
-                        </li>
-                        <li class="notif-item" data-notif-id="notif-3" onclick="navigateToNotification('notif-3')">
-                            <span class="notif-dot"></span>
-                            <div> 
-                                <p class="notif-title">Scribe Score increased to 560</p>
-                                <p class="notif-time">3d ago</p>
-                            </div>
-                        </li>
+                        <li class="notif-item" style="padding:12px;color:var(--text-light);font-size:13px;">Loading...</li>
                     </ul>
                     <a href="#" class="dropdown-menu-footer" onclick="loadPage('notifications');document.getElementById('notif-menu').hidden=true;return false">View all notifications</a>
                 </div>
             </div>
 
             <div class="header-profile" id="user-chip">
-                <img src="../images/smallLogo.png" alt="Sarah M.">
-                <span>Sarah M.</span>
+                <img src="../images/smallLogo.png" alt="User" id="header-user-avatar">
+                <span id="header-user-name">User</span>
                 <i data-lucide="chevron-down" class="chevron"></i>
                 <div class="dropdown-menu user-menu" id="user-menu" hidden>
                     <a href="#" class="dropdown-menu-item" onclick="ProfilePanel.open();return false"><i data-lucide="user"></i> Profile</a>
@@ -591,6 +571,25 @@
     </div>
 </div>
 
+<!-- ═══════════════ GOAL DELETE CONFIRMATION MODAL ═══════════════ -->
+<div id="goals-confirm-modal" class="goals-modal-backdrop" hidden aria-modal="true" role="dialog">
+    <div class="goals-modal-box" style="max-width:400px">
+        <div class="goals-modal-header">
+            <h2 id="goals-confirm-title">Confirm Delete</h2>
+            <button class="icon-btn" id="goals-confirm-close" aria-label="Close">
+                <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>
+        </div>
+        <div class="goals-modal-body" style="padding:20px 24px">
+            <p id="goals-confirm-message" style="color:var(--text);font-size:14px;line-height:1.6">Are you sure you want to delete this goal? This cannot be undone.</p>
+        </div>
+        <div class="goals-modal-footer">
+            <button type="button" class="goals-btn goals-btn--secondary" id="goals-confirm-cancel">Cancel</button>
+            <button type="button" class="goals-btn goals-btn--primary" id="goals-confirm-ok" style="background:var(--red, #ef4444)">Delete</button>
+        </div>
+    </div>
+</div>
+
 <!-- ═══════════════ GOAL DETAIL DRAWER ═══════════════ -->
 <div id="goals-drawer-overlay" class="goals-drawer-overlay" hidden></div>
 <aside id="goals-drawer" class="goals-drawer" hidden aria-label="Goal details">
@@ -813,9 +812,15 @@
             <div class="dep-modal-body">
                 <div class="dep-modal-row">
                     <div class="dep-modal-field">
-                        <label for="dep-add-name">Name <span class="required">*</span></label>
-                        <input type="text" id="dep-add-name" placeholder="e.g. James Mitchell" autocomplete="off">
+                        <label for="dep-add-firstname">First Name <span class="required">*</span></label>
+                        <input type="text" id="dep-add-firstname" placeholder="e.g. James" autocomplete="off">
                     </div>
+                    <div class="dep-modal-field">
+                        <label for="dep-add-lastname">Last Name <span class="required">*</span></label>
+                        <input type="text" id="dep-add-lastname" placeholder="e.g. Mitchell" autocomplete="off">
+                    </div>
+                </div>
+                <div class="dep-modal-row">
                     <div class="dep-modal-field">
                         <label for="dep-add-email">Email <span class="required">*</span></label>
                         <input type="email" id="dep-add-email" placeholder="e.g. james@email.com" autocomplete="off">
@@ -835,13 +840,19 @@
                         </select>
                     </div>
                     <div class="dep-modal-field">
+                        <label for="dep-add-dob">Date of Birth <span class="required">*</span></label>
+                        <input type="date" id="dep-add-dob" required>
+                    </div>
+                </div>
+                <div class="dep-modal-row">
+                    <div class="dep-modal-field">
                         <label for="dep-add-allowance">Allowance (R/mo)</label>
                         <input type="number" id="dep-add-allowance" placeholder="0.00" min="0" step="0.01">
                     </div>
-                </div>
-                <div class="dep-modal-field">
-                    <label for="dep-add-spending-limit">Spending Limit (R)</label>
-                    <input type="number" id="dep-add-spending-limit" placeholder="0.00" min="0" step="0.01">
+                    <div class="dep-modal-field">
+                        <label for="dep-add-spending-limit">Spending Limit (R)</label>
+                        <input type="number" id="dep-add-spending-limit" placeholder="0.00" min="0" step="0.01">
+                    </div>
                 </div>
                 <span class="dep-modal-error" id="dep-add-error"></span>
             </div>
@@ -909,9 +920,15 @@
             <div class="dep-modal-body">
                 <div class="dep-modal-row">
                     <div class="dep-modal-field">
-                        <label for="dep-edit-name">Name <span class="required">*</span></label>
-                        <input type="text" id="dep-edit-name" placeholder="e.g. James Mitchell" autocomplete="off">
+                        <label for="dep-edit-firstname">First Name <span class="required">*</span></label>
+                        <input type="text" id="dep-edit-firstname" placeholder="e.g. James" autocomplete="off">
                     </div>
+                    <div class="dep-modal-field">
+                        <label for="dep-edit-lastname">Last Name <span class="required">*</span></label>
+                        <input type="text" id="dep-edit-lastname" placeholder="e.g. Mitchell" autocomplete="off">
+                    </div>
+                </div>
+                <div class="dep-modal-row">
                     <div class="dep-modal-field">
                         <label for="dep-edit-email">Email <span class="required">*</span></label>
                         <input type="email" id="dep-edit-email" placeholder="e.g. james@email.com" autocomplete="off">
@@ -930,13 +947,19 @@
                         </select>
                     </div>
                     <div class="dep-modal-field">
+                        <label for="dep-edit-dob">Date of Birth <span class="required">*</span></label>
+                        <input type="date" id="dep-edit-dob" required>
+                    </div>
+                </div>
+                <div class="dep-modal-row">
+                    <div class="dep-modal-field">
                         <label for="dep-edit-allowance">Allowance (R/mo)</label>
                         <input type="number" id="dep-edit-allowance" placeholder="0.00" min="0" step="0.01">
                     </div>
-                </div>
-                <div class="dep-modal-field">
-                    <label for="dep-edit-spending-limit">Spending Limit (R)</label>
-                    <input type="number" id="dep-edit-spending-limit" placeholder="0.00" min="0" step="0.01">
+                    <div class="dep-modal-field">
+                        <label for="dep-edit-spending-limit">Spending Limit (R)</label>
+                        <input type="number" id="dep-edit-spending-limit" placeholder="0.00" min="0" step="0.01">
+                    </div>
                 </div>
                 <span class="dep-modal-error" id="dep-edit-error"></span>
             </div>
@@ -1041,6 +1064,37 @@
         </div>
     </div>
     <div class="dep-drawer-body">
+        <!-- Dependant Information -->
+        <p class="dep-drawer-section-title">Information</p>
+        <div class="dep-info-card" id="dep-drawer-info">
+            <div class="dep-info-row">
+                <span class="dep-info-label">Name</span>
+                <span class="dep-info-value" id="dep-info-name">—</span>
+            </div>
+            <div class="dep-info-row">
+                <span class="dep-info-label">Email</span>
+                <span class="dep-info-value" id="dep-info-email">—</span>
+            </div>
+            <div class="dep-info-row">
+                <span class="dep-info-label">Relationship</span>
+                <span class="dep-info-value" id="dep-info-relationship">—</span>
+            </div>
+            <div class="dep-info-row">
+                <span class="dep-info-label">Date of Birth</span>
+                <span class="dep-info-value" id="dep-info-dob">—</span>
+            </div>
+            <div class="dep-info-row">
+                <span class="dep-info-label">Allowance</span>
+                <span class="dep-info-value" id="dep-info-allowance">—</span>
+            </div>
+            <div class="dep-info-row">
+                <span class="dep-info-label">Spending Limit</span>
+                <span class="dep-info-value" id="dep-info-spending-limit">—</span>
+            </div>
+        </div>
+
+        <hr class="dep-drawer-divider">
+
         <!-- Tasks -->
         <div class="dep-tasks-header">
             <p class="dep-drawer-section-title">Tasks</p>

@@ -372,6 +372,37 @@
     margin: 24px 0;
 }
 
+/* ── Dependant Info Card ── */
+.dep-info-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.dep-info-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.dep-info-row:last-child {
+    border-bottom: none;
+}
+
+.dep-info-label {
+    font-size: 14px;
+    color: var(--text-light);
+}
+
+.dep-info-value {
+    font-size: 14px;
+    color: var(--text);
+    font-weight: 500;
+    text-align: right;
+}
+
 /* ── Permission Toggles ── */
 .dep-permission-list {
     display: flex;
@@ -797,6 +828,26 @@
 .dep-task-status--complete {
     background: rgba(34, 197, 94, 0.12);
     color: #22C55E;
+}
+
+.dep-task-status--completed {
+    background: rgba(34, 197, 94, 0.12);
+    color: #22C55E;
+}
+
+.dep-task-undo-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    color: var(--text-light);
+    opacity: 0.7;
+    transition: opacity 0.15s, color 0.15s;
+}
+.dep-task-undo-btn:hover {
+    opacity: 1;
+    color: var(--orange);
 }
 
 .dep-task-status--overdue {

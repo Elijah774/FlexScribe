@@ -7,6 +7,10 @@
     padding: 0;
 }
 
+html {
+    scroll-behavior: auto;
+}
+
 /* ===========================================================
    DESIGN TOKENS
    Single source of truth for the entire app.
@@ -848,6 +852,9 @@ body.light-mode .sidebar-bottom {
     padding: 24px 32px;
     background-color: var(--background);
     position: relative;
+    scroll-behavior: auto;
+    -webkit-overflow-scrolling: touch;
+    will-change: scroll-position;
 }
 
 .main-content::before {
