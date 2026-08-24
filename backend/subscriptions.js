@@ -313,26 +313,28 @@ const SubscriptionStore = (() => {
         _subs = apiData.map(function (s) {
 
             return {
-                id: String(s.id),
+                id: String(s.subscriptionID || s.id),
 
-                name: s.name || '',
+                name: s.serviceName || s.name || '',
 
-                category: s.category || 'Other',
+                category: s.categoryName || s.category || 'Other',
 
-                amount: parseFloat(s.amount) || 0,
+                amount: parseFloat(s.billingAmount || s.amount) || 0,
 
                 billingCycle: s.billingCycle || 'monthly',
 
-                nextPaymentDate: s.nextPaymentDate || '',
+                nextPaymentDate: s.billingDate
+                    ? s.billingDate.split('T')[0]
+                    : (s.nextPaymentDate || ''),
 
-                active: s.active !== undefined
-                    ? s.active
-                    : true,
+                active: s.subStatus
+                    ? s.subStatus === 'active'
+                    : (s.active !== undefined ? s.active : true),
 
                 logoClass: s.logoClass || 'default',
 
                 logoText: s.logoText ||
-                    (s.name || '?')
+                    (s.serviceName || s.name || '?')
                         .charAt(0)
                         .toUpperCase(),
 
@@ -342,7 +344,7 @@ const SubscriptionStore = (() => {
 
                 customLogo: s.customLogo || '',
 
-                colourTag: s.colourTag || '',
+                colourTag: s.colorTag || s.colourTag || '',
 
                 reminderDays: s.reminderDays || null,
 
@@ -424,6 +426,16 @@ const SubscriptionStore = (() => {
         }
     }
 
+
+    const CATEGORY_ID_MAP = {
+        'Entertainment': 1, 'Music': 2, 'Shopping': 3, 'Productivity': 4,
+        'Education': 5, 'Utilities': 6, 'Fitness': 7, 'News': 8,
+        'Gaming': 9, 'Health': 10, 'AI': 11, 'Other': 12
+    };
+
+    function _categoryToID(categoryName) {
+        return CATEGORY_ID_MAP[categoryName] || 12; // default to 'Other'
+    }
 
     function _fmtDate(iso) {
 
@@ -662,20 +674,20 @@ const SubscriptionStore = (() => {
 
         const sub = {
 
-            name:
+            serviceName:
                 (fields.name || '').trim(),
 
-            category:
-                fields.category || 'Other',
+            categoryID:
+                _categoryToID(fields.category || 'Other'),
 
-            amount:
+            billingAmount:
                 parseFloat(fields.amount) || 0,
 
             billingCycle:
                 fields.billingCycle || 'monthly',
 
-            nextPaymentDate:
-                fields.nextPaymentDate || '',
+            billingDate:
+                fields.nextPaymentDate || null,
 
             notes:
                 (fields.notes || '').trim(),
@@ -689,21 +701,18 @@ const SubscriptionStore = (() => {
                     .charAt(0)
                     .toUpperCase(),
 
-            customLogo:
-                fields.customLogo || '',
-
-            colourTag:
-                fields.colourTag || '',
+            colorTag:
+                fields.colourTag || null,
 
             reminderDays:
-                fields.reminderDays || null,
+                fields.reminderDays ? parseInt(fields.reminderDays) : null,
 
             providerUrl:
-                fields.providerUrl || ''
+                fields.providerUrl || null
         };
 
 
-        if (!sub.name) {
+        if (!sub.serviceName) {
 
             throw new Error(
                 'Subscription name is required.'
@@ -711,7 +720,7 @@ const SubscriptionStore = (() => {
         }
 
 
-        if (sub.amount <= 0) {
+        if (sub.billingAmount <= 0) {
 
             throw new Error(
                 'Amount must be greater than zero.'
@@ -774,11 +783,24 @@ const SubscriptionStore = (() => {
             );
         }
 
+        // Map frontend field names to backend column names
+        const mapped = {};
+        if (fields.name !== undefined) mapped.serviceName = fields.name;
+        if (fields.category !== undefined) mapped.categoryID = _categoryToID(fields.category);
+        if (fields.amount !== undefined) mapped.billingAmount = parseFloat(fields.amount);
+        if (fields.billingCycle !== undefined) mapped.billingCycle = fields.billingCycle;
+        if (fields.nextPaymentDate !== undefined) mapped.billingDate = fields.nextPaymentDate || null;
+        if (fields.notes !== undefined) mapped.notes = fields.notes || null;
+        if (fields.logoClass !== undefined) mapped.logoClass = fields.logoClass;
+        if (fields.logoText !== undefined) mapped.logoText = fields.logoText;
+        if (fields.colourTag !== undefined) mapped.colorTag = fields.colourTag || null;
+        if (fields.reminderDays !== undefined) mapped.reminderDays = fields.reminderDays ? parseInt(fields.reminderDays) : null;
+        if (fields.providerUrl !== undefined) mapped.providerUrl = fields.providerUrl || null;
 
         const result =
             await API.Subscriptions.edit(
                 id,
-                fields
+                mapped
             );
 
 
@@ -1082,15 +1104,8 @@ const SubscriptionStore = (() => {
        PUBLIC API
     ---------------------------------------------------------- */
 
-    // TEMPORARY: Load mock data for local development/testing.
-    // When backend is running, comment this out and use loadFromAPI() instead.
-    _subs = [
-        { id: 'sub_001', name: 'Netflix', category: 'Entertainment', amount: 199.00, billingCycle: 'monthly', nextPaymentDate: '2025-08-18', active: true, logoClass: 'netflix', logoText: 'N', notes: 'Premium 4K plan', createdAt: '2024-01-15', customLogo: '', colourTag: '', reminderDays: null, providerUrl: '' },
-        { id: 'sub_002', name: 'Spotify', category: 'Music', amount: 59.99, billingCycle: 'monthly', nextPaymentDate: '2025-08-16', active: true, logoClass: 'spotify', logoText: 'S', notes: 'Individual plan', createdAt: '2024-02-01', customLogo: '', colourTag: '', reminderDays: null, providerUrl: '' },
-        { id: 'sub_003', name: 'Disney+', category: 'Entertainment', amount: 89.00, billingCycle: 'monthly', nextPaymentDate: '2025-08-24', active: true, logoClass: 'disney', logoText: 'D+', notes: '', createdAt: '2024-03-10', customLogo: '', colourTag: '', reminderDays: null, providerUrl: '' },
-        { id: 'sub_004', name: 'Amazon Prime', category: 'Shopping', amount: 99.00, billingCycle: 'monthly', nextPaymentDate: '2025-08-22', active: true, logoClass: 'prime', logoText: 'P', notes: 'Includes Prime Video', createdAt: '2024-01-20', customLogo: '', colourTag: '', reminderDays: null, providerUrl: '' },
-        { id: 'sub_005', name: 'YouTube Premium', category: 'Entertainment', amount: 79.00, billingCycle: 'monthly', nextPaymentDate: '2025-08-20', active: false, logoClass: 'youtube', logoText: '▶', notes: '', createdAt: '2024-04-05', customLogo: '', colourTag: '', reminderDays: null, providerUrl: '' }
-    ];
+    // No seed data — real data loaded from FlexScribeDB via loadFromAPI()
+    _subs = [];
 
     return Object.freeze({
 

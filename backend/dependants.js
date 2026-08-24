@@ -92,23 +92,65 @@ const DependantsStore = (() => {
         }
         const result = await API.Dependants.getAll();
         if (result.success && result.data) {
-            const apiData = Array.isArray(result.data) ? result.data : (result.data.data || []);
+            const apiData = Array.isArray(result.data) ? result.data : [];
             _data.dependants = apiData.map(function(d) {
+                const firstName = d.firstName || '';
+                const lastName = d.lastName || '';
+                const fullName = (firstName + ' ' + lastName).trim();
+
+                // Calculate age from dateOfBirth
+                let age = d.age || null;
+                const dob = d.dateOfBirth ? d.dateOfBirth.split('T')[0] : null;
+                if (dob) {
+                    const dobDate = new Date(dob);
+                    const today = new Date();
+                    age = today.getFullYear() - dobDate.getFullYear();
+                    const monthDiff = today.getMonth() - dobDate.getMonth();
+                    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dobDate.getDate())) age--;
+                }
+
                 return {
-                    id: String(d.id),
-                    name: d.name || '',
+                    id: String(d.dependantID || d.id),
+                    name: fullName,
                     email: d.email || '',
                     relationship: d.relationship || 'Other',
-                    avatar: (d.name || '??').split(' ').map(function(w) { return w[0]; }).join('').toUpperCase(),
-                    allowance: (d.allowanceCents || 0) / 100,
-                    spendingLimit: 0,
+                    avatar: _initials(fullName || '??'),
+                    allowance: parseFloat(d.allowance) || 0,
+                    spendingLimit: parseFloat(d.spendingLimit) || 0,
                     status: d.status || 'active',
-                    permissions: { canSpend: true, canViewWallet: false, canRequestFunds: true },
+                    age: age,
+                    dateOfBirth: dob || '',
+                    permissions: {
+                        canSpend: d.canSpend !== undefined ? !!d.canSpend : true,
+                        canViewWallet: d.canViewWallet !== undefined ? !!d.canViewWallet : false,
+                        canRequestFunds: d.canRequestFunds !== undefined ? !!d.canRequestFunds : true
+                    },
                     activity: [],
                     tasks: [],
-                    createdAt: d.createdAt || ''
+                    createdAt: d.createdAt ? d.createdAt.split('T')[0] : ''
                 };
             });
+
+            // Load tasks for each dependant
+            for (var i = 0; i < _data.dependants.length; i++) {
+                try {
+                    var tasksResult = await API.Dependants.getTasks(_data.dependants[i].id);
+                    if (tasksResult.success && Array.isArray(tasksResult.data)) {
+                        _data.dependants[i].tasks = tasksResult.data.map(function(t) {
+                            return {
+                                id: String(t.dependantTaskID),
+                                task: t.taskName || '',
+                                description: t.description || '',
+                                dueDate: t.dueDate ? t.dueDate.split('T')[0] : null,
+                                reward: parseFloat(t.reward) || 0,
+                                status: t.taskStatus || 'pending',
+                                recurring: !!t.recurring,
+                                frequency: t.recurrenceCycle || null
+                            };
+                        });
+                    }
+                } catch (e) { /* ignore task load errors */ }
+            }
             _listeners.forEach(fn => fn(getAll()));
             return _data.dependants;
         } else {
@@ -185,14 +227,37 @@ const DependantsStore = (() => {
        SQL: DependantSQL.INSERT_SUBSCRIBER_FOR_DEPENDANT
             DependantSQL.INSERT_DEPENDANT
     ---------------------------------------------------------- */
-    function add({ name, email, relationship, allowance, spendingLimit }) {
+    function add({ name, email, relationship, allowance, spendingLimit, dob }) {
         if (!name || !name.trim()) throw new Error('Dependant name is required.');
         if (!email || !email.trim()) throw new Error('Email is required.');
         allowance = parseFloat(allowance) || 0;
 
+        // Split name into first/last for the backend
+        const parts = name.trim().split(/\s+/);
+        const firstName = parts[0] || '';
+        const lastName = parts.slice(1).join(' ') || '';
+
+        // Calculate age from DOB
+        let age = null;
+        if (dob) {
+            const dobDate = new Date(dob);
+            const today = new Date();
+            age = today.getFullYear() - dobDate.getFullYear();
+            const monthDiff = today.getMonth() - dobDate.getMonth();
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dobDate.getDate())) age--;
+        }
+
         // Call backend API
-        API.Dependants.add({ name: name.trim(), email: email.trim(), relationship: relationship || 'Other', allowanceCents: Math.round(allowance * 100) })
-            .then(function(result) {
+        API.Dependants.add({
+            firstName: firstName,
+            lastName: lastName,
+            email: email.trim(),
+            relationship: relationship || 'Other',
+            allowance: allowance,
+            spendingLimit: parseFloat(spendingLimit) || null,
+            dateOfBirth: dob || null,
+            age: age
+        }).then(function(result) {
                 if (result.success) { loadFromAPI(); }
                 else { console.error('Failed to add dependant:', result.error); }
             })
@@ -210,11 +275,34 @@ const DependantsStore = (() => {
         const idx = _data.dependants.findIndex(d => d.id === id);
         if (idx === -1) throw new Error('Dependant not found.');
 
-        // Call backend API
+        // Update local state immediately
+        const dep = _data.dependants[idx];
+        if (updates.name !== undefined) {
+            dep.name = updates.name;
+            dep.avatar = _initials(updates.name);
+        }
+        if (updates.email !== undefined) dep.email = updates.email;
+        if (updates.relationship !== undefined) dep.relationship = updates.relationship;
+        if (updates.dob !== undefined) dep.dob = updates.dob;
+        if (updates.allowance !== undefined) dep.allowance = updates.allowance;
+        if (updates.spendingLimit !== undefined) dep.spendingLimit = updates.spendingLimit;
+
+        _notify();
+
+        // Call backend API to persist
+        var parts = (updates.name || '').split(/\s+/);
+        var firstName = parts[0] || undefined;
+        var lastName = parts.slice(1).join(' ') || undefined;
+
         API.Dependants.edit(id, {
-            name: updates.name,
+            firstName: firstName,
+            lastName: lastName,
+            email: updates.email,
             relationship: updates.relationship,
-            allowanceCents: updates.allowance !== undefined ? Math.round(updates.allowance * 100) : undefined
+            allowance: updates.allowance !== undefined ? updates.allowance : undefined,
+            spendingLimit: updates.spendingLimit !== undefined ? updates.spendingLimit : undefined,
+            dateOfBirth: updates.dob || undefined,
+            status: updates.status
         }).then(function(result) {
             if (result.success) { loadFromAPI(); }
             else { console.error('Failed to edit dependant:', result.error); }
@@ -251,7 +339,7 @@ const DependantsStore = (() => {
         if (idx === -1) throw new Error('Dependant not found.');
 
         // Call backend API
-        API.Dependants.sendAllowance(id, Math.round(amount * 100), frequency).then(function(result) {
+        API.Dependants.sendAllowance(id, amount, frequency).then(function(result) {
             if (result.success) { loadFromAPI(); }
             else { console.error('Failed to send allowance:', result.error); }
         }).catch(function(err) { console.error('Send allowance network error:', err); });
@@ -268,6 +356,15 @@ const DependantsStore = (() => {
 
         _data.dependants[idx].permissions = { ..._data.dependants[idx].permissions, ...permissions };
         _notify();
+
+        // Persist to database
+        if (typeof API !== 'undefined') {
+            API.Dependants.edit(id, {
+                canSpend: _data.dependants[idx].permissions.canSpend ? 1 : 0,
+                canViewWallet: _data.dependants[idx].permissions.canViewWallet ? 1 : 0,
+                canRequestFunds: _data.dependants[idx].permissions.canRequestFunds ? 1 : 0
+            }).catch(function(err) { console.error('Permission update error:', err); });
+        }
     }
 
     /* ----------------------------------------------------------
@@ -288,6 +385,22 @@ const DependantsStore = (() => {
         if (idx === -1) throw new Error('Dependant not found.');
         if (!task || !task.trim()) throw new Error('Task description is required.');
 
+        // Call backend API to persist to DependantTask table
+        if (typeof API !== 'undefined') {
+            API.Dependants.addTask(depId, {
+                taskName: task.trim(),
+                description: (description || '').trim().slice(0, 100),
+                dueDate: dueDate || null,
+                reward: parseFloat(reward) || 0,
+                recurring: !!recurring,
+                recurrenceCycle: recurring ? (frequency || 'weekly') : null
+            }).then(function(result) {
+                if (result.success) { loadFromAPI(); }
+                else { console.error('Failed to add task:', result.error); }
+            }).catch(function(err) { console.error('Add task network error:', err); });
+        }
+
+        // Optimistic local update
         const entry = {
             id: _tid(),
             task: task.trim(),
@@ -302,12 +415,6 @@ const DependantsStore = (() => {
         if (!_data.dependants[idx].tasks) _data.dependants[idx].tasks = [];
         _data.dependants[idx].tasks.push(entry);
         _notify();
-
-        // Persist to database when integration is enabled
-        if (typeof DependantsDB !== 'undefined' && DependantsDB.isEnabled()) {
-            DependantsDB.addTask(depId, { task, description, dueDate, reward, recurring, frequency })
-                .catch(err => console.warn('DB: Failed to add task', err));
-        }
 
         return entry;
     }
@@ -339,10 +446,17 @@ const DependantsStore = (() => {
 
         _notify();
 
-        // Persist to database when integration is enabled
-        if (typeof DependantsDB !== 'undefined' && DependantsDB.isEnabled()) {
-            DependantsDB.editTask(depId, taskId, updates)
-                .catch(err => console.warn('DB: Failed to edit task', err));
+        // Persist to database
+        if (typeof API !== 'undefined') {
+            API.Dependants.editTask(depId, taskId, {
+                taskName: updates.task,
+                description: updates.description,
+                dueDate: updates.dueDate,
+                reward: updates.reward,
+                recurring: updates.recurring,
+                recurrenceCycle: updates.frequency,
+                taskStatus: updates.status
+            }).catch(function(err) { console.error('Edit task error:', err); });
         }
 
         return { ...task };
@@ -350,9 +464,6 @@ const DependantsStore = (() => {
 
     /**
      * Mark a task as complete.
-     * SQL: DependantSQL.COMPLETE_TASK
-     * @param {string} depId
-     * @param {string} taskId
      */
     function completeTask(depId, taskId) {
         const dep = _data.dependants.find(d => d.id === depId);
@@ -362,13 +473,44 @@ const DependantsStore = (() => {
         const task = dep.tasks.find(t => t.id === taskId);
         if (!task) throw new Error('Task not found.');
 
-        task.status = 'complete';
+        task.status = 'completed';
         _notify();
 
-        // Persist to database when integration is enabled
-        if (typeof DependantsDB !== 'undefined' && DependantsDB.isEnabled()) {
-            DependantsDB.completeTask(depId, taskId)
-                .catch(err => console.warn('DB: Failed to complete task', err));
+        // Persist to database
+        if (typeof API !== 'undefined') {
+            API.Dependants.editTask(depId, taskId, { taskStatus: 'completed' })
+                .then(function(result) {
+                    if (result.success) { loadFromAPI(); }
+                    else { console.error('Complete task failed:', result.error); }
+                })
+                .catch(function(err) { console.error('Complete task error:', err); });
+        }
+
+        return { ...task };
+    }
+
+    /**
+     * Mark a task as pending (undo completion).
+     */
+    function uncompleteTask(depId, taskId) {
+        const dep = _data.dependants.find(d => d.id === depId);
+        if (!dep) throw new Error('Dependant not found.');
+        if (!dep.tasks) dep.tasks = [];
+
+        const task = dep.tasks.find(t => t.id === taskId);
+        if (!task) throw new Error('Task not found.');
+
+        task.status = 'pending';
+        _notify();
+
+        // Persist to database
+        if (typeof API !== 'undefined') {
+            API.Dependants.editTask(depId, taskId, { taskStatus: 'pending' })
+                .then(function(result) {
+                    if (result.success) { loadFromAPI(); }
+                    else { console.error('Uncomplete task failed:', result.error); }
+                })
+                .catch(function(err) { console.error('Uncomplete task error:', err); });
         }
 
         return { ...task };
@@ -376,9 +518,6 @@ const DependantsStore = (() => {
 
     /**
      * Remove a task from a dependant.
-     * SQL: DependantSQL.DELETE_TASK
-     * @param {string} depId
-     * @param {string} taskId
      */
     function removeTask(depId, taskId) {
         const dep = _data.dependants.find(d => d.id === depId);
@@ -390,10 +529,10 @@ const DependantsStore = (() => {
         dep.tasks.splice(idx, 1);
         _notify();
 
-        // Persist to database when integration is enabled
-        if (typeof DependantsDB !== 'undefined' && DependantsDB.isEnabled()) {
-            DependantsDB.deleteTask(depId, taskId)
-                .catch(err => console.warn('DB: Failed to delete task', err));
+        // Persist to database
+        if (typeof API !== 'undefined') {
+            API.Dependants.deleteTask(depId, taskId)
+                .catch(function(err) { console.error('Delete task error:', err); });
         }
     }
 
@@ -448,9 +587,8 @@ const DependantsStore = (() => {
     ---------------------------------------------------------- */
     // Do NOT auto-load. Data comes from loadFromAPI().
 
-    // TEMPORARY: Load SEED data for local development/testing.
-    // When backend is running, comment this out and use loadFromAPI() instead.
-    _data = JSON.parse(JSON.stringify(SEED));
+    // No seed data — real data loaded from FlexScribeDB via loadFromAPI()
+    _data = { dependants: [] };
 
     return Object.freeze({
         // Data access
@@ -467,6 +605,7 @@ const DependantsStore = (() => {
         editTask,
         removeTask,
         completeTask,
+        uncompleteTask,
         getTasks,
         // API loading
         loadFromAPI,

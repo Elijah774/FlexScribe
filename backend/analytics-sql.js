@@ -367,7 +367,7 @@ const AnalyticsSQL = (() => {
         SELECT
             FORMAT(gc.createdAt, 'yyyy-MM') AS monthKey,
             FORMAT(gc.createdAt, 'MMM') AS monthLabel,
-            ISNULL(SUM(gc.amountCents), 0) AS totalContributedCents
+            ISNULL(SUM(gc.amount), 0) AS totalContributed
         FROM GoalContribution gc
         INNER JOIN FinancialGoal fg ON fg.goalID = gc.goalID
         WHERE fg.subscriberID = @subscriberID

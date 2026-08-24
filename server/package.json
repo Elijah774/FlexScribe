@@ -13,9 +13,13 @@
     "dotenv": "^16.4.5",
     "express": "^4.21.0",
     "jsonwebtoken": "^9.0.2",
+    "msnodesqlv8": "^5.2.3",
     "mssql": "^11.0.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.4"
+  },
+  "allowScripts": {
+    "msnodesqlv8@5.2.3": true
   }
 }

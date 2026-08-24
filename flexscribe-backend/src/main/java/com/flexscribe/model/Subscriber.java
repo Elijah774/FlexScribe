@@ -36,9 +36,9 @@ public class Subscriber {
     @Builder.Default
     private String userType = "MainMember";
 
-    @Column(name = "scribePoints", nullable = false)
+    @Column(name = "scribeScore", nullable = false)
     @Builder.Default
-    private Integer scribePoints = 0;
+    private Integer scribeScore = 0;
 
     @Column(name = "avatarUrl", length = 500)
     private String avatarUrl;

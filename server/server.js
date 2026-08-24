@@ -3,7 +3,7 @@
    Serves the frontend and provides REST endpoints for
    subscriptions, wallet, goals, dependants, notifications.
 =========================================================== */
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -26,6 +26,7 @@ app.use('/api/wallet', require('./routes/wallet'));
 app.use('/api/goals', require('./routes/goals'));
 app.use('/api/dependants', require('./routes/dependants'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/analytics', require('./routes/analytics'));
 
 // Health check
 app.get('/api/health', async (req, res) => {
@@ -46,6 +47,13 @@ app.get('/', (req, res) => {
 app.listen(PORT, async () => {
     try {
         await getPool();
+
+        // Auto-migrate: ensure avatarUrl can store data URIs
+        try {
+            const { query } = require('./db');
+            await query("IF COL_LENGTH('Subscriber', 'avatarUrl') IS NOT NULL ALTER TABLE Subscriber ALTER COLUMN avatarUrl VARCHAR(MAX) NULL");
+        } catch (e) { /* ignore if already done */ }
+
         console.log(`\n🚀 FlexScribe API running on http://localhost:${PORT}`);
         console.log(`📁 Frontend: http://localhost:${PORT}/landing.html`);
         console.log(`📁 App:      http://localhost:${PORT}/pages/MASTER.html\n`);

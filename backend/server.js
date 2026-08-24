@@ -19,15 +19,48 @@ if (!JWT_SECRET) {
 }
 const JWT_EXPIRES = "24h";
 
-const dbConfig = {
-    server: process.env.DB_SERVER,
-    port: 1433,
-    database: process.env.DB_DATABASE,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    authentication: { type: "default" },
-    options: { encrypt: true, trustServerCertificate: false }
-};
+/* ----------------------------------------------------------
+   DATABASE CONFIG
+   Supports two modes:
+   1. Windows Authentication (local): leave DB_USER empty
+      Requires msnodesqlv8 driver for Windows Auth support.
+   2. SQL Server Authentication (remote): set DB_USER + DB_PASSWORD
+   To switch between local/remote, edit backend/.env
+   (remote config preserved in backend/.env.remote)
+---------------------------------------------------------- */
+const dbConfig = (() => {
+    const useWindowsAuth = !process.env.DB_USER || process.env.DB_USER.trim() === '';
+    const encrypt = process.env.DB_ENCRYPT === 'true';
+    const trustCert = process.env.DB_TRUST_SERVER_CERTIFICATE !== 'false';
+
+    if (useWindowsAuth) {
+        // LOCAL: Windows Authentication via msnodesqlv8 driver
+        return {
+            driver: 'msnodesqlv8',
+            server: process.env.DB_SERVER || 'localhost',
+            database: process.env.DB_DATABASE || 'FlexScribeDB',
+            options: {
+                encrypt: encrypt,
+                trustServerCertificate: trustCert,
+                trustedConnection: true
+            }
+        };
+    } else {
+        // REMOTE: SQL Server Authentication (username/password)
+        return {
+            server: process.env.DB_SERVER,
+            port: 1433,
+            database: process.env.DB_DATABASE,
+            user: process.env.DB_USER,
+            password: process.env.DB_PASSWORD,
+            authentication: { type: "default" },
+            options: {
+                encrypt: encrypt,
+                trustServerCertificate: trustCert
+            }
+        };
+    }
+})();
 
 /* ===========================================================
    DB POOL
@@ -62,11 +95,11 @@ function authenticate(req, res, next) {
     }
 }
 
-/** Get walletIDNum for a subscriber */
+/** Get walletID for a subscriber */
 async function getUserWalletID(p, subscriberID) {
     const r = await p.request().input("subID", sql.Int, subscriberID)
-        .query("SELECT walletIDNum FROM VirtualWallet WHERE subscriberID = @subID");
-    return r.recordset.length > 0 ? r.recordset[0].walletIDNum : null;
+        .query("SELECT walletID FROM VirtualWallet WHERE subscriberID = @subID");
+    return r.recordset.length > 0 ? r.recordset[0].walletID : null;
 }
 
 /* ===========================================================
@@ -102,7 +135,7 @@ app.get("/test-tables", async (req, res) => {
 
 /* ===========================================================
    AUTH
-   Schema: Subscriber(subscriberID PK, firstName, lastName, prefferedName, email, passwordHash, userType)
+   Schema: Subscriber(subscriberID PK, firstName, lastName, preferredName, email, passwordHash, userType, scribeScore, createdAt, updatedAt)
 =========================================================== */
 app.post("/auth/register", async (req, res) => {
     try {
@@ -135,7 +168,7 @@ app.post("/auth/register", async (req, res) => {
             await p.request().input("subID", sql.Int, user.subscriberID).input("bal", sql.Decimal(18, 2), 0)
                 .query("INSERT INTO VirtualWallet (subscriberID, balance) VALUES (@subID, @bal)");
         } catch (we) { console.warn("Wallet creation note:", we.message); }
-        res.status(201).json({ success: true, data: { token, user: { id: user.subscriberID, name: user.firstName + " " + user.lastName, email: user.email, userType: user.userType }, scribePoints: 500 } });
+        res.status(201).json({ success: true, data: { token, user: { id: user.subscriberID, name: user.firstName + " " + user.lastName, email: user.email, userType: user.userType }, scribeScore: 500 } });
     } catch (error) {
         console.error("Registration error:", error);
         res.status(500).json({ success: false, message: "Registration failed" });
@@ -193,7 +226,7 @@ app.get("/auth/me", authenticate, async (req, res) => {
 
 /* ===========================================================
    SUBSCRIPTIONS
-   Schema: Subscription(subscriptionID PK, subscriberID FK, categoryID FK(int), serviceName, billingAmount, billingDate, subStatus, autoRenew, amtDueAtDate, planType, subPriority)
+   Schema: Subscription(subscriptionID PK, subscriberID FK, categoryID FK, serviceName, billingAmount, billingCycle, billingDate, subStatus, autoRenew, logoClass, logoText, notes, colorTag, reminderDays, providerUrl, createdAt, updatedAt)
    SubscriptionCategory(categoryID PK, categoryName)
 =========================================================== */
 app.get("/subscriptions", authenticate, async (req, res) => {
@@ -202,7 +235,7 @@ app.get("/subscriptions", authenticate, async (req, res) => {
         const result = await p.request().input("subID", sql.Int, req.user.subscriberID)
             .query(`
                 SELECT s.subscriptionID, s.serviceName, sc.categoryName, s.billingAmount,
-                       s.billingDate, s.subStatus, s.autoRenew, s.planType, s.categoryID
+                       s.billingDate, s.subStatus, s.autoRenew, s.notes, s.categoryID
                 FROM Subscription s
                 LEFT JOIN SubscriptionCategory sc ON s.categoryID = sc.categoryID
                 WHERE s.subscriberID = @subID
@@ -219,7 +252,7 @@ app.get("/subscriptions", authenticate, async (req, res) => {
                 active: s.subStatus === "active",
                 logoClass: "default",
                 logoText: (s.serviceName || "?").charAt(0).toUpperCase(),
-                notes: s.planType || "",
+                notes: s.notes || "",
                 createdAt: ""
             };
         });
@@ -249,11 +282,11 @@ app.post("/subscriptions", authenticate, async (req, res) => {
             .input("amount", sql.Decimal(10, 2), parseFloat(amount))
             .input("date", sql.Date, nextPaymentDate || null)
             .input("status", sql.VarChar(50), "active")
-            .input("plan", sql.VarChar(50), notes || "")
+            .input("notes", sql.VarChar(500), notes || "")
             .query(`
-                INSERT INTO Subscription (subscriberID, categoryID, serviceName, billingAmount, billingDate, subStatus, planType)
+                INSERT INTO Subscription (subscriberID, categoryID, serviceName, billingAmount, billingDate, subStatus, notes)
                 OUTPUT INSERTED.subscriptionID
-                VALUES (@subID, @catID, @name, @amount, @date, @status, @plan)
+                VALUES (@subID, @catID, @name, @amount, @date, @status, @notes)
             `);
         res.status(201).json({ success: true, data: { id: result.recordset[0].subscriptionID, name: name, category: category || "Other", amount: parseFloat(amount), active: true } });
     } catch (error) {
@@ -274,7 +307,7 @@ app.patch("/subscriptions/:id", authenticate, async (req, res) => {
         if (name !== undefined) { sets.push("serviceName = @n"); request.input("n", sql.VarChar(200), name); }
         if (amount !== undefined) { sets.push("billingAmount = @a"); request.input("a", sql.Decimal(10, 2), parseFloat(amount)); }
         if (nextPaymentDate !== undefined) { sets.push("billingDate = @d"); request.input("d", sql.Date, nextPaymentDate); }
-        if (notes !== undefined) { sets.push("planType = @p"); request.input("p", sql.VarChar(50), notes); }
+        if (notes !== undefined) { sets.push("notes = @p"); request.input("p", sql.VarChar(500), notes); }
         if (category !== undefined) {
             var catLookup = await p.request().input("catName", sql.VarChar(100), category)
                 .query("SELECT categoryID FROM SubscriptionCategory WHERE categoryName = @catName");
@@ -324,25 +357,24 @@ app.get("/subscriptions/providers", (req, res) => {
 
 /* ===========================================================
    GOALS
-   Schema: FinancialGoal(goalID PK, subscriberID FK, goalName, targetAmount, currentProgress, deadLine, lastTopUpDate, riskFlagStatus)
-   Note: Frontend uses savedCents/targetCents. We map currentProgress↔savedCents, deadLine↔targetDate.
-   No goalStatus column exists; we derive status from currentProgress vs targetAmount.
+   Schema: FinancialGoal(goalID PK, subscriberID FK, goalName, targetAmount, currentProgress, deadline, category, imageUrl, goalStatus, lastTopUpDate, createdAt)
+   Note: Frontend uses savedCents/targetCents. We map currentProgress↔savedCents, deadline↔targetDate.
 =========================================================== */
 app.get("/goals", authenticate, async (req, res) => {
     try {
         const p = await getPool();
         const result = await p.request().input("subID", sql.Int, req.user.subscriberID)
-            .query("SELECT goalID, goalName, targetAmount, currentProgress, deadLine, lastTopUpDate FROM FinancialGoal WHERE subscriberID = @subID ORDER BY goalID DESC");
+            .query("SELECT goalID, goalName, targetAmount, currentProgress, deadline, lastTopUpDate, goalStatus FROM FinancialGoal WHERE subscriberID = @subID ORDER BY goalID DESC");
         var data = result.recordset.map(function(g) {
             var saved = g.currentProgress || 0;
             var target = g.targetAmount || 0;
-            var status = saved >= target && target > 0 ? "completed" : "active";
+            var status = g.goalStatus || 'active';
             return {
                 id: g.goalID,
                 name: g.goalName,
                 targetCents: Math.round(target * 100),
                 savedCents: Math.round(saved * 100),
-                targetDate: g.deadLine ? new Date(g.deadLine).toISOString().slice(0, 10) : null,
+                targetDate: g.deadline ? new Date(g.deadline).toISOString().slice(0, 10) : null,
                 status: status,
                 createdAt: g.lastTopUpDate ? new Date(g.lastTopUpDate).toISOString().slice(0, 10) : ""
             };
@@ -366,7 +398,7 @@ app.post("/goals", authenticate, async (req, res) => {
             .input("target", sql.Decimal(18, 2), target)
             .input("progress", sql.Decimal(18, 2), 0)
             .input("deadline", sql.Date, targetDate || null)
-            .query("INSERT INTO FinancialGoal (subscriberID, goalName, targetAmount, currentProgress, deadLine) OUTPUT INSERTED.goalID VALUES (@subID, @name, @target, @progress, @deadline)");
+            .query("INSERT INTO FinancialGoal (subscriberID, goalName, targetAmount, currentProgress, deadline) OUTPUT INSERTED.goalID VALUES (@subID, @name, @target, @progress, @deadline)");
         res.status(201).json({ success: true, data: { id: result.recordset[0].goalID, name: name, targetCents: targetCents, savedCents: 0, status: "active" } });
     } catch (error) {
         console.error("Add goal error:", error);
@@ -385,7 +417,7 @@ app.patch("/goals/:id", authenticate, async (req, res) => {
         var request = p.request().input("id", sql.Int, req.params.id);
         if (name !== undefined) { sets.push("goalName = @n"); request.input("n", sql.VarChar(200), name); }
         if (targetCents !== undefined) { sets.push("targetAmount = @t"); request.input("t", sql.Decimal(18, 2), targetCents / 100); }
-        if (targetDate !== undefined) { sets.push("deadLine = @d"); request.input("d", sql.Date, targetDate); }
+        if (targetDate !== undefined) { sets.push("deadline = @d"); request.input("d", sql.Date, targetDate); }
         if (sets.length === 0) return res.status(400).json({ success: false, message: "No fields to update" });
         await request.query("UPDATE FinancialGoal SET " + sets.join(", ") + " WHERE goalID = @id");
         res.json({ success: true, data: { id: parseInt(req.params.id) } });
@@ -432,15 +464,15 @@ app.post("/goals/:id/contribute", authenticate, async (req, res) => {
 
 /* ===========================================================
    WALLET
-   Schema: VirtualWallet(walletIDNum PK, subscriberID FK, balance, availableBal, amtDueAtDate, lastTopUpDate, totalDeposits, firstName, lastName)
-   WalletTransaction(transactionID PK, walletIDNum FK, subscriptionID, spendingReportID, scoreID, transactionType, transactionDate, transactionAmount)
-   Note: WalletTransaction links to wallet via walletIDNum, NOT subscriberID.
+   Schema: VirtualWallet(walletID PK, subscriberID FK, balance, pendingIn, pendingOut, currency, lastTopUpDate, createdAt)
+   WalletTransaction(transactionID PK, walletID FK, subscriptionID, goalID, dependantID, transactionType, transactionAmount, runningBalance, description, category, transactionDate)
+   Note: WalletTransaction links to wallet via walletID.
 =========================================================== */
 app.get("/wallet/balance", authenticate, async (req, res) => {
     try {
         const p = await getPool();
         const result = await p.request().input("subID", sql.Int, req.user.subscriberID)
-            .query("SELECT walletIDNum, balance, availableBal FROM VirtualWallet WHERE subscriberID = @subID");
+            .query("SELECT walletID, balance FROM VirtualWallet WHERE subscriberID = @subID");
         if (result.recordset.length === 0) return res.json({ success: true, data: { balanceCents: 0, pendingInCents: 0, pendingOutCents: 0 } });
         var w = result.recordset[0];
         res.json({ success: true, data: { balanceCents: Math.round((w.balance || 0) * 100), pendingInCents: 0, pendingOutCents: 0 } });
@@ -456,7 +488,7 @@ app.get("/wallet/history", authenticate, async (req, res) => {
         var walletID = await getUserWalletID(p, req.user.subscriberID);
         if (!walletID) return res.json({ success: true, data: [] });
         const result = await p.request().input("wid", sql.Int, walletID)
-            .query("SELECT transactionID, transactionType, transactionAmount, transactionDate FROM WalletTransaction WHERE walletIDNum = @wid ORDER BY transactionDate DESC");
+            .query("SELECT transactionID, transactionType, transactionAmount, transactionDate FROM WalletTransaction WHERE walletID = @wid ORDER BY transactionDate DESC");
         var data = result.recordset.map(function(t) {
             return {
                 date: t.transactionDate ? new Date(t.transactionDate).toISOString().slice(0, 10) : "",
@@ -482,12 +514,12 @@ app.post("/wallet/add-funds", authenticate, async (req, res) => {
         if (!walletID) return res.status(404).json({ success: false, message: "Wallet not found" });
         // Update balance
         await p.request().input("wid", sql.Int, walletID).input("amt", sql.Decimal(18, 2), amount)
-            .query("UPDATE VirtualWallet SET balance = balance + @amt, lastTopUpDate = CAST(GETDATE() AS date), totalDeposits = ISNULL(totalDeposits, 0) + @amt WHERE walletIDNum = @wid");
+            .query("UPDATE VirtualWallet SET balance = balance + @amt, lastTopUpDate = GETDATE() WHERE walletID = @wid");
         // Record transaction
         await p.request().input("wid", sql.Int, walletID).input("type", sql.VarChar(100), "credit").input("amt", sql.Decimal(18, 2), amount)
-            .query("INSERT INTO WalletTransaction (walletIDNum, transactionType, transactionAmount, transactionDate) VALUES (@wid, @type, @amt, GETDATE())");
+            .query("INSERT INTO WalletTransaction (walletID, transactionType, transactionAmount, transactionDate) VALUES (@wid, @type, @amt, GETDATE())");
         // Return new balance
-        var bal = await p.request().input("wid", sql.Int, walletID).query("SELECT balance FROM VirtualWallet WHERE walletIDNum = @wid");
+        var bal = await p.request().input("wid", sql.Int, walletID).query("SELECT balance FROM VirtualWallet WHERE walletID = @wid");
         res.json({ success: true, data: { balanceCents: Math.round((bal.recordset[0].balance || 0) * 100) } });
     } catch (error) {
         console.error("Add funds error:", error);
@@ -503,13 +535,13 @@ app.post("/wallet/withdraw", authenticate, async (req, res) => {
         const p = await getPool();
         var walletID = await getUserWalletID(p, req.user.subscriberID);
         if (!walletID) return res.status(404).json({ success: false, message: "Wallet not found" });
-        var balCheck = await p.request().input("wid", sql.Int, walletID).query("SELECT balance FROM VirtualWallet WHERE walletIDNum = @wid");
+        var balCheck = await p.request().input("wid", sql.Int, walletID).query("SELECT balance FROM VirtualWallet WHERE walletID = @wid");
         if (balCheck.recordset[0].balance < amount) return res.status(422).json({ success: false, message: "Insufficient funds" });
         await p.request().input("wid", sql.Int, walletID).input("amt", sql.Decimal(18, 2), amount)
-            .query("UPDATE VirtualWallet SET balance = balance - @amt WHERE walletIDNum = @wid");
+            .query("UPDATE VirtualWallet SET balance = balance - @amt WHERE walletID = @wid");
         await p.request().input("wid", sql.Int, walletID).input("type", sql.VarChar(100), "debit").input("amt", sql.Decimal(18, 2), amount)
-            .query("INSERT INTO WalletTransaction (walletIDNum, transactionType, transactionAmount, transactionDate) VALUES (@wid, @type, @amt, GETDATE())");
-        var newBal = await p.request().input("wid", sql.Int, walletID).query("SELECT balance FROM VirtualWallet WHERE walletIDNum = @wid");
+            .query("INSERT INTO WalletTransaction (walletID, transactionType, transactionAmount, transactionDate) VALUES (@wid, @type, @amt, GETDATE())");
+        var newBal = await p.request().input("wid", sql.Int, walletID).query("SELECT balance FROM VirtualWallet WHERE walletID = @wid");
         res.json({ success: true, data: { balanceCents: Math.round((newBal.recordset[0].balance || 0) * 100) } });
     } catch (error) {
         console.error("Withdraw error:", error);
@@ -525,14 +557,14 @@ app.post("/wallet/transfer", authenticate, async (req, res) => {
         const p = await getPool();
         var walletID = await getUserWalletID(p, req.user.subscriberID);
         if (!walletID) return res.status(404).json({ success: false, message: "Wallet not found" });
-        var balCheck = await p.request().input("wid", sql.Int, walletID).query("SELECT balance FROM VirtualWallet WHERE walletIDNum = @wid");
+        var balCheck = await p.request().input("wid", sql.Int, walletID).query("SELECT balance FROM VirtualWallet WHERE walletID = @wid");
         if (balCheck.recordset[0].balance < amount) return res.status(422).json({ success: false, message: "Insufficient funds" });
         // Debit wallet
         await p.request().input("wid", sql.Int, walletID).input("amt", sql.Decimal(18, 2), amount)
-            .query("UPDATE VirtualWallet SET balance = balance - @amt WHERE walletIDNum = @wid");
+            .query("UPDATE VirtualWallet SET balance = balance - @amt WHERE walletID = @wid");
         // Record transaction
         await p.request().input("wid", sql.Int, walletID).input("type", sql.VarChar(100), "transfer").input("amt", sql.Decimal(18, 2), amount)
-            .query("INSERT INTO WalletTransaction (walletIDNum, transactionType, transactionAmount, transactionDate) VALUES (@wid, @type, @amt, GETDATE())");
+            .query("INSERT INTO WalletTransaction (walletID, transactionType, transactionAmount, transactionDate) VALUES (@wid, @type, @amt, GETDATE())");
         res.json({ success: true, data: { transferred: true, amountCents: amountCents } });
     } catch (error) {
         console.error("Transfer error:", error);
@@ -542,11 +574,10 @@ app.post("/wallet/transfer", authenticate, async (req, res) => {
 
 /* ===========================================================
    DEPENDANTS
-   Schema: Dependant(dependantID PK/FK→Subscriber, mainMemberID FK→MainMember, age, relationship, availableBal)
+   Schema: Dependant(dependantID PK/FK→Subscriber, mainMemberID FK→MainMember, age, relationship, allowance, spendingLimit, status)
    MainMember(mainMemberID PK/FK→Subscriber, monthlyIncome, planType, riskFlagStatus)
    The dependantID IS a subscriberID. To get names we JOIN Subscriber.
    mainMemberID links to the MainMember table which itself links to Subscriber.
-   Limitation: No dependantName/email/allowance/status columns exist. Names come from Subscriber table.
 =========================================================== */
 app.get("/dependants", authenticate, async (req, res) => {
     try {
@@ -554,7 +585,7 @@ app.get("/dependants", authenticate, async (req, res) => {
         // The authenticated user's subscriberID should match a mainMemberID
         const result = await p.request().input("subID", sql.Int, req.user.subscriberID)
             .query(`
-                SELECT d.dependantID, d.relationship, d.age, d.availableBal,
+                SELECT d.dependantID, d.relationship, d.age, d.allowance,
                        s.firstName, s.lastName, s.email
                 FROM Dependant d
                 JOIN Subscriber s ON d.dependantID = s.subscriberID
@@ -567,7 +598,7 @@ app.get("/dependants", authenticate, async (req, res) => {
                 name: d.firstName + " " + d.lastName,
                 relationship: d.relationship || "Other",
                 email: d.email || "",
-                allowanceCents: Math.round((d.availableBal || 0) * 100),
+                allowanceCents: Math.round((d.allowance || 0) * 100),
                 status: "active"
             };
         });
@@ -587,7 +618,7 @@ app.post("/dependants", authenticate, async (req, res) => {
         var parts = name.trim().split(/\s+/);
         var firstName = parts[0] || "Dependant";
         var lastName = parts.slice(1).join(" ") || "User";
-        var availableBal = (allowanceCents || 0) / 100;
+        var allowanceAmt = (allowanceCents || 0) / 100;
         const p = await getPool();
         // Ensure the authenticated user exists in MainMember
         var mmCheck = await p.request().input("subID", sql.Int, req.user.subscriberID)
@@ -613,8 +644,8 @@ app.post("/dependants", authenticate, async (req, res) => {
             .input("depID", sql.Int, newSubID)
             .input("mmID", sql.Int, req.user.subscriberID)
             .input("rel", sql.VarChar(100), relationship || "Other")
-            .input("bal", sql.Decimal(18, 2), availableBal)
-            .query("INSERT INTO Dependant (dependantID, mainMemberID, relationship, availableBal) VALUES (@depID, @mmID, @rel, @bal)");
+            .input("bal", sql.Decimal(18, 2), allowanceAmt)
+            .query("INSERT INTO Dependant (dependantID, mainMemberID, relationship, allowance) VALUES (@depID, @mmID, @rel, @bal)");
         res.status(201).json({ success: true, data: { id: newSubID, name: name, status: "active" } });
     } catch (error) {
         console.error("Add dependant error:", error);
@@ -635,7 +666,7 @@ app.patch("/dependants/:id", authenticate, async (req, res) => {
             var dSets = [];
             var dReq = p.request().input("id", sql.Int, req.params.id);
             if (relationship !== undefined) { dSets.push("relationship = @r"); dReq.input("r", sql.VarChar(100), relationship); }
-            if (allowanceCents !== undefined) { dSets.push("availableBal = @b"); dReq.input("b", sql.Decimal(18, 2), allowanceCents / 100); }
+            if (allowanceCents !== undefined) { dSets.push("allowance = @b"); dReq.input("b", sql.Decimal(18, 2), allowanceCents / 100); }
             if (dSets.length > 0) await dReq.query("UPDATE Dependant SET " + dSets.join(", ") + " WHERE dependantID = @id");
         }
         // Update Subscriber name if provided
@@ -679,9 +710,9 @@ app.post("/dependants/:id/allowance", authenticate, async (req, res) => {
         var check = await p.request().input("id", sql.Int, req.params.id).input("mmID", sql.Int, req.user.subscriberID)
             .query("SELECT dependantID FROM Dependant WHERE dependantID = @id AND mainMemberID = @mmID");
         if (check.recordset.length === 0) return res.status(404).json({ success: false, message: "Not found" });
-        // Update the dependant's availableBal
+        // Update the dependant's allowance
         await p.request().input("id", sql.Int, req.params.id).input("amt", sql.Decimal(18, 2), amount)
-            .query("UPDATE Dependant SET availableBal = ISNULL(availableBal, 0) + @amt WHERE dependantID = @id");
+            .query("UPDATE Dependant SET allowance = ISNULL(allowance, 0) + @amt WHERE dependantID = @id");
         res.json({ success: true, data: { sent: true, amountCents: amountCents } });
     } catch (error) {
         console.error("Send allowance error:", error);
@@ -691,24 +722,22 @@ app.post("/dependants/:id/allowance", authenticate, async (req, res) => {
 
 /* ===========================================================
    NOTIFICATIONS
-   Schema: Notification(notificationID PK, transactionID FK(NOT NULL), subscriberID FK, subscriptionID FK, notificationMessage, notificationDate, notificationStatus, riskFlagStatus)
-   Note: No title/body/isRead/priority columns. We map: title→first line of notificationMessage, isRead→(notificationStatus='read')
+   Schema: Notification(notificationID PK, subscriberID FK, subscriptionID FK, transactionID FK, notificationType, title, body, isRead, priority, linkTo, createdAt)
 =========================================================== */
 app.get("/notifications", authenticate, async (req, res) => {
     try {
         const p = await getPool();
         const result = await p.request().input("subID", sql.Int, req.user.subscriberID)
-            .query("SELECT notificationID, notificationMessage, notificationDate, notificationStatus, riskFlagStatus FROM Notification WHERE subscriberID = @subID ORDER BY notificationDate DESC");
+            .query("SELECT notificationID, title, body, isRead, priority, notificationType, createdAt FROM Notification WHERE subscriberID = @subID ORDER BY createdAt DESC");
         var data = result.recordset.map(function(n) {
-            var msg = n.notificationMessage || "";
             return {
                 id: n.notificationID,
-                type: n.riskFlagStatus || "general",
-                title: msg.length > 80 ? msg.substring(0, 80) + "..." : msg,
-                body: msg,
-                isRead: n.notificationStatus === "read",
-                priority: n.riskFlagStatus === "high" ? "high" : "low",
-                createdAt: n.notificationDate ? new Date(n.notificationDate).toISOString() : ""
+                type: n.notificationType || "general",
+                title: n.title || "",
+                body: n.body || "",
+                isRead: n.isRead ? true : false,
+                priority: n.priority || "medium",
+                createdAt: n.createdAt ? new Date(n.createdAt).toISOString() : ""
             };
         });
         res.json({ success: true, data: data });
@@ -722,7 +751,7 @@ app.post("/notifications/:id/read", authenticate, async (req, res) => {
     try {
         const p = await getPool();
         await p.request().input("id", sql.Int, req.params.id).input("subID", sql.Int, req.user.subscriberID)
-            .query("UPDATE Notification SET notificationStatus = 'read' WHERE notificationID = @id AND subscriberID = @subID");
+            .query("UPDATE Notification SET isRead = 1 WHERE notificationID = @id AND subscriberID = @subID");
         res.json({ success: true, data: { updated: true } });
     } catch (error) {
         console.error("Mark read error:", error);
@@ -734,7 +763,7 @@ app.post("/notifications/mark-all-read", authenticate, async (req, res) => {
     try {
         const p = await getPool();
         var result = await p.request().input("subID", sql.Int, req.user.subscriberID)
-            .query("UPDATE Notification SET notificationStatus = 'read' WHERE subscriberID = @subID AND (notificationStatus IS NULL OR notificationStatus != 'read')");
+            .query("UPDATE Notification SET isRead = 1 WHERE subscriberID = @subID AND isRead = 0");
         res.json({ success: true, data: { updated: result.rowsAffected[0] } });
     } catch (error) {
         console.error("Mark all read error:", error);
@@ -744,7 +773,7 @@ app.post("/notifications/mark-all-read", authenticate, async (req, res) => {
 
 /* ===========================================================
    ANALYTICS
-   Uses: WalletTransaction (via walletIDNum JOIN), Subscription, FinancialGoal
+   Uses: WalletTransaction (via walletID JOIN), Subscription, FinancialGoal
 =========================================================== */
 app.get("/analytics/summary", authenticate, async (req, res) => {
     try {
@@ -754,14 +783,39 @@ app.get("/analytics/summary", authenticate, async (req, res) => {
         var totalIncomeCents = 0;
         if (walletID) {
             var spent = await p.request().input("wid", sql.Int, walletID)
-                .query("SELECT ISNULL(SUM(transactionAmount), 0) AS total FROM WalletTransaction WHERE walletIDNum = @wid AND transactionType = 'debit' AND transactionDate >= DATEADD(day, -30, GETDATE())");
+                .query("SELECT ISNULL(SUM(transactionAmount), 0) AS total FROM WalletTransaction WHERE walletID = @wid AND transactionType = 'debit' AND transactionDate >= DATEADD(day, -30, GETDATE())");
             var income = await p.request().input("wid", sql.Int, walletID)
-                .query("SELECT ISNULL(SUM(transactionAmount), 0) AS total FROM WalletTransaction WHERE walletIDNum = @wid AND transactionType = 'credit' AND transactionDate >= DATEADD(day, -30, GETDATE())");
+                .query("SELECT ISNULL(SUM(transactionAmount), 0) AS total FROM WalletTransaction WHERE walletID = @wid AND transactionType = 'credit' AND transactionDate >= DATEADD(day, -30, GETDATE())");
             totalSpentCents = Math.round((spent.recordset[0].total || 0) * 100);
             totalIncomeCents = Math.round((income.recordset[0].total || 0) * 100);
         }
-        var rate = totalIncomeCents > 0 ? Math.round(((totalIncomeCents - totalSpentCents) / totalIncomeCents) * 1000) / 10 : 0;
-        res.json({ success: true, data: { totalSpentCents: totalSpentCents, totalIncomeCents: totalIncomeCents, netSavingsRate: rate, vsLastMonth: { spent: 0, income: 0 } } });
+        // Risk Score calculation (0-100, lower = safer)
+        var riskScore = 50; // Start neutral
+        if (totalIncomeCents > 0) {
+            var spendRatio = totalSpentCents / totalIncomeCents;
+            if (spendRatio > 0.8) riskScore += 20;       // Spending > 80% of income
+            else if (spendRatio > 0.6) riskScore += 10;  // Spending 60-80%
+            else if (spendRatio < 0.4) riskScore -= 15;  // Spending < 40%
+            else riskScore -= 5;                          // Spending 40-60% (healthy)
+        } else if (totalSpentCents > 0) {
+            riskScore += 25; // Spending with no income = dangerous
+        } else {
+            riskScore = 30; // No activity = low risk baseline
+        }
+        // Factor in subscriptions
+        var subCount = await p.request().input("subID", sql.Int, req.user.subscriberID)
+            .query("SELECT COUNT(*) AS cnt FROM Subscription WHERE subscriberID = @subID AND subStatus = 'active'");
+        var activeSubs = subCount.recordset[0].cnt || 0;
+        if (activeSubs > 5) riskScore += 5;
+        else if (activeSubs > 10) riskScore += 10;
+        // Factor in goal progress
+        var goalProgress = await p.request().input("subID", sql.Int, req.user.subscriberID)
+            .query("SELECT COUNT(*) AS cnt, ISNULL(AVG(CASE WHEN targetAmount > 0 THEN (currentProgress / targetAmount) * 100 ELSE 0 END), 0) AS avgPct FROM FinancialGoal WHERE subscriberID = @subID");
+        var avgGoalPct = goalProgress.recordset[0].avgPct || 0;
+        if (avgGoalPct > 50) riskScore -= 5; // Good savings habits
+        // Clamp between 0 and 100
+        riskScore = Math.max(0, Math.min(100, Math.round(riskScore)));
+        res.json({ success: true, data: { totalSpentCents: totalSpentCents, totalIncomeCents: totalIncomeCents, riskScore: riskScore, vsLastMonth: { spent: 0, income: 0 } } });
     } catch (error) {
         console.error("Analytics summary error:", error);
         res.status(500).json({ success: false, message: "Could not retrieve analytics" });
@@ -805,7 +859,7 @@ app.get("/analytics/trend", authenticate, async (req, res) => {
             .query(`
                 SELECT FORMAT(transactionDate, 'MMM') AS month, MONTH(transactionDate) AS monthNum, SUM(transactionAmount) AS total
                 FROM WalletTransaction
-                WHERE walletIDNum = @wid AND transactionType = 'debit' AND transactionDate >= DATEADD(month, -6, GETDATE())
+                WHERE walletID = @wid AND transactionType = 'debit' AND transactionDate >= DATEADD(month, -6, GETDATE())
                 GROUP BY FORMAT(transactionDate, 'MMM'), MONTH(transactionDate)
                 ORDER BY monthNum
             `);
@@ -878,7 +932,7 @@ app.post("/reports/compile", authenticate, async (req, res) => {
         var totalWithdrawals = 0; var totalIncome = 0; var transactions = [];
         if (walletID) {
             var txResult = await p.request().input("wid", sql.Int, walletID).input("start", sql.Date, startStr).input("end", sql.Date, endStr)
-                .query("SELECT transactionType, transactionAmount, transactionDate FROM WalletTransaction WHERE walletIDNum = @wid AND transactionDate BETWEEN @start AND @end ORDER BY transactionDate DESC");
+                .query("SELECT transactionType, transactionAmount, transactionDate FROM WalletTransaction WHERE walletID = @wid AND transactionDate BETWEEN @start AND @end ORDER BY transactionDate DESC");
             txResult.recordset.forEach(function(t) {
                 if (t.transactionType === 'credit') totalIncome += (t.transactionAmount || 0);
                 else totalWithdrawals += (t.transactionAmount || 0);
@@ -890,22 +944,21 @@ app.post("/reports/compile", authenticate, async (req, res) => {
         var goals = goalsResult.recordset.map(function(g) { return { name: g.goalName, target: g.targetAmount, saved: g.currentProgress, pct: g.targetAmount > 0 ? Math.round((g.currentProgress / g.targetAmount) * 100) : 0 }; });
         var catResult = await p.request().input("subID", sql.Int, req.user.subscriberID).query("SELECT sc.categoryName, SUM(s.billingAmount) AS total FROM Subscription s JOIN SubscriptionCategory sc ON s.categoryID = sc.categoryID WHERE s.subscriberID = @subID AND s.subStatus = 'active' GROUP BY sc.categoryName ORDER BY total DESC");
         var categories = catResult.recordset.map(function(c) { return { category: c.categoryName, amount: c.total }; });
-        var scoreResult = await p.request().input("subID", sql.Int, req.user.subscriberID).query("SELECT scoreID, scoreValue FROM ScribeScore WHERE subscriberID = @subID ORDER BY generateDate DESC");
+        var scoreResult = await p.request().input("subID", sql.Int, req.user.subscriberID).query("SELECT scoreID, scoreValue FROM ScribeScore WHERE subscriberID = @subID ORDER BY generatedAt DESC");
         var scribeScore = scoreResult.recordset.length > 0 ? scoreResult.recordset[0].scoreValue : 0;
-        var scoreID = scoreResult.recordset.length > 0 ? scoreResult.recordset[0].scoreID : null;
         var riskLevel = 'low';
         if (totalIncome > 0) { var sr = savings / totalIncome; if (sr < 0) riskLevel = 'high'; else if (sr < 0.1) riskLevel = 'medium'; }
         else if (totalWithdrawals > 0) riskLevel = 'high';
         var mmCheck = await p.request().input("subID", sql.Int, req.user.subscriberID).query("SELECT mainMemberID FROM MainMember WHERE mainMemberID = @subID");
         if (mmCheck.recordset.length === 0) await p.request().input("subID", sql.Int, req.user.subscriberID).query("INSERT INTO MainMember (mainMemberID) VALUES (@subID)");
         var insertResult = await p.request()
-            .input("mmID", sql.Int, req.user.subscriberID).input("scoreID", sql.Int, scoreID)
+            .input("mmID", sql.Int, req.user.subscriberID)
             .input("startDate", sql.Date, startStr).input("endDate", sql.Date, endStr)
             .input("subCost", sql.Decimal(18, 2), totalSubCost).input("withdrawals", sql.Decimal(18, 2), totalWithdrawals)
             .input("balance", sql.Decimal(18, 2), balance).input("risk", sql.VarChar(50), riskLevel)
             .input("income", sql.Decimal(18, 2), totalIncome).input("expenses", sql.Decimal(18, 2), totalWithdrawals)
             .input("savings", sql.Decimal(18, 2), savings).input("riskFlag", sql.VarChar(50), riskLevel)
-            .query("INSERT INTO FinancialReport (mainMemberID, scoreID, startDate, endDate, totalSubscriptionCost, totalWithdrawals, remainingBalance, riskLevel, income, expenses, savings, riskFlagStatus) OUTPUT INSERTED.reportID VALUES (@mmID, @scoreID, @startDate, @endDate, @subCost, @withdrawals, @balance, @risk, @income, @expenses, @savings, @riskFlag)");
+            .query("INSERT INTO FinancialReport (mainMemberID, startDate, endDate, totalSubscriptionCost, totalWithdrawals, remainingBalance, riskLevel, income, expenses, savings, riskFlagStatus) OUTPUT INSERTED.reportID VALUES (@mmID, @startDate, @endDate, @subCost, @withdrawals, @balance, @risk, @income, @expenses, @savings, @riskFlag)");
         await p.request()
             .input("subID", sql.Int, req.user.subscriberID).input("genDate", sql.Date, new Date().toISOString().slice(0, 10))
             .input("startDate", sql.Date, startStr).input("endDate", sql.Date, endStr)
@@ -1096,18 +1149,16 @@ app.post("/bank-statements/upload", authenticate, upload.single("statement"), as
                     VALUES (@subID, @uploadDate, @fileRef, @periodStart, @periodEnd, @totalIncome, @totalExpenses, @netCashFlow, @txCount, @parsedData, @status, @monthly)`);
         // Increment ScribeScore by 100
         var existingScore = await p.request().input("subID", sql.Int, req.user.subscriberID)
-            .query("SELECT scoreID, scoreValue FROM ScribeScore WHERE subscriberID = @subID ORDER BY generateDate DESC");
+            .query("SELECT scoreID, scoreValue FROM ScribeScore WHERE subscriberID = @subID ORDER BY generatedAt DESC");
         if (existingScore.recordset.length > 0) {
             var currentScore = existingScore.recordset[0].scoreValue || 0;
             await p.request().input("id", sql.Int, existingScore.recordset[0].scoreID)
-                .input("newScore", sql.Decimal(10, 4), currentScore + 100)
-                .input("genDate", sql.Date, new Date().toISOString().slice(0, 10))
-                .query("UPDATE ScribeScore SET scoreValue = @newScore, generateDate = @genDate WHERE scoreID = @id");
+                .input("newScore", sql.Int, currentScore + 100)
+                .query("UPDATE ScribeScore SET scoreValue = @newScore WHERE scoreID = @id");
         } else {
             await p.request().input("subID", sql.Int, req.user.subscriberID)
-                .input("score", sql.Decimal(10, 4), 100)
-                .input("genDate", sql.Date, new Date().toISOString().slice(0, 10))
-                .query("INSERT INTO ScribeScore (subscriberID, scoreValue, generateDate) VALUES (@subID, @score, @genDate)");
+                .input("score", sql.Int, 100)
+                .query("INSERT INTO ScribeScore (subscriberID, scoreValue) VALUES (@subID, @score)");
         }
         res.status(201).json({
             success: true,

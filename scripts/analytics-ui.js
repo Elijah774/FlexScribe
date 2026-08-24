@@ -1,122 +1,97 @@
 /* =============================================================
    analytics-ui.js  — Analytics panel UI logic
-   Self-contained with inline seed data. No backend file needed.
+   Fetches real data from /api/analytics endpoints.
 ============================================================= */
 
 const AnalyticsUI = (() => {
     'use strict';
 
-    /* ── Seed Data ─────────────────────────────────────────── */
-    const ANALYTICS_DATA = {
-        thisMonth: {
-            totalSpent: 8450,
-            totalIncome: 18500,
-            savingsRate: 54,
-            byCategory: [
-                { category: 'Entertainment', amount: 2800, color: 'var(--orange)' },
-                { category: 'Shopping', amount: 1950, color: 'var(--blue)' },
-                { category: 'Utilities', amount: 1400, color: '#22c55e' },
-                { category: 'Productivity', amount: 1200, color: 'var(--purple)' },
-                { category: 'Other', amount: 1100, color: 'var(--text-light)' }
-            ],
-            monthlyTrend: [6200, 7100, 5800, 8900, 7400, 8450],
-            topMerchants: [
-                { name: 'Netflix', total: 1194, count: 6 },
-                { name: 'Pick n Pay', total: 2850, count: 12 },
-                { name: 'Woolworths', total: 1600, count: 8 },
-                { name: 'Uber Eats', total: 1420, count: 15 },
-                { name: 'Spotify', total: 360, count: 6 }
-            ],
-            budgets: [
-                { category: 'Entertainment', budget: 3000, actual: 2800 },
-                { category: 'Shopping', budget: 2000, actual: 1950 },
-                { category: 'Utilities', budget: 1500, actual: 1400 },
-                { category: 'Dining', budget: 1200, actual: 1420 }
-            ]
-        },
-        lastMonth: {
-            totalSpent: 7400,
-            totalIncome: 15000,
-            savingsRate: 51,
-            byCategory: [
-                { category: 'Entertainment', amount: 2400, color: 'var(--orange)' },
-                { category: 'Shopping', amount: 2100, color: 'var(--blue)' },
-                { category: 'Utilities', amount: 1300, color: '#22c55e' },
-                { category: 'Productivity', amount: 900, color: 'var(--purple)' },
-                { category: 'Other', amount: 700, color: 'var(--text-light)' }
-            ],
-            monthlyTrend: [5800, 6200, 7100, 5800, 8900, 7400],
-            topMerchants: [
-                { name: 'Netflix', total: 199, count: 1 },
-                { name: 'Pick n Pay', total: 2600, count: 10 },
-                { name: 'Woolworths', total: 1400, count: 7 },
-                { name: 'Uber Eats', total: 1800, count: 18 },
-                { name: 'Amazon', total: 950, count: 3 }
-            ],
-            budgets: [
-                { category: 'Entertainment', budget: 3000, actual: 2400 },
-                { category: 'Shopping', budget: 2000, actual: 2100 },
-                { category: 'Utilities', budget: 1500, actual: 1300 },
-                { category: 'Dining', budget: 1200, actual: 1800 }
-            ]
-        },
-        last3Months: {
-            totalSpent: 24250,
-            totalIncome: 49500,
-            savingsRate: 51,
-            byCategory: [
-                { category: 'Entertainment', amount: 8100, color: 'var(--orange)' },
-                { category: 'Shopping', amount: 6050, color: 'var(--blue)' },
-                { category: 'Utilities', amount: 4100, color: '#22c55e' },
-                { category: 'Productivity', amount: 3500, color: 'var(--purple)' },
-                { category: 'Other', amount: 2500, color: 'var(--text-light)' }
-            ],
-            monthlyTrend: [6200, 7100, 5800, 8900, 7400, 8450],
-            topMerchants: [
-                { name: 'Netflix', total: 597, count: 3 },
-                { name: 'Pick n Pay', total: 7500, count: 32 },
-                { name: 'Woolworths', total: 4200, count: 20 },
-                { name: 'Uber Eats', total: 4800, count: 45 },
-                { name: 'Spotify', total: 180, count: 3 }
-            ],
-            budgets: [
-                { category: 'Entertainment', budget: 9000, actual: 8100 },
-                { category: 'Shopping', budget: 6000, actual: 6050 },
-                { category: 'Utilities', budget: 4500, actual: 4100 },
-                { category: 'Dining', budget: 3600, actual: 4800 }
-            ]
-        }
+    const CATEGORY_COLORS = {
+        Entertainment: 'var(--orange)',
+        Music:         'var(--green)',
+        Shopping:      'var(--blue)',
+        Productivity:  'var(--purple)',
+        Education:     'var(--yellow)',
+        Utilities:     '#22c55e',
+        Fitness:       '#f43f5e',
+        News:          '#06b6d4',
+        Gaming:        '#a855f7',
+        Health:        '#ec4899',
+        AI:            '#14b8a6',
+        Other:         'var(--text-light)',
     };
 
-    const MONTH_LABELS = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-    let currentRange = 'thisMonth';
-    let activeCategory = null; // currently highlighted donut segment
+    let currentRange = '30d';
+    let activeCategory = null;
 
     /* ── Helpers ───────────────────────────────────────────── */
     function formatRand(n) {
-        return 'R' + n.toLocaleString('en-ZA');
+        return 'R' + Number(n).toLocaleString('en-ZA', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
     }
 
-    function getData() {
-        return ANALYTICS_DATA[currentRange];
+    function _rangeToApiParam() {
+        switch (currentRange) {
+            case 'thisMonth': return '30d';
+            case 'lastMonth': return '30d';
+            case 'last3Months': return '90d';
+            default: return currentRange;
+        }
     }
 
-    /* ── Render all sections ───────────────────────────────── */
-    function render() {
-        // Attempt to fetch from database if integration is enabled
-        if (typeof AnalyticsDB !== 'undefined' && AnalyticsDB.isEnabled()) {
-            AnalyticsDB.getFullAnalytics(currentRange)
-                .then(data => {
-                    if (data) {
-                        _renderWithData(data);
-                    } else {
-                        _renderWithData(getData());
-                    }
-                })
-                .catch(() => _renderWithData(getData()));
-        } else {
-            _renderWithData(getData());
+    /* ── Render all sections from API ─────────────────────── */
+    async function render() {
+        const range = _rangeToApiParam();
+
+        try {
+            // Fetch all analytics data in parallel
+            const [summaryRes, categoryRes, trendRes] = await Promise.all([
+                API.Analytics.getSummary(range),
+                API.Analytics.getByCategory(range),
+                API.Analytics.getTrend('6m')
+            ]);
+
+            const summary = summaryRes.success ? summaryRes.data : {};
+            const categories = categoryRes.success ? categoryRes.data : [];
+            const trend = trendRes.success ? trendRes.data : [];
+
+            // Build data object compatible with render functions
+            const data = {
+                totalSpent: parseFloat(summary.totalSpent) || 0,
+                totalIncome: parseFloat(summary.totalIncome) || 0,
+                riskScore: summary.savingsRate !== undefined ? Math.max(0, 100 - summary.savingsRate) : 50,
+                byCategory: (Array.isArray(categories) ? categories : []).map(c => ({
+                    category: c.category || c.categoryName || 'Other',
+                    amount: parseFloat(c.monthlyAmount) || 0,
+                    color: CATEGORY_COLORS[c.category || c.categoryName] || CATEGORY_COLORS.Other
+                })),
+                monthlyTrend: (Array.isArray(trend) ? trend : []).map(t => parseFloat(t.spent) || 0),
+                trendLabels: (Array.isArray(trend) ? trend : []).map(t => {
+                    if (!t.month) return '';
+                    const parts = t.month.split('-');
+                    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                    return months[parseInt(parts[1]) - 1] || t.month;
+                }),
+                topMerchants: (Array.isArray(categories) ? categories : []).map(c => ({
+                    name: c.category || c.categoryName || 'Other',
+                    total: parseFloat(c.monthlyAmount) || 0,
+                    count: c.count || 0
+                })),
+                budgets: (Array.isArray(categories) ? categories : []).map(c => ({
+                    category: c.category || c.categoryName || 'Other',
+                    budget: (parseFloat(c.monthlyAmount) || 0) * 1.2,
+                    actual: parseFloat(c.monthlyAmount) || 0
+                }))
+            };
+
+            _renderWithData(data);
+        } catch (err) {
+            console.error('Analytics fetch error:', err);
+            // Render empty state
+            _renderWithData({
+                totalSpent: 0, totalIncome: 0, riskScore: 0,
+                byCategory: [], monthlyTrend: [], trendLabels: [],
+                topMerchants: [], budgets: []
+            });
         }
     }
 
@@ -132,6 +107,12 @@ const AnalyticsUI = (() => {
     function renderStats(data) {
         const el = document.getElementById('analytics-stats');
         if (!el) return;
+        // Determine risk level label and color
+        var riskLabel = 'Moderate';
+        var riskClass = '';
+        if (data.riskScore <= 30) { riskLabel = 'Low'; riskClass = 'positive'; }
+        else if (data.riskScore <= 55) { riskLabel = 'Moderate'; riskClass = ''; }
+        else { riskLabel = 'High'; riskClass = 'negative'; }
         el.innerHTML = `
             <div class="analytics-stat-card">
                 <p class="analytics-stat-label">Total Spent</p>
@@ -142,8 +123,8 @@ const AnalyticsUI = (() => {
                 <p class="analytics-stat-value positive">${formatRand(data.totalIncome)}</p>
             </div>
             <div class="analytics-stat-card">
-                <p class="analytics-stat-label">Net Savings Rate</p>
-                <p class="analytics-stat-value positive">${data.savingsRate}%</p>
+                <p class="analytics-stat-label">Risk Score</p>
+                <p class="analytics-stat-value ${riskClass}">${data.riskScore}/100 <small>(${riskLabel})</small></p>
             </div>
         `;
     }
@@ -209,15 +190,21 @@ const AnalyticsUI = (() => {
         const el = document.getElementById('analytics-bar-chart');
         if (!el) return;
 
+        if (!data.monthlyTrend || data.monthlyTrend.length === 0) {
+            el.innerHTML = '<p style="padding:24px;text-align:center;color:var(--text-light);">No trend data yet.</p>';
+            return;
+        }
+
         const max = Math.max(...data.monthlyTrend);
+        const labels = data.trendLabels || data.monthlyTrend.map((_, i) => 'M' + (i + 1));
 
         el.innerHTML = data.monthlyTrend.map((val, i) => {
-            const heightPct = (val / max) * 100;
+            const heightPct = max > 0 ? (val / max) * 100 : 0;
             return `
                 <div class="analytics-bar-col">
                     <span class="analytics-bar-value">${formatRand(val)}</span>
                     <div class="analytics-bar" style="height:${heightPct}%" data-index="${i}"></div>
-                    <span class="analytics-bar-label">${MONTH_LABELS[i]}</span>
+                    <span class="analytics-bar-label">${labels[i] || ''}</span>
                 </div>
             `;
         }).join('');
@@ -307,40 +294,31 @@ const AnalyticsUI = (() => {
 
     /* ── Export CSV ────────────────────────────────────────── */
     function exportCSV() {
-        const data = getData();
-        let csv = 'Category,Amount,Budget,Actual\n';
+        // Re-fetch and export
+        const range = _rangeToApiParam();
+        Promise.all([
+            API.Analytics.getSummary(range),
+            API.Analytics.getByCategory(range)
+        ]).then(([summaryRes, categoryRes]) => {
+            const summary = summaryRes.success ? summaryRes.data : {};
+            const categories = categoryRes.success ? (Array.isArray(categoryRes.data) ? categoryRes.data : []) : [];
 
-        // Category spending
-        data.byCategory.forEach(c => {
-            csv += `${c.category},${c.amount},,\n`;
-        });
+            let csv = 'Category,Monthly Amount,Subscription Count\n';
+            categories.forEach(c => {
+                csv += `${c.category || c.categoryName},${c.monthlyAmount},${c.count}\n`;
+            });
+            csv += `\nSummary\nTotal Spent,${summary.totalSpent || 0}\nTotal Income,${summary.totalIncome || 0}\nSavings Rate,${summary.savingsRate || 0}%\nMonthly Subscription Cost,${summary.monthlyCost || 0}\n`;
 
-        csv += '\nMerchant,Total,Transactions\n';
-        data.topMerchants.forEach(m => {
-            csv += `${m.name},${m.total},${m.count}\n`;
-        });
-
-        csv += '\nBudget Category,Budget,Actual,Percentage\n';
-        data.budgets.forEach(b => {
-            const pct = Math.round((b.actual / b.budget) * 100);
-            csv += `${b.category},${b.budget},${b.actual},${pct}%\n`;
-        });
-
-        csv += `\nSummary\nTotal Spent,${data.totalSpent}\nTotal Income,${data.totalIncome}\nSavings Rate,${data.savingsRate}%\n`;
-        csv += `\nMonthly Trend\n`;
-        MONTH_LABELS.forEach((label, i) => {
-            csv += `${label},${data.monthlyTrend[i]}\n`;
-        });
-
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `flexscribe-analytics-${currentRange}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `flexscribe-analytics-${currentRange}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }).catch(err => console.error('Export error:', err));
     }
 
     /* ── Event wiring ─────────────────────────────────────── */
@@ -370,11 +348,11 @@ const AnalyticsUI = (() => {
             initialized = true;
         }
         // Always re-render on panel show
-        currentRange = 'thisMonth';
+        currentRange = '30d';
         activeCategory = null;
         // Reset active tab UI
         document.querySelectorAll('.analytics-range-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.range === 'thisMonth');
+            btn.classList.toggle('active', btn.dataset.range === '30d' || btn.dataset.range === 'thisMonth');
         });
         render();
     }

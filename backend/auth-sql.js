@@ -26,7 +26,7 @@ const AuthSQL = (() => {
        REGISTER — Step 1: Insert into Subscriber
     ---------------------------------------------------------- */
     const INSERT_SUBSCRIBER = `
-        INSERT INTO Subscriber (firstName, lastName, preferredName, email, passwordHash, phone, userType, scribePoints, avatarUrl, marketingOptIn, createdAt, updatedAt)
+        INSERT INTO Subscriber (firstName, lastName, preferredName, email, passwordHash, phone, userType, scribeScore, avatarUrl, marketingOptIn, createdAt, updatedAt)
         VALUES (@firstName, @lastName, @preferredName, @email, @passwordHash, @phone, 'MainMember', 0, @avatarUrl, @marketingOptIn, GETDATE(), GETDATE());
 
         SELECT SCOPE_IDENTITY() AS newSubscriberID;
@@ -76,7 +76,7 @@ const AuthSQL = (() => {
             s.passwordHash,
             s.phone,
             s.userType,
-            s.scribePoints,
+            s.scribeScore,
             s.avatarUrl,
             s.marketingOptIn,
             s.createdAt,
@@ -100,7 +100,7 @@ const AuthSQL = (() => {
             s.email,
             s.phone,
             s.userType,
-            s.scribePoints,
+            s.scribeScore,
             s.avatarUrl,
             s.marketingOptIn,
             s.createdAt,

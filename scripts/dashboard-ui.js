@@ -53,9 +53,27 @@ const DashboardUI = (function () {
 
     // ═══ FlexCard ═══
     function _renderFlexCard() {
-        var profile = null;
-        try { profile = JSON.parse(localStorage.getItem('flexscribe_profile')); } catch(e) {}
-        var name = (profile && profile.fullName) ? profile.fullName.toUpperCase() : 'SARAH MITCHELL';
+        // Load user name from profile API or sessionStorage
+        var name = 'CARD HOLDER';
+        try {
+            var profile = JSON.parse(localStorage.getItem('flexscribe_profile'));
+            if (profile && profile.fullName) name = profile.fullName.toUpperCase();
+        } catch(e) {}
+
+        // Try to get name from API if available
+        if (typeof API !== 'undefined') {
+            API.Auth.getUser().then(function(result) {
+                if (result.success && result.data) {
+                    var d = result.data;
+                    var fullName = ((d.firstName || '') + ' ' + (d.lastName || '')).trim();
+                    if (fullName) {
+                        var nameEl = document.getElementById('dash-fc-name');
+                        if (nameEl) nameEl.textContent = fullName.toUpperCase();
+                    }
+                }
+            }).catch(function() {});
+        }
+
         var nameEl = document.getElementById('dash-fc-name');
         if (nameEl) nameEl.textContent = name;
 
@@ -71,19 +89,57 @@ const DashboardUI = (function () {
         var chart = document.getElementById('dash-timeline-chart');
         if (!chart) return;
 
-        var data = {
-            week:  [850, 420, 199, 1200, 350, 680, 950],
-            month: [4200, 3800, 5100, 4600],
-            year:  [8400, 7200, 9100, 6800, 8900, 7400, 8200, 6900, 7800, 8450, 7100, 9200]
-        };
-        var labels = {
-            week:  ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
-            month: ['Week 1','Week 2','Week 3','Week 4'],
-            year:  ['J','F','M','A','M','J','J','A','S','O','N','D']
-        };
+        // Build data from real wallet transactions
+        var values = [];
+        var lbls = [];
 
-        var values = data[range] || data.week;
-        var lbls = labels[range] || labels.week;
+        if (typeof WalletStore !== 'undefined') {
+            var txs = WalletStore.getTransactions();
+            var debits = txs.filter(function(t) { return t.type === 'debit' || t.type === 'transfer'; });
+
+            if (range === 'week') {
+                var dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+                var today = new Date();
+                for (var i = 6; i >= 0; i--) {
+                    var d = new Date(today);
+                    d.setDate(d.getDate() - i);
+                    var dateStr = d.toISOString().slice(0, 10);
+                    var dayTotal = debits.filter(function(t) { return t.date === dateStr; }).reduce(function(s, t) { return s + t.amount; }, 0);
+                    values.push(dayTotal);
+                    lbls.push(dayNames[d.getDay()]);
+                }
+            } else if (range === 'month') {
+                var today2 = new Date();
+                for (var w = 3; w >= 0; w--) {
+                    var weekStart = new Date(today2);
+                    weekStart.setDate(weekStart.getDate() - (w * 7 + 6));
+                    var weekEnd = new Date(today2);
+                    weekEnd.setDate(weekEnd.getDate() - (w * 7));
+                    var ws = weekStart.toISOString().slice(0, 10);
+                    var we = weekEnd.toISOString().slice(0, 10);
+                    var weekTotal = debits.filter(function(t) { return t.date >= ws && t.date <= we; }).reduce(function(s, t) { return s + t.amount; }, 0);
+                    values.push(weekTotal);
+                    lbls.push('Week ' + (4 - w));
+                }
+            } else {
+                var months = ['J','F','M','A','M','J','J','A','S','O','N','D'];
+                var today3 = new Date();
+                for (var m = 11; m >= 0; m--) {
+                    var md = new Date(today3.getFullYear(), today3.getMonth() - m, 1);
+                    var mStr = md.toISOString().slice(0, 7);
+                    var mTotal = debits.filter(function(t) { return t.date && t.date.startsWith(mStr); }).reduce(function(s, t) { return s + t.amount; }, 0);
+                    values.push(mTotal);
+                    lbls.push(months[md.getMonth()]);
+                }
+            }
+        }
+
+        // Fallback if no data
+        if (values.length === 0) {
+            values = [0];
+            lbls = ['—'];
+        }
+
         var max = Math.max.apply(null, values);
         var min = Math.min.apply(null, values);
 
@@ -94,32 +150,27 @@ const DashboardUI = (function () {
         var graphW = svgW - padX * 2;
         var graphH = svgH - padY * 2;
 
-        // Build points
         var points = values.map(function(v, i) {
-            var x = padX + (i / (values.length - 1)) * graphW;
+            var x = padX + (values.length > 1 ? (i / (values.length - 1)) * graphW : graphW / 2);
             var y = padY + graphH - ((v - min) / (max - min || 1)) * graphH;
             return { x: x, y: y };
         });
 
-        // Build smooth path (using line segments)
         var pathD = points.map(function(p, i) {
             return (i === 0 ? 'M' : 'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1);
         }).join(' ');
 
-        // Fill area path
         var areaD = pathD + ' L' + points[points.length - 1].x.toFixed(1) + ',' + (svgH - padY) + ' L' + points[0].x.toFixed(1) + ',' + (svgH - padY) + ' Z';
 
         var html = '<svg viewBox="0 0 ' + svgW + ' ' + svgH + '" class="dash-line-svg" preserveAspectRatio="none">';
         html += '<defs><linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--orange)" stop-opacity="0.25"/><stop offset="100%" stop-color="var(--orange)" stop-opacity="0.02"/></linearGradient></defs>';
         html += '<path d="' + areaD + '" fill="url(#lineGrad)"/>';
         html += '<path d="' + pathD + '" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
-        // Dots
         points.forEach(function(p) {
             html += '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="3" fill="var(--orange)" stroke="var(--card)" stroke-width="1.5"/>';
         });
         html += '</svg>';
 
-        // Labels below
         html += '<div class="dash-tl-labels">';
         lbls.forEach(function(l) {
             html += '<span>' + l + '</span>';
@@ -141,12 +192,8 @@ const DashboardUI = (function () {
         }
 
         if (!payments.length) {
-            payments = [
-                { name: 'Netflix', amount: 199, nextPaymentDate: '2025-05-18', logoClass: 'netflix', logoText: 'N' },
-                { name: 'Spotify', amount: 59.99, nextPaymentDate: '2025-05-16', logoClass: 'spotify', logoText: 'S' },
-                { name: 'Disney+', amount: 89, nextPaymentDate: '2025-05-24', logoClass: 'disney', logoText: 'D+' },
-                { name: 'Amazon Prime', amount: 99, nextPaymentDate: '2025-05-22', logoClass: 'prime', logoText: 'P' }
-            ];
+            list.innerHTML = '<p style="font-size:13px;color:var(--text-light)">No upcoming payments.</p>';
+            return;
         }
 
         var fmtCur = (typeof SubscriptionStore !== 'undefined') ? SubscriptionStore.fmtCurrency : function(v) { return 'R' + v.toFixed(2); };
@@ -201,10 +248,12 @@ const DashboardUI = (function () {
             }
         }
         if (typeof GoalsStore !== 'undefined') {
-            var goals = GoalsStore.getAll().filter(function(g) { return g.status === 'in_progress'; });
+            var goals = GoalsStore.getAll().filter(function(g) { return g.status === 'in_progress' || g.status === 'active'; });
             goals.forEach(function(g) {
-                var pct = Math.round((g.savedAmount / g.targetAmount) * 100);
-                if (pct >= 70) recs.push('<strong>' + g.name + '</strong> is ' + pct + '% funded — you\'re almost there!');
+                var saved = parseFloat(g.savedAmount || g.currentProgress) || 0;
+                var target = parseFloat(g.targetAmount) || 1;
+                var pct = Math.round((saved / target) * 100);
+                if (pct >= 70) recs.push('<strong>' + (g.name || g.goalName) + '</strong> is ' + pct + '% funded — you\'re almost there!');
             });
         }
         if (recs.length === 0) recs.push('Great job! Your finances look healthy. Keep tracking your spending to maintain your score.');
@@ -219,27 +268,36 @@ const DashboardUI = (function () {
         var list = document.getElementById('dash-goals-list');
         if (!list) return;
 
-        var goals = [];
-        if (typeof GoalsStore !== 'undefined') {
-            goals = GoalsStore.getAll().filter(function(g) { return g.status === 'in_progress'; }).slice(0, 3);
-        }
-
-        if (!goals.length) {
+        // Load goals from API directly
+        if (typeof API !== 'undefined') {
+            API.Goals.getAll().then(function(result) {
+                if (result.success && Array.isArray(result.data)) {
+                    var goals = result.data.filter(function(g) { return g.goalStatus === 'active'; }).slice(0, 3);
+                    if (!goals.length) {
+                        list.innerHTML = '<p style="font-size:13px;color:var(--text-light)">No active goals. Create one to start tracking!</p>';
+                        return;
+                    }
+                    var icons = { Travel: '✈️', Tech: '💻', Education: '📚', Emergency: '🚨', Home: '🏠', Vehicle: '🚗', Other: '🎯' };
+                    list.innerHTML = goals.map(function(g) {
+                        var target = parseFloat(g.targetAmount) || 1;
+                        var saved = parseFloat(g.currentProgress) || 0;
+                        var pct = Math.min(100, Math.round((saved / target) * 100));
+                        var emoji = icons[g.category] || '🎯';
+                        return '<div class="dash-goal-row">' +
+                            '<span class="dash-goal-emoji">' + emoji + '</span>' +
+                            '<div class="dash-goal-info"><p class="dash-goal-name">' + (g.goalName || '') + '</p><div class="dash-goal-bar"><div class="dash-goal-fill" style="width:' + pct + '%"></div></div></div>' +
+                            '<span class="dash-goal-pct">' + pct + '%</span>' +
+                            '</div>';
+                    }).join('');
+                } else {
+                    list.innerHTML = '<p style="font-size:13px;color:var(--text-light)">No active goals. Create one to start tracking!</p>';
+                }
+            }).catch(function() {
+                list.innerHTML = '<p style="font-size:13px;color:var(--text-light)">No active goals. Create one to start tracking!</p>';
+            });
+        } else {
             list.innerHTML = '<p style="font-size:13px;color:var(--text-light)">No active goals. Create one to start tracking!</p>';
-            return;
         }
-
-        var icons = { Travel: '✈️', Tech: '💻', Education: '📚', Emergency: '🚨', Home: '🏠', Vehicle: '🚗', Other: '🎯' };
-
-        list.innerHTML = goals.map(function(g) {
-            var pct = Math.min(100, Math.round((g.savedAmount / g.targetAmount) * 100));
-            var emoji = icons[g.category] || '🎯';
-            return '<div class="dash-goal-row">' +
-                '<span class="dash-goal-emoji">' + emoji + '</span>' +
-                '<div class="dash-goal-info"><p class="dash-goal-name">' + g.name + '</p><div class="dash-goal-bar"><div class="dash-goal-fill" style="width:' + pct + '%"></div></div></div>' +
-                '<span class="dash-goal-pct">' + pct + '%</span>' +
-                '</div>';
-        }).join('');
     }
 
     // ═══ Recent Transactions ═══

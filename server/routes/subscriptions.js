@@ -93,35 +93,36 @@ router.put('/:id', async (req, res) => {
     try {
         const { serviceName, categoryID, billingAmount, billingCycle, billingDate, subStatus, notes, logoClass, logoText, colorTag, reminderDays, providerUrl } = req.body;
 
-        await query(`
-            UPDATE Subscription SET
-                serviceName = ISNULL(@serviceName, serviceName),
-                categoryID = ISNULL(@categoryID, categoryID),
-                billingAmount = ISNULL(@billingAmount, billingAmount),
-                billingCycle = ISNULL(@billingCycle, billingCycle),
-                billingDate = @billingDate,
-                subStatus = ISNULL(@subStatus, subStatus),
-                notes = @notes,
-                logoClass = @logoClass,
-                logoText = @logoText,
-                colorTag = @colorTag,
-                reminderDays = @reminderDays,
-                providerUrl = @providerUrl,
-                updatedAt = GETDATE()
-            WHERE subscriptionID = @subID AND subscriberID = @subscriberID
-        `, {
+        // Build dynamic SET clause — only update fields that were actually sent
+        const sets = [];
+        const params = {
             subID: parseInt(req.params.id),
-            subscriberID: req.user.subscriberID,
-            serviceName, categoryID, billingAmount, billingCycle,
-            billingDate: billingDate || null,
-            subStatus, notes: notes || null,
-            logoClass: logoClass || null, logoText: logoText || null,
-            colorTag: colorTag || null, reminderDays: reminderDays || null,
-            providerUrl: providerUrl || null
-        });
+            subscriberID: req.user.subscriberID
+        };
+
+        if (serviceName !== undefined && serviceName !== null) { sets.push('serviceName = @serviceName'); params.serviceName = serviceName; }
+        if (categoryID !== undefined && categoryID !== null) { sets.push('categoryID = @categoryID'); params.categoryID = parseInt(categoryID); }
+        if (billingAmount !== undefined && billingAmount !== null) { sets.push('billingAmount = @billingAmount'); params.billingAmount = parseFloat(billingAmount); }
+        if (billingCycle !== undefined && billingCycle !== null) { sets.push('billingCycle = @billingCycle'); params.billingCycle = billingCycle; }
+        if (billingDate !== undefined) { sets.push('billingDate = @billingDate'); params.billingDate = billingDate || null; }
+        if (subStatus !== undefined && subStatus !== null && subStatus !== '') { sets.push('subStatus = @subStatus'); params.subStatus = subStatus; }
+        if (notes !== undefined) { sets.push('notes = @notes'); params.notes = notes || null; }
+        if (logoClass !== undefined) { sets.push('logoClass = @logoClass'); params.logoClass = logoClass || null; }
+        if (logoText !== undefined) { sets.push('logoText = @logoText'); params.logoText = logoText || null; }
+        if (colorTag !== undefined) { sets.push('colorTag = @colorTag'); params.colorTag = colorTag || null; }
+        if (reminderDays !== undefined) { sets.push('reminderDays = @reminderDays'); params.reminderDays = reminderDays ? parseInt(reminderDays) : null; }
+        if (providerUrl !== undefined) { sets.push('providerUrl = @providerUrl'); params.providerUrl = providerUrl || null; }
+
+        sets.push('updatedAt = GETDATE()');
+
+        await query(`
+            UPDATE Subscription SET ${sets.join(', ')}
+            WHERE subscriptionID = @subID AND subscriberID = @subscriberID
+        `, params);
 
         res.json({ message: 'Subscription updated' });
     } catch (err) {
+        console.error('Subscription update error:', err.message);
         res.status(500).json({ error: err.message });
     }
 });

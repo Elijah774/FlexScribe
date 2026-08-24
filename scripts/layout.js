@@ -93,7 +93,7 @@ function closeAllMenus(except) {
 
 function _getDashboardGreeting() {
     const profile = JSON.parse(localStorage.getItem('flexscribe_profile') || 'null');
-    const name = profile?.nickname || profile?.fullName?.split(' ')[0] || 'Sarah';
+    const name = profile?.nickname || profile?.fullName?.split(' ')[0] || 'there';
     return 'Welcome, ' + name + ' \u{1F44B}';
 }
 
@@ -306,6 +306,84 @@ document.querySelectorAll('.nav-item').forEach(item => {
 // Show dashboard by default on first load
 loadPage('dashboard');
 
+// Load user info and notification count into header from API
+(function _initHeader() {
+    if (typeof API === 'undefined') return;
+
+    // If no auth token exists, redirect to login
+    if (!sessionStorage.getItem('flexscribe_token')) {
+        window.location.href = 'login.html';
+        return;
+    }
+
+    // Load user name
+    API.Auth.getUser().then(function(result) {
+        if (result.success && result.data) {
+            var d = result.data;
+            var fullName = ((d.firstName || '') + ' ' + (d.lastName || '')).trim();
+            var shortName = d.preferredName || (d.firstName || 'User');
+            var el = document.getElementById('header-user-name');
+            if (el) el.textContent = shortName;
+            var avatarEl = document.getElementById('header-user-avatar');
+            if (avatarEl) avatarEl.alt = fullName;
+
+            // Update dashboard greeting with real name
+            var titleEl = document.querySelector('.page-title');
+            if (titleEl && titleEl.textContent.includes('Welcome')) {
+                titleEl.textContent = 'Welcome, ' + shortName + ' \u{1F44B}';
+            }
+            pageTitles.dashboard.title = 'Welcome, ' + shortName + ' \u{1F44B}';
+
+            // Cache profile for next load
+            var cached = JSON.parse(localStorage.getItem('flexscribe_profile') || '{}');
+            cached.fullName = fullName;
+            cached.nickname = d.preferredName || d.firstName || '';
+            cached.email = d.email || cached.email || '';
+            cached.phone = d.phone || cached.phone || '';
+            localStorage.setItem('flexscribe_profile', JSON.stringify(cached));
+        }
+    }).catch(function() {});
+
+    // Load notification count and dropdown
+    API.Notifications.getAll().then(function(result) {
+        if (result.success && Array.isArray(result.data)) {
+            var unread = result.data.filter(function(n) { return !n.isRead; });
+            var badge = document.getElementById('notif-badge');
+            if (badge) {
+                badge.textContent = unread.length;
+                badge.classList.toggle('is-hidden', unread.length === 0);
+            }
+            // Populate dropdown with latest 3
+            var dropList = document.getElementById('notif-dropdown-list');
+            if (dropList) {
+                var top3 = result.data.slice(0, 3);
+                if (top3.length === 0) {
+                    dropList.innerHTML = '<li class="notif-item" style="padding:12px;color:var(--text-light);font-size:13px;">No notifications.</li>';
+                } else {
+                    dropList.innerHTML = top3.map(function(n) {
+                        var dot = !n.isRead ? '<span class="notif-dot"></span>' : '';
+                        var ago = _headerTimeAgo(n.createdAt);
+                        return '<li class="notif-item" data-notif-id="' + n.notificationID + '" onclick="navigateToNotification(\'' + n.notificationID + '\')">' +
+                            dot + '<div><p class="notif-title">' + (n.title || '').replace(/</g, '&lt;') + '</p><p class="notif-time">' + ago + '</p></div></li>';
+                    }).join('');
+                }
+            }
+        }
+    }).catch(function() {});
+
+    function _headerTimeAgo(dateStr) {
+        if (!dateStr) return '';
+        var now = new Date();
+        var then = new Date(dateStr);
+        var minutes = Math.floor((now - then) / 60000);
+        if (minutes < 60) return minutes + 'm ago';
+        var hours = Math.floor(minutes / 60);
+        if (hours < 24) return hours + 'h ago';
+        var days = Math.floor(hours / 24);
+        return days + 'd ago';
+    }
+})();
+
 // Navigate to notifications panel and highlight a specific notification
 function navigateToNotification(notifId) {
     // Close the dropdown
@@ -348,9 +426,20 @@ function _updateNotifBadge() {
 }
 
 function _initNotificationsPanel() {
+    // Load notifications from database
+    if (typeof window._initNotificationsFromAPI === 'function') {
+        window._initNotificationsFromAPI().then(function() {
+            _bindNotifEvents();
+        });
+    } else {
+        _bindNotifEvents();
+    }
+}
+
+function _bindNotifEvents() {
     // Tab filtering
     const tabs = document.querySelectorAll('.notif-tab-btn');
-    const items = document.querySelectorAll('.notif-full-item');
+    const getItems = () => document.querySelectorAll('.notif-full-item');
 
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
@@ -358,7 +447,7 @@ function _initNotificationsPanel() {
             tab.classList.add('active');
             const filter = tab.dataset.filter;
 
-            items.forEach(item => {
+            getItems().forEach(item => {
                 if (filter === 'all') {
                     item.style.display = '';
                 } else if (filter === 'unread') {
@@ -376,16 +465,26 @@ function _initNotificationsPanel() {
         markAllBtn.addEventListener('click', () => {
             document.querySelectorAll('.notif-full-item.unread').forEach(item => item.classList.remove('unread'));
             _updateNotifBadge();
-            // Also clear dots in dropdown
             document.querySelectorAll('#notif-dropdown-list .notif-dot').forEach(dot => dot.style.display = 'none');
+            // Persist to database
+            if (typeof API !== 'undefined') {
+                API.Notifications.markAllRead();
+            }
         });
     }
 
     // Click on notification item to mark as read
-    items.forEach(item => {
+    getItems().forEach(item => {
         item.addEventListener('click', () => {
-            item.classList.remove('unread');
-            _updateNotifBadge();
+            if (item.classList.contains('unread')) {
+                item.classList.remove('unread');
+                _updateNotifBadge();
+                // Persist to database
+                const nid = item.dataset.notifId;
+                if (nid && typeof API !== 'undefined') {
+                    API.Notifications.markRead(nid);
+                }
+            }
         });
     });
 }
@@ -553,7 +652,7 @@ if (typeof ProfilePanel !== 'undefined') ProfilePanel.init();
 (function() {
     const profile = JSON.parse(localStorage.getItem('flexscribe_profile') || 'null');
     if (profile) {
-        const nickname = profile.nickname || profile.fullName?.split(' ')[0] || 'Sarah';
+        const nickname = profile.nickname || profile.fullName?.split(' ')[0] || 'User';
         const lastName = profile.fullName?.split(' ')[1] || '';
         const chipName = nickname + ' ' + lastName.charAt(0) + '.';
         const chip = document.querySelector('#user-chip span');

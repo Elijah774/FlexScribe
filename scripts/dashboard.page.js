@@ -8,11 +8,11 @@ window._pageContent['dashboard'] = `    <div class="dash-new-grid">
                         <div class="dash-fc-top"><span class="dash-fc-brand">FlexScribe</span><svg class="dash-fc-contactless" viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M8.5 16.5a5 5 0 010-9M5 19a9 9 0 010-14M12 16.5a5 5 0 000-9M15.5 19a9 9 0 000-14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
                         <div class="dash-fc-chip"><svg viewBox="0 0 50 40" width="36" height="28"><rect x="1" y="1" width="48" height="38" rx="5" fill="url(#cg2)" stroke="#C9A23B" stroke-width="1"/><line x1="1" y1="14" x2="49" y2="14" stroke="#B8912E" stroke-width="0.8"/><line x1="1" y1="26" x2="49" y2="26" stroke="#B8912E" stroke-width="0.8"/><line x1="17" y1="1" x2="17" y2="40" stroke="#B8912E" stroke-width="0.8"/><line x1="33" y1="1" x2="33" y2="40" stroke="#B8912E" stroke-width="0.8"/><defs><linearGradient id="cg2" x1="0" y1="0" x2="50" y2="40"><stop offset="0%" stop-color="#E8D078"/><stop offset="50%" stop-color="#F0E4A0"/><stop offset="100%" stop-color="#C8A83E"/></linearGradient></defs></svg></div>
                         <p class="dash-fc-number" id="dash-fc-number">4291 •••• •••• 4291</p>
-                        <div class="dash-fc-bottom"><div><span class="dash-fc-label">Card Holder</span><p class="dash-fc-name" id="dash-fc-name">SARAH MITCHELL</p></div><div><span class="dash-fc-label">Expires</span><p class="dash-fc-name">09/27</p></div><svg viewBox="0 0 80 26" width="50" height="16"><text x="0" y="22" font-family="Arial,sans-serif" font-size="26" font-weight="bold" font-style="italic" fill="#FFF">VISA</text></svg></div>
+                        <div class="dash-fc-bottom"><div><span class="dash-fc-label">Card Holder</span><p class="dash-fc-name" id="dash-fc-name">CARD HOLDER</p></div><div><span class="dash-fc-label">Expires</span><p class="dash-fc-name">09/27</p></div><svg viewBox="0 0 80 26" width="50" height="16"><text x="0" y="22" font-family="Arial,sans-serif" font-size="26" font-weight="bold" font-style="italic" fill="#FFF">VISA</text></svg></div>
                     </div>
                     <div class="dash-flipcard-back">
                         <p class="dash-fc-back-label">Balance</p>
-                        <p class="dash-fc-back-balance" id="dash-fc-balance">R12,450.00</p>
+                        <p class="dash-fc-back-balance" id="dash-fc-balance">R0.00</p>
                         <p class="dash-fc-back-hint">Tap to open Wallet →</p>
                     </div>
                 </div>

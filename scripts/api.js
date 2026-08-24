@@ -13,8 +13,8 @@ const API = (() => {
        CONFIG
     ---------------------------------------------------------- */
 
-    const USE_MOCK = true;  // TEMPORARY: set to false when backend is running
-    const BASE_URL = 'http://localhost:5000';
+    const USE_MOCK = false;  // Using real local SQL Server backend
+    const BASE_URL = 'http://localhost:3000/api';
 
 
     /* ----------------------------------------------------------
@@ -110,7 +110,7 @@ const API = (() => {
                 );
             }
 
-            return json;
+            return _ok(json);
 
         } catch (error) {
 
@@ -276,15 +276,14 @@ const API = (() => {
                     email: 'sarah@flexscribe.app',
                     phone: '+27 71 234 5678',
                     plan: 'premium',
-                    scribeScore: 560,
-                    scribePoints: 1200,
+                    scribeScore: 1200,
                     avatarUrl: null
                 });
             }
 
             return _fetch(
                 'GET',
-                '/auth/me'
+                '/auth/profile'
             );
         },
 
@@ -336,6 +335,20 @@ const API = (() => {
                 {
                     email: email
                 }
+            );
+        },
+
+
+        async updateProfile(data) {
+
+            if (USE_MOCK) {
+                return _mock({ updated: true });
+            }
+
+            return _fetch(
+                'PUT',
+                '/auth/profile',
+                data
             );
         }
     };
@@ -389,7 +402,7 @@ const API = (() => {
             }
 
             return _fetch(
-                'PATCH',
+                'PUT',
                 `/subscriptions/${id}`,
                 data
             );
@@ -422,7 +435,7 @@ const API = (() => {
             }
 
             return _fetch(
-                'POST',
+                'PATCH',
                 `/subscriptions/${id}/toggle`
             );
         },
@@ -465,7 +478,7 @@ const API = (() => {
 
             return _fetch(
                 'GET',
-                '/wallet/balance'
+                '/wallet'
             );
         },
 
@@ -478,20 +491,20 @@ const API = (() => {
 
             return _fetch(
                 'GET',
-                `/wallet/history?range=${encodeURIComponent(range)}`
+                '/wallet/transactions'
             );
         },
 
 
         async addFunds(
-            amountCents,
-            sourceId = 'default'
+            amount,
+            source = 'Bank Card'
         ) {
 
             if (USE_MOCK) {
 
                 return _mock({
-                    balanceCents: amountCents
+                    balanceCents: amount
                 });
             }
 
@@ -499,16 +512,16 @@ const API = (() => {
                 'POST',
                 '/wallet/add-funds',
                 {
-                    amountCents: amountCents,
-                    sourceId: sourceId
+                    amount: amount,
+                    source: source
                 }
             );
         },
 
 
         async withdraw(
-            amountCents,
-            destinationId
+            amount,
+            destination
         ) {
 
             if (USE_MOCK) {
@@ -522,15 +535,15 @@ const API = (() => {
                 'POST',
                 '/wallet/withdraw',
                 {
-                    amountCents: amountCents,
-                    destinationId: destinationId
+                    amount: amount,
+                    destination: destination
                 }
             );
         },
 
 
         async transfer(
-            amountCents,
+            amount,
             goalId
         ) {
 
@@ -538,16 +551,16 @@ const API = (() => {
 
                 return _mock({
                     transferred: true,
-                    amountCents: amountCents
+                    amount: amount
                 });
             }
 
             return _fetch(
                 'POST',
-                '/wallet/transfer',
+                '/wallet/transfer-to-goal',
                 {
-                    amountCents: amountCents,
-                    goalId: goalId
+                    amount: amount,
+                    goalID: goalId
                 }
             );
         }
@@ -604,7 +617,7 @@ const API = (() => {
             }
 
             return _fetch(
-                'PATCH',
+                'PUT',
                 `/goals/${id}`,
                 data
             );
@@ -629,14 +642,14 @@ const API = (() => {
 
         async contribute(
             id,
-            amountCents
+            amount
         ) {
 
             if (USE_MOCK) {
 
                 return _mock({
                     id: id,
-                    amountCents: amountCents
+                    amount: amount
                 });
             }
 
@@ -644,7 +657,7 @@ const API = (() => {
                 'POST',
                 `/goals/${id}/contribute`,
                 {
-                    amountCents: amountCents
+                    amount: amount
                 }
             );
         }
@@ -701,7 +714,7 @@ const API = (() => {
             }
 
             return _fetch(
-                'PATCH',
+                'PUT',
                 `/dependants/${id}`,
                 data
             );
@@ -726,7 +739,7 @@ const API = (() => {
 
         async sendAllowance(
             id,
-            amountCents,
+            amount,
             recurrence = 'once'
         ) {
 
@@ -734,18 +747,35 @@ const API = (() => {
 
                 return _mock({
                     sent: true,
-                    amountCents: amountCents
+                    amount: amount
                 });
             }
 
             return _fetch(
                 'POST',
-                `/dependants/${id}/allowance`,
+                `/dependants/${id}/send-allowance`,
                 {
-                    amountCents: amountCents,
+                    amount: amount,
                     recurrence: recurrence
                 }
             );
+        },
+
+
+        async addTask(depId, data) {
+            return _fetch('POST', `/dependants/${depId}/tasks`, data);
+        },
+
+        async editTask(depId, taskId, data) {
+            return _fetch('PUT', `/dependants/${depId}/tasks/${taskId}`, data);
+        },
+
+        async deleteTask(depId, taskId) {
+            return _fetch('DELETE', `/dependants/${depId}/tasks/${taskId}`);
+        },
+
+        async getTasks(depId) {
+            return _fetch('GET', `/dependants/${depId}/tasks`);
         }
     };
 
@@ -764,7 +794,7 @@ const API = (() => {
 
             return _fetch(
                 'GET',
-                `/notifications?filter=${encodeURIComponent(filter)}`
+                '/notifications'
             );
         },
 
@@ -779,7 +809,7 @@ const API = (() => {
             }
 
             return _fetch(
-                'POST',
+                'PATCH',
                 `/notifications/${id}/read`
             );
         },
@@ -795,7 +825,7 @@ const API = (() => {
             }
 
             return _fetch(
-                'POST',
+                'PATCH',
                 '/notifications/mark-all-read'
             );
         },

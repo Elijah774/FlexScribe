@@ -74,15 +74,13 @@ const DependantsUI = (() => {
             _initialized = true;
         }
 
-        // Render immediately from SEED
-        render();
-        /* COMMENTED OUT: API loading disabled for local dev
+        // Load from API
         DependantsStore.loadFromAPI().then(function() {
             render();
         }).catch(function(err) {
             console.error('Dependants load error:', err);
+            render();
         });
-        */
     }
 
     /* ----------------------------------------------------------
@@ -199,6 +197,13 @@ const DependantsUI = (() => {
                 _showToast('Task marked as complete!', 'success');
                 return;
             }
+            const undoBtn = e.target.closest('.dep-task-undo-btn');
+            if (undoBtn) {
+                DependantsStore.uncompleteTask(_drawerDepId, undoBtn.dataset.taskId);
+                _renderTasks();
+                _showToast('Task marked as pending.', 'info');
+                return;
+            }
             const editBtn = e.target.closest('.dep-task-edit-btn');
             if (editBtn) {
                 openTaskModal(editBtn.dataset.taskId);
@@ -264,7 +269,7 @@ const DependantsUI = (() => {
             <div class="dep-card" data-id="${dep.id}">
                 <div class="dep-avatar dep-avatar--${colorClass}">${dep.avatar}</div>
                 <p class="dep-card-name">${dep.name}</p>
-                <span class="dep-card-relationship">${dep.relationship}</span>
+                <span class="dep-card-relationship">${dep.relationship}${dep.age ? ' · ' + dep.age + ' yrs' : ''}</span>
                 <p class="dep-card-allowance">Allowance: <strong>${DependantsStore.fmtCurrency(dep.allowance)}</strong>/mo</p>
                 <span class="dep-status-badge ${statusClass}">${dep.status}</span>
             </div>`;
@@ -287,7 +292,7 @@ const DependantsUI = (() => {
         $addForm.reset();
         $addError.textContent = '';
         $addModal.hidden = false;
-        document.getElementById('dep-add-name').focus();
+        document.getElementById('dep-add-firstname').focus();
     }
 
     function closeAddModal() {
@@ -297,19 +302,24 @@ const DependantsUI = (() => {
     }
 
     function _handleAddSave() {
-        const name = document.getElementById('dep-add-name').value.trim();
+        const firstName = document.getElementById('dep-add-firstname').value.trim();
+        const lastName = document.getElementById('dep-add-lastname').value.trim();
         const email = document.getElementById('dep-add-email').value.trim();
         const relationship = document.getElementById('dep-add-relationship').value;
+        const dob = document.getElementById('dep-add-dob').value;
         const allowance = parseFloat(document.getElementById('dep-add-allowance').value) || 0;
         const spendingLimit = parseFloat(document.getElementById('dep-add-spending-limit').value) || 0;
 
-        if (!name) { $addError.textContent = 'Please enter a name.'; return; }
+        if (!firstName) { $addError.textContent = 'Please enter a first name.'; return; }
+        if (!lastName) { $addError.textContent = 'Please enter a last name.'; return; }
         if (!email) { $addError.textContent = 'Please enter an email.'; return; }
         if (!email.includes('@')) { $addError.textContent = 'Please enter a valid email.'; return; }
         if (!relationship) { $addError.textContent = 'Please select a relationship.'; return; }
+        if (!dob) { $addError.textContent = 'Please enter a date of birth.'; return; }
 
+        const name = firstName + ' ' + lastName;
         try {
-            DependantsStore.add({ name, email, relationship, allowance, spendingLimit });
+            DependantsStore.add({ name, email, relationship, dob, allowance, spendingLimit });
             closeAddModal();
             _showToast('Dependant added successfully!', 'success');
         } catch (err) {
@@ -326,16 +336,23 @@ const DependantsUI = (() => {
 
         _drawerDepId = dep.id;
 
+        // Split name into first/last for the form
+        var nameParts = (dep.name || '').trim().split(/\s+/);
+        var depFirstName = nameParts[0] || '';
+        var depLastName = nameParts.slice(1).join(' ') || '';
+
         // Pre-fill form with current values
-        document.getElementById('dep-edit-name').value = dep.name;
+        document.getElementById('dep-edit-firstname').value = depFirstName;
+        document.getElementById('dep-edit-lastname').value = depLastName;
         document.getElementById('dep-edit-email').value = dep.email;
         document.getElementById('dep-edit-relationship').value = dep.relationship;
+        document.getElementById('dep-edit-dob').value = dep.dateOfBirth || '';
         document.getElementById('dep-edit-allowance').value = dep.allowance;
         document.getElementById('dep-edit-spending-limit').value = dep.spendingLimit;
         $editError.textContent = '';
 
         $editModal.hidden = false;
-        document.getElementById('dep-edit-name').focus();
+        document.getElementById('dep-edit-firstname').focus();
     }
 
     function closeEditModal() {
@@ -345,18 +362,23 @@ const DependantsUI = (() => {
     }
 
     function _handleEditSave() {
-        const name = document.getElementById('dep-edit-name').value.trim();
+        const firstName = document.getElementById('dep-edit-firstname').value.trim();
+        const lastName = document.getElementById('dep-edit-lastname').value.trim();
         const email = document.getElementById('dep-edit-email').value.trim();
         const relationship = document.getElementById('dep-edit-relationship').value;
+        const dob = document.getElementById('dep-edit-dob').value;
         const allowance = parseFloat(document.getElementById('dep-edit-allowance').value) || 0;
         const spendingLimit = parseFloat(document.getElementById('dep-edit-spending-limit').value) || 0;
 
-        if (!name) { $editError.textContent = 'Please enter a name.'; return; }
+        if (!firstName) { $editError.textContent = 'Please enter a first name.'; return; }
+        if (!lastName) { $editError.textContent = 'Please enter a last name.'; return; }
         if (!email) { $editError.textContent = 'Please enter an email.'; return; }
         if (!email.includes('@')) { $editError.textContent = 'Please enter a valid email.'; return; }
+        if (!dob) { $editError.textContent = 'Please enter a date of birth.'; return; }
 
+        const name = firstName + ' ' + lastName;
         try {
-            DependantsStore.edit(_drawerDepId, { name, email, relationship, allowance, spendingLimit });
+            DependantsStore.edit(_drawerDepId, { name, email, relationship, dob, allowance, spendingLimit });
             closeEditModal();
             _showToast('Dependant updated successfully!', 'success');
 
@@ -430,6 +452,14 @@ const DependantsUI = (() => {
         const $status = document.getElementById('dep-drawer-status');
         $status.textContent = dep.status;
         $status.className = `dep-status-badge dep-status-badge--${dep.status}`;
+
+        // Dependant Information section
+        document.getElementById('dep-info-name').textContent = dep.name || '—';
+        document.getElementById('dep-info-email').textContent = dep.email || '—';
+        document.getElementById('dep-info-relationship').textContent = dep.relationship || '—';
+        document.getElementById('dep-info-dob').textContent = dep.dateOfBirth ? DependantsStore.fmtDate(dep.dateOfBirth) + (dep.age ? ' (' + dep.age + ' yrs)' : '') : '—';
+        document.getElementById('dep-info-allowance').textContent = DependantsStore.fmtCurrency(dep.allowance || 0);
+        document.getElementById('dep-info-spending-limit').textContent = DependantsStore.fmtCurrency(dep.spendingLimit || 0);
 
         // Permissions
         document.getElementById('dep-perm-spend').checked = dep.permissions.canSpend;
@@ -534,7 +564,8 @@ const DependantsUI = (() => {
             const freqLabel = t.recurring && t.frequency ? t.frequency : '';
             const recurringBadge = t.recurring ? `<span class="dep-task-recurring-badge">${freqLabel || 'Recurring'}</span>` : '';
             const dueLabel = t.dueDate ? DependantsStore.fmtDate(t.dueDate) : 'No due date';
-            const showComplete = t.status !== 'complete';
+            const showComplete = t.status !== 'complete' && t.status !== 'completed';
+            const showUndo = t.status === 'complete' || t.status === 'completed';
 
             return `
             <li class="dep-task-item">
@@ -546,6 +577,9 @@ const DependantsUI = (() => {
                     <div class="dep-task-actions">
                         ${showComplete ? `<button class="dep-task-complete-btn" data-task-id="${t.id}" aria-label="Mark complete" title="Mark Complete">
                             <svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>` : ''}
+                        ${showUndo ? `<button class="dep-task-undo-btn" data-task-id="${t.id}" aria-label="Undo completion" title="Undo Complete">
+                            <svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 3v5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                         </button>` : ''}
                         <button class="dep-task-edit-btn" data-task-id="${t.id}" aria-label="Edit task" title="Edit">
                             <svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>

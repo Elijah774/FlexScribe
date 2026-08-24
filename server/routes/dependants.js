@@ -13,7 +13,7 @@ router.use(authenticateToken);
 router.get('/', async (req, res) => {
     try {
         const result = await query(`
-            SELECT d.*, s.firstName, s.lastName, s.email, s.avatarUrl
+            SELECT d.*, s.firstName, s.lastName, s.email, s.avatarUrl, s.dateOfBirth
             FROM Dependant d
             JOIN Subscriber s ON d.dependantID = s.subscriberID
             WHERE d.mainMemberID = @id
@@ -27,24 +27,34 @@ router.get('/', async (req, res) => {
 // POST /api/dependants
 router.post('/', async (req, res) => {
     try {
-        const { firstName, lastName, email, relationship, allowance, spendingLimit } = req.body;
+        const { firstName, lastName, email, relationship, allowance, spendingLimit, dateOfBirth } = req.body;
         if (!firstName || !email) return res.status(400).json({ error: 'Name and email are required' });
+
+        // Calculate age from dateOfBirth
+        let age = null;
+        if (dateOfBirth) {
+            const dob = new Date(dateOfBirth);
+            const today = new Date();
+            age = today.getFullYear() - dob.getFullYear();
+            const monthDiff = today.getMonth() - dob.getMonth();
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) age--;
+        }
 
         // Create subscriber record for dependant
         const passwordHash = await bcrypt.hash('temp_' + Date.now(), 10);
         const sub = await query(`
-            INSERT INTO Subscriber (firstName, lastName, email, passwordHash, userType)
+            INSERT INTO Subscriber (firstName, lastName, email, passwordHash, userType, dateOfBirth)
             OUTPUT INSERTED.subscriberID
-            VALUES (@fn, @ln, @email, @hash, 'Dependant')
-        `, { fn: firstName, ln: lastName || '', email, hash: passwordHash });
+            VALUES (@fn, @ln, @email, @hash, 'Dependant', @dob)
+        `, { fn: firstName, ln: lastName || '', email, hash: passwordHash, dob: dateOfBirth || null });
 
         const depID = sub.recordset[0].subscriberID;
 
-        // Create dependant record
+        // Create dependant record with calculated age
         await query(`
-            INSERT INTO Dependant (dependantID, mainMemberID, relationship, allowance, spendingLimit)
-            VALUES (@did, @mid, @rel, @allowance, @limit)
-        `, { did: depID, mid: req.user.subscriberID, rel: relationship || null, allowance: allowance || 0, limit: spendingLimit || null });
+            INSERT INTO Dependant (dependantID, mainMemberID, relationship, allowance, spendingLimit, age)
+            VALUES (@did, @mid, @rel, @allowance, @limit, @age)
+        `, { did: depID, mid: req.user.subscriberID, rel: relationship || null, allowance: allowance || 0, limit: spendingLimit || null, age: age });
 
         res.status(201).json({ message: 'Dependant added', dependantID: depID });
     } catch (err) {
@@ -58,15 +68,49 @@ router.post('/', async (req, res) => {
 // PUT /api/dependants/:id
 router.put('/:id', async (req, res) => {
     try {
-        const { relationship, allowance, spendingLimit, status } = req.body;
-        await query(`
-            UPDATE Dependant SET
-                relationship = ISNULL(@rel, relationship),
-                allowance = ISNULL(@allowance, allowance),
-                spendingLimit = @limit,
-                status = ISNULL(@status, status)
-            WHERE dependantID = @did AND mainMemberID = @mid
-        `, { did: parseInt(req.params.id), mid: req.user.subscriberID, rel: relationship, allowance, limit: spendingLimit || null, status });
+        const { firstName, lastName, email, relationship, allowance, spendingLimit, status, dateOfBirth } = req.body;
+        const did = parseInt(req.params.id);
+        const mid = req.user.subscriberID;
+
+        // Update Subscriber table (name, email, dateOfBirth)
+        const subSets = [];
+        const subParams = { did };
+        if (firstName !== undefined && firstName) { subSets.push('firstName = @fn'); subParams.fn = String(firstName).slice(0, 100); }
+        if (lastName !== undefined && lastName) { subSets.push('lastName = @ln'); subParams.ln = String(lastName).slice(0, 100); }
+        if (email !== undefined && email) { subSets.push('email = @email'); subParams.email = String(email).slice(0, 255); }
+        if (dateOfBirth !== undefined && dateOfBirth && dateOfBirth !== '') { subSets.push('dateOfBirth = @dob'); subParams.dob = dateOfBirth; }
+        if (subSets.length > 0) {
+            subSets.push('updatedAt = GETDATE()');
+            await query(`UPDATE Subscriber SET ${subSets.join(', ')} WHERE subscriberID = @did`, subParams);
+        }
+
+        // Update Dependant table (relationship, allowance, spendingLimit, status, age, permissions)
+        const depSets = [];
+        const depParams = { did, mid };
+        if (relationship !== undefined && relationship !== null && relationship !== '') { depSets.push('relationship = @rel'); depParams.rel = String(relationship).slice(0, 100); }
+        if (allowance !== undefined && allowance !== null && !isNaN(allowance)) { depSets.push('allowance = @allowance'); depParams.allowance = parseFloat(allowance); }
+        if (spendingLimit !== undefined) { depSets.push('spendingLimit = @limit'); depParams.limit = (spendingLimit && !isNaN(spendingLimit)) ? parseFloat(spendingLimit) : null; }
+        if (status !== undefined && status !== null && ['active', 'invited', 'suspended'].includes(status)) { depSets.push('status = @status'); depParams.status = status; }
+
+        // Permissions
+        if (req.body.canSpend !== undefined) { depSets.push('canSpend = @canSpend'); depParams.canSpend = req.body.canSpend ? 1 : 0; }
+        if (req.body.canViewWallet !== undefined) { depSets.push('canViewWallet = @canViewWallet'); depParams.canViewWallet = req.body.canViewWallet ? 1 : 0; }
+        if (req.body.canRequestFunds !== undefined) { depSets.push('canRequestFunds = @canRequestFunds'); depParams.canRequestFunds = req.body.canRequestFunds ? 1 : 0; }
+
+        // Recalculate age from dateOfBirth
+        if (dateOfBirth) {
+            const dob = new Date(dateOfBirth);
+            const today = new Date();
+            let age = today.getFullYear() - dob.getFullYear();
+            const monthDiff = today.getMonth() - dob.getMonth();
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) age--;
+            depSets.push('age = @age');
+            depParams.age = age;
+        }
+
+        if (depSets.length > 0) {
+            await query(`UPDATE Dependant SET ${depSets.join(', ')} WHERE dependantID = @did AND mainMemberID = @mid`, depParams);
+        }
 
         res.json({ message: 'Dependant updated' });
     } catch (err) {
@@ -107,6 +151,110 @@ router.post('/:id/send-allowance', async (req, res) => {
         `, { wid: w.walletID, did: parseInt(req.params.id), amount, bal: newBalance, desc: 'Allowance sent' });
 
         res.json({ message: 'Allowance sent', balance: newBalance });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ══════════════════════════════════════════════════════════════
+// DEPENDANT TASKS
+// ══════════════════════════════════════════════════════════════
+
+// GET /api/dependants/:id/tasks
+router.get('/:id/tasks', async (req, res) => {
+    try {
+        const result = await query(`
+            SELECT * FROM DependantTask
+            WHERE dependantID = @did AND mainMemberID = @mid
+            ORDER BY createdAt DESC
+        `, { did: parseInt(req.params.id), mid: req.user.subscriberID });
+        res.json(result.recordset);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST /api/dependants/:id/tasks
+router.post('/:id/tasks', async (req, res) => {
+    try {
+        const { taskName, description, dueDate, reward, recurring, recurrenceCycle } = req.body;
+        if (!taskName) return res.status(400).json({ error: 'Task name is required' });
+
+        const result = await query(`
+            INSERT INTO DependantTask (dependantID, mainMemberID, taskName, description, dueDate, reward, recurring, recurrenceCycle)
+            OUTPUT INSERTED.*
+            VALUES (@did, @mid, @taskName, @desc, @due, @reward, @recurring, @cycle)
+        `, {
+            did: parseInt(req.params.id),
+            mid: req.user.subscriberID,
+            taskName,
+            desc: description || null,
+            due: dueDate || null,
+            reward: parseFloat(reward) || 0,
+            recurring: recurring ? 1 : 0,
+            cycle: recurring ? (recurrenceCycle || 'weekly') : null
+        });
+
+        res.status(201).json(result.recordset[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// PUT /api/dependants/:depId/tasks/:taskId
+router.put('/:depId/tasks/:taskId', async (req, res) => {
+    try {
+        const { taskName, description, dueDate, reward, recurring, recurrenceCycle, taskStatus } = req.body;
+        const validStatuses = ['pending', 'in_progress', 'completed', 'overdue', 'cancelled'];
+        const validCycles = ['daily', 'weekly', 'biweekly', 'monthly'];
+
+        const sets = [];
+        const params = {
+            tid: parseInt(req.params.taskId),
+            mid: req.user.subscriberID
+        };
+
+        if (taskName !== undefined && taskName !== null) { sets.push('taskName = @taskName'); params.taskName = taskName; }
+        if (description !== undefined) { sets.push('description = @desc'); params.desc = description || null; }
+        if (dueDate !== undefined) { sets.push('dueDate = @due'); params.due = dueDate || null; }
+        if (reward !== undefined && reward !== null) { sets.push('reward = @reward'); params.reward = parseFloat(reward); }
+        if (recurring !== undefined) { sets.push('recurring = @recurring'); params.recurring = recurring ? 1 : 0; }
+        if (recurrenceCycle !== undefined) {
+            if (recurrenceCycle && validCycles.includes(recurrenceCycle)) {
+                sets.push('recurrenceCycle = @cycle'); params.cycle = recurrenceCycle;
+            } else {
+                sets.push('recurrenceCycle = NULL');
+            }
+        }
+        if (taskStatus !== undefined && taskStatus !== null && validStatuses.includes(taskStatus)) {
+            sets.push('taskStatus = @status'); params.status = taskStatus;
+            if (taskStatus === 'completed') {
+                sets.push('completedAt = GETDATE()');
+            } else {
+                sets.push('completedAt = NULL');
+            }
+        }
+
+        sets.push('updatedAt = GETDATE()');
+
+        await query(`
+            UPDATE DependantTask SET ${sets.join(', ')}
+            WHERE dependantTaskID = @tid AND mainMemberID = @mid
+        `, params);
+
+        res.json({ message: 'Task updated' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// DELETE /api/dependants/:depId/tasks/:taskId
+router.delete('/:depId/tasks/:taskId', async (req, res) => {
+    try {
+        await query('DELETE FROM DependantTask WHERE dependantTaskID = @tid AND mainMemberID = @mid', {
+            tid: parseInt(req.params.taskId), mid: req.user.subscriberID
+        });
+        res.json({ message: 'Task deleted' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

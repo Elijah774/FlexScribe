@@ -50,6 +50,7 @@ const GoalsUI = (() => {
 
         if (!_initialized) {
             _bindEvents();
+            _bindGoalsConfirm();
             _initialized = true;
         }
 
@@ -96,12 +97,13 @@ const GoalsUI = (() => {
 
         // Drawer actions
         document.getElementById('goals-drawer-edit-btn').addEventListener('click', () => {
+            var editId = _drawerGoalId;
             closeDrawer();
-            setTimeout(() => openModal(_drawerGoalId), 300);
+            setTimeout(() => openModal(editId), 300);
         });
 
         document.getElementById('goals-drawer-delete-btn').addEventListener('click', () => {
-            if (confirm('Are you sure you want to delete this goal? This cannot be undone.')) {
+            _showGoalsConfirm('Are you sure you want to delete this goal? This cannot be undone.', function() {
                 API.Goals.remove(_drawerGoalId).then(function(result) {
                     if (result.success) {
                         closeDrawer();
@@ -112,7 +114,7 @@ const GoalsUI = (() => {
                 }).catch(function() {
                     alert('Network error. Please try again.');
                 });
-            }
+            });
         });
 
         // Add Funds inside drawer
@@ -128,15 +130,15 @@ const GoalsUI = (() => {
             if (result.success && Array.isArray(result.data)) {
                 _goals = result.data.map(function(g) {
                     return {
-                        id: g.id,
-                        name: g.name,
-                        targetAmount: (g.targetCents || 0) / 100,
-                        savedAmount: (g.savedCents || 0) / 100,
-                        targetDate: g.targetDate || '',
+                        id: g.goalID || g.id,
+                        name: g.goalName || g.name || '',
+                        targetAmount: parseFloat(g.targetAmount) || 0,
+                        savedAmount: parseFloat(g.currentProgress) || 0,
+                        targetDate: g.deadline ? g.deadline.split('T')[0] : '',
                         category: g.category || 'Other',
                         imageUrl: g.imageUrl || '',
-                        status: g.status || 'in_progress',
-                        createdAt: g.createdAt || '',
+                        status: g.goalStatus === 'active' ? 'in_progress' : (g.goalStatus || 'in_progress'),
+                        createdAt: g.createdAt ? g.createdAt.split('T')[0] : '',
                         contributions: g.contributions || []
                     };
                 });
@@ -244,13 +246,17 @@ const GoalsUI = (() => {
 
         if (_editingId) {
             const goal = _getGoalById(_editingId);
-            if (!goal) return;
-            $modalTitle.textContent = 'Edit Goal';
-            document.getElementById('goals-modal-name').value = goal.name;
-            document.getElementById('goals-modal-target').value = goal.targetAmount;
-            document.getElementById('goals-modal-date').value = goal.targetDate;
-            document.getElementById('goals-modal-category').value = goal.category;
-            document.getElementById('goals-modal-image').value = goal.imageUrl;
+            if (goal) {
+                $modalTitle.textContent = 'Edit Goal';
+                document.getElementById('goals-modal-name').value = goal.name;
+                document.getElementById('goals-modal-target').value = goal.targetAmount;
+                document.getElementById('goals-modal-date').value = goal.targetDate;
+                document.getElementById('goals-modal-category').value = goal.category;
+                document.getElementById('goals-modal-image').value = goal.imageUrl;
+            } else {
+                // Goal not in local cache — still open as edit, user can fill in values
+                $modalTitle.textContent = 'Edit Goal';
+            }
         } else {
             $modalTitle.textContent = 'New Goal';
             $modalForm.reset();
@@ -278,10 +284,9 @@ const GoalsUI = (() => {
         if (!targetAmount || targetAmount <= 0) { $modalError.textContent = 'Please enter a valid target amount.'; return; }
 
         // Call the real backend API
-        const targetCents = Math.round(targetAmount * 100);
 
         if (_editingId) {
-            API.Goals.edit(_editingId, { name, targetCents, targetDate }).then(function(result) {
+            API.Goals.edit(_editingId, { goalName: name, targetAmount: targetAmount, deadline: targetDate }).then(function(result) {
                 if (result.success) {
                     closeModal();
                     _loadGoalsFromAPI();
@@ -292,7 +297,7 @@ const GoalsUI = (() => {
                 $modalError.textContent = 'Network error. Please try again.';
             });
         } else {
-            API.Goals.add({ name, targetCents, targetDate }).then(function(result) {
+            API.Goals.add({ goalName: name, targetAmount: targetAmount, deadline: targetDate }).then(function(result) {
                 if (result.success) {
                     closeModal();
                     _loadGoalsFromAPI();
@@ -368,8 +373,7 @@ const GoalsUI = (() => {
         if (!amount || amount <= 0) { $input.focus(); return; }
 
         try {
-            var amountCents = Math.round(amount * 100);
-            API.Goals.contribute(_drawerGoalId, amountCents).then(function(result) {
+            API.Goals.contribute(_drawerGoalId, amount).then(function(result) {
                 if (result.success) {
                     _loadGoalsFromAPI().then(function() {
                         openDrawer(_drawerGoalId);
@@ -412,6 +416,36 @@ const GoalsUI = (() => {
             Other:     '🎯'
         };
         return icons[category] || '🎯';
+    }
+
+    /* ----------------------------------------------------------
+       CONFIRM MODAL (styled popup instead of browser confirm())
+    ---------------------------------------------------------- */
+    let _goalsConfirmCallback = null;
+
+    function _showGoalsConfirm(message, onConfirm) {
+        var $modal = document.getElementById('goals-confirm-modal');
+        document.getElementById('goals-confirm-message').textContent = message;
+        _goalsConfirmCallback = onConfirm;
+        $modal.hidden = false;
+    }
+
+    function _closeGoalsConfirm() {
+        var $modal = document.getElementById('goals-confirm-modal');
+        $modal.hidden = true;
+        _goalsConfirmCallback = null;
+    }
+
+    function _bindGoalsConfirm() {
+        document.getElementById('goals-confirm-close').addEventListener('click', _closeGoalsConfirm);
+        document.getElementById('goals-confirm-cancel').addEventListener('click', _closeGoalsConfirm);
+        document.getElementById('goals-confirm-ok').addEventListener('click', function() {
+            if (_goalsConfirmCallback) _goalsConfirmCallback();
+            _closeGoalsConfirm();
+        });
+        document.getElementById('goals-confirm-modal').addEventListener('click', function(e) {
+            if (e.target === this) _closeGoalsConfirm();
+        });
     }
 
     /* ----------------------------------------------------------

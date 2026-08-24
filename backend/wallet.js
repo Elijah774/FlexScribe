@@ -56,29 +56,29 @@ const WalletStore = (() => {
         if (typeof API === 'undefined') {
             throw new Error('API not available');
         }
-        // Get balance
+        // Get wallet balance from backend (returns actual decimal values, not cents)
         const balResult = await API.Wallet.get();
         if (balResult.success && balResult.data) {
-            const d = balResult.data.data || balResult.data;
-            _data.balance = (d.balanceCents || 0) / 100;
-            _data.pendingIn = (d.pendingInCents || 0) / 100;
-            _data.pendingOut = (d.pendingOutCents || 0) / 100;
-        } else {
-            throw new Error(balResult.error || 'Failed to load wallet');
+            const d = balResult.data;
+            // Backend VirtualWallet table stores balance as DECIMAL(18,2)
+            _data.balance = parseFloat(d.balance) || 0;
+            _data.pendingIn = parseFloat(d.pendingIn) || 0;
+            _data.pendingOut = parseFloat(d.pendingOut) || 0;
         }
-        // Get history
+        // If wallet not found, keep defaults (R0.00)
+        // Get transaction history
         try {
             const histResult = await API.Wallet.getHistory();
             if (histResult.success && histResult.data) {
-                const hist = Array.isArray(histResult.data) ? histResult.data : (histResult.data.data || []);
+                const hist = Array.isArray(histResult.data) ? histResult.data : [];
                 _data.transactions = hist.map(function(t) {
                     return {
-                        id: t.id || ('wt_' + Math.random().toString(36).slice(2)),
-                        type: t.type || 'debit',
-                        description: t.label || t.type || '',
-                        amount: Math.abs((t.amountCents || 0) / 100),
-                        date: t.date || '',
-                        category: t.type || 'transaction'
+                        id: String(t.transactionID || t.id || ('wt_' + Math.random().toString(36).slice(2))),
+                        type: t.transactionType || 'debit',
+                        description: t.description || t.transactionType || '',
+                        amount: parseFloat(t.transactionAmount) || 0,
+                        date: t.transactionDate ? t.transactionDate.split('T')[0] : '',
+                        category: t.category || 'transaction'
                     };
                 });
             }
@@ -162,18 +162,17 @@ const WalletStore = (() => {
         amount = parseFloat(amount);
         if (!amount || amount <= 0) throw new Error('Amount must be greater than zero.');
 
-        // Update locally
+        // Call real backend API
+        API.Wallet.addFunds(amount, source).then(function(result) {
+            if (result.success) { loadFromAPI(); }
+            else { console.error('Add funds failed:', result.error); }
+        }).catch(function(err) { console.error('Add funds network error:', err); });
+
+        // Optimistic local update
         _data.balance += amount;
         var tx = { id: 'wt_' + Date.now().toString(36), type: 'credit', description: 'Funds added via ' + (source || 'deposit'), amount: amount, date: new Date().toISOString().slice(0, 10), category: 'deposit' };
         _data.transactions.unshift(tx);
         _notify();
-
-        /* COMMENTED OUT: API call for when backend is running
-        API.Wallet.addFunds(Math.round(amount * 100), source).then(function(result) {
-            if (result.success) { loadFromAPI(); }
-            else { console.error('Add funds failed:', result.error); }
-        }).catch(function(err) { console.error('Add funds network error:', err); });
-        */
 
         return tx;
     }
@@ -191,17 +190,17 @@ const WalletStore = (() => {
         if (!amount || amount <= 0) throw new Error('Amount must be greater than zero.');
         if (amount > _data.balance) throw new Error('Insufficient balance.');
 
+        // Call real backend API
+        API.Wallet.withdraw(amount, destination).then(function(result) {
+            if (result.success) { loadFromAPI(); }
+            else { console.error('Withdraw failed:', result.error); }
+        }).catch(function(err) { console.error('Withdraw network error:', err); });
+
+        // Optimistic local update
         _data.balance -= amount;
         var tx = { id: 'wt_' + Date.now().toString(36), type: 'debit', description: 'Withdrawal to ' + (destination || 'bank'), amount: amount, date: new Date().toISOString().slice(0, 10), category: 'withdrawal' };
         _data.transactions.unshift(tx);
         _notify();
-
-        /* COMMENTED OUT: API call for when backend is running
-        API.Wallet.withdraw(Math.round(amount * 100), destination).then(function(result) {
-            if (result.success) { loadFromAPI(); }
-            else { console.error('Withdraw failed:', result.error); }
-        }).catch(function(err) { console.error('Withdraw network error:', err); });
-        */
 
         return tx;
     }
@@ -219,17 +218,11 @@ const WalletStore = (() => {
         if (!amount || amount <= 0) throw new Error('Amount must be greater than zero.');
         if (amount > _data.balance) throw new Error('Insufficient balance.');
 
+        // Optimistic local update
         _data.balance -= amount;
         var tx = { id: 'wt_' + Date.now().toString(36), type: 'debit', description: 'Transfer to ' + (goalName || 'goal'), amount: amount, date: new Date().toISOString().slice(0, 10), category: 'transfer' };
         _data.transactions.unshift(tx);
         _notify();
-
-        /* COMMENTED OUT: API call for when backend is running
-        API.Wallet.transfer(Math.round(amount * 100)).then(function(result) {
-            if (result.success) { loadFromAPI(); }
-            else { console.error('Transfer failed:', result.error); }
-        }).catch(function(err) { console.error('Transfer network error:', err); });
-        */
 
         return tx;
     }
@@ -247,17 +240,11 @@ const WalletStore = (() => {
         if (!amount || amount <= 0) throw new Error('Amount must be greater than zero.');
         if (amount > _data.balance) throw new Error('Insufficient balance.');
 
+        // Optimistic local update
         _data.balance -= amount;
         var tx = { id: 'wt_' + Date.now().toString(36), type: 'debit', description: 'Sent to ' + (dependantName || 'dependant'), amount: amount, date: new Date().toISOString().slice(0, 10), category: 'dependant' };
         _data.transactions.unshift(tx);
         _notify();
-
-        /* COMMENTED OUT: API call for when backend is running
-        API.Wallet.withdraw(Math.round(amount * 100), 'dependant').then(function(result) {
-            if (result.success) { loadFromAPI(); }
-            else { console.error('Send to dependant failed:', result.error); }
-        }).catch(function(err) { console.error('Send to dependant network error:', err); });
-        */
 
         return tx;
     }
@@ -267,9 +254,8 @@ const WalletStore = (() => {
     ---------------------------------------------------------- */
     // Do NOT auto-load. Data comes from loadFromAPI().
 
-    // TEMPORARY: Load SEED data for local development/testing.
-    // When backend is running, comment this out and use loadFromAPI() instead.
-    _data = JSON.parse(JSON.stringify(SEED));
+    // No seed data — real data loaded from FlexScribeDB via loadFromAPI()
+    _data = { balance: 0, pendingIn: 0, pendingOut: 0, transactions: [] };
 
     return Object.freeze({
         // Data access

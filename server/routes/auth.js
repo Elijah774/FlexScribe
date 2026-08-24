@@ -11,7 +11,7 @@ const router = express.Router();
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
     try {
-        const { firstName, lastName, email, password, phone, marketingOptIn } = req.body;
+        const { firstName, lastName, email, password, phone, marketingOptIn, dob } = req.body;
 
         if (!firstName || !lastName || !email || !password) {
             return res.status(400).json({ error: 'First name, last name, email, and password are required.' });
@@ -26,12 +26,12 @@ router.post('/register', async (req, res) => {
         // Hash password
         const passwordHash = await bcrypt.hash(password, 10);
 
-        // Insert subscriber
+        // Insert subscriber (include dateOfBirth if provided)
         const result = await query(`
-            INSERT INTO Subscriber (firstName, lastName, email, passwordHash, phone, marketingOptIn)
+            INSERT INTO Subscriber (firstName, lastName, email, passwordHash, phone, marketingOptIn, dateOfBirth, termsAcceptedAt, accentColor, avatarUrl)
             OUTPUT INSERTED.subscriberID
-            VALUES (@firstName, @lastName, @email, @passwordHash, @phone, @marketingOptIn)
-        `, { firstName, lastName, email, passwordHash, phone: phone || null, marketingOptIn: marketingOptIn ? 1 : 0 });
+            VALUES (@firstName, @lastName, @email, @passwordHash, @phone, @marketingOptIn, @dateOfBirth, GETDATE(), @accentColor, @avatarUrl)
+        `, { firstName, lastName, email, passwordHash, phone: phone || null, marketingOptIn: marketingOptIn ? 1 : 0, dateOfBirth: dob || null, accentColor: '#FF8A34', avatarUrl: null });
 
         const subscriberID = result.recordset[0].subscriberID;
 
@@ -65,8 +65,7 @@ router.post('/login', async (req, res) => {
         }
 
         const result = await query(`
-            SELECT subscriberID, firstName, lastName, email, passwordHash, userType, preferredName, avatarUrl
-            FROM Subscriber WHERE email = @email
+            SELECT * FROM Subscriber WHERE email = @email
         `, { email });
 
         if (result.recordset.length === 0) {
@@ -89,10 +88,10 @@ router.post('/login', async (req, res) => {
                 subscriberID: user.subscriberID,
                 firstName: user.firstName,
                 lastName: user.lastName,
-                preferredName: user.preferredName,
+                preferredName: user.preferredName || null,
                 email: user.email,
                 userType: user.userType,
-                avatarUrl: user.avatarUrl
+                avatarUrl: user.avatarUrl || null
             }
         });
     } catch (err) {
@@ -104,22 +103,29 @@ router.post('/login', async (req, res) => {
 // GET /api/auth/profile
 router.get('/profile', authenticateToken, async (req, res) => {
     try {
+        const sid = parseInt(req.user.subscriberID);
+        if (!sid) return res.status(400).json({ error: 'Invalid subscriber ID' });
+
         const result = await query(`
-            SELECT subscriberID, firstName, lastName, preferredName, email, phone, avatarUrl, scribePoints, createdAt
-            FROM Subscriber WHERE subscriberID = @id
-        `, { id: req.user.subscriberID });
+            SELECT * FROM Subscriber WHERE subscriberID = @id
+        `, { id: sid });
 
         if (result.recordset.length === 0) return res.status(404).json({ error: 'User not found' });
-        res.json(result.recordset[0]);
+
+        // Remove passwordHash from response
+        const user = result.recordset[0];
+        delete user.passwordHash;
+        res.json(user);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error('Profile error:', err.message);
+        res.status(500).json({ error: 'Profile query failed: ' + err.message });
     }
 });
 
 // PUT /api/auth/profile
 router.put('/profile', authenticateToken, async (req, res) => {
     try {
-        const { firstName, lastName, preferredName, phone, avatarUrl } = req.body;
+        const { firstName, lastName, preferredName, phone, avatarUrl, dateOfBirth, bio } = req.body;
         await query(`
             UPDATE Subscriber SET
                 firstName = ISNULL(@firstName, firstName),
@@ -127,9 +133,11 @@ router.put('/profile', authenticateToken, async (req, res) => {
                 preferredName = @preferredName,
                 phone = @phone,
                 avatarUrl = @avatarUrl,
+                dateOfBirth = ISNULL(@dateOfBirth, dateOfBirth),
+                bio = @bio,
                 updatedAt = GETDATE()
             WHERE subscriberID = @id
-        `, { id: req.user.subscriberID, firstName, lastName, preferredName: preferredName || null, phone: phone || null, avatarUrl: avatarUrl || null });
+        `, { id: req.user.subscriberID, firstName, lastName, preferredName: preferredName || null, phone: phone || null, avatarUrl: avatarUrl || null, dateOfBirth: dateOfBirth || null, bio: bio || null });
 
         res.json({ message: 'Profile updated' });
     } catch (err) {

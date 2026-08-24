@@ -75,7 +75,7 @@ public class GoalService {
 
         GoalContribution contribution = GoalContribution.builder()
                 .goalID(goalID)
-                .amountCents((int) (amount * 100))
+                .amount(amount)
                 .source(source != null ? source : "manual")
                 .build();
         contributionRepo.save(contribution);

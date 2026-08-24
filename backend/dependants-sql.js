@@ -74,7 +74,7 @@ const DependantSQL = (() => {
        Step 1: Insert into Subscriber table
     ---------------------------------------------------------- */
     const INSERT_SUBSCRIBER_FOR_DEPENDANT = `
-        INSERT INTO Subscriber (firstName, lastName, preferredName, email, passwordHash, phone, userType, scribePoints, avatarUrl, marketingOptIn, createdAt, updatedAt)
+        INSERT INTO Subscriber (firstName, lastName, preferredName, email, passwordHash, phone, userType, scribeScore, avatarUrl, marketingOptIn, createdAt, updatedAt)
         VALUES (@firstName, @lastName, @preferredName, @email, @passwordHash, @phone, 'Dependant', 0, @avatarUrl, 0, GETDATE(), GETDATE());
 
         SELECT SCOPE_IDENTITY() AS newSubscriberID;

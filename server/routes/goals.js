@@ -58,15 +58,23 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
     try {
         const { goalName, targetAmount, deadline, imageUrl, goalStatus } = req.body;
+
+        // Build dynamic SET clause to avoid CHECK constraint violations
+        const sets = [];
+        const params = { gid: parseInt(req.params.id), sid: req.user.subscriberID };
+
+        if (goalName) { sets.push('goalName = @name'); params.name = goalName; }
+        if (targetAmount !== undefined && targetAmount !== null) { sets.push('targetAmount = @target'); params.target = parseFloat(targetAmount); }
+        if (deadline !== undefined) { sets.push('deadline = @deadline'); params.deadline = deadline || null; }
+        if (imageUrl !== undefined) { sets.push('imageUrl = @img'); params.img = imageUrl || null; }
+        if (goalStatus && ['active', 'completed', 'paused'].includes(goalStatus)) { sets.push('goalStatus = @status'); params.status = goalStatus; }
+
+        if (sets.length === 0) return res.json({ message: 'Nothing to update' });
+
         await query(`
-            UPDATE FinancialGoal SET
-                goalName = ISNULL(@name, goalName),
-                targetAmount = ISNULL(@target, targetAmount),
-                deadline = @deadline,
-                imageUrl = @img,
-                goalStatus = ISNULL(@status, goalStatus)
+            UPDATE FinancialGoal SET ${sets.join(', ')}
             WHERE goalID = @gid AND subscriberID = @sid
-        `, { gid: parseInt(req.params.id), sid: req.user.subscriberID, name: goalName, target: targetAmount, deadline: deadline || null, img: imageUrl || null, status: goalStatus });
+        `, params);
 
         res.json({ message: 'Goal updated' });
     } catch (err) {
@@ -95,8 +103,8 @@ router.post('/:id/contribute', async (req, res) => {
             amt: amount, gid: parseInt(req.params.id), sid: req.user.subscriberID
         });
 
-        await query('INSERT INTO GoalContribution (goalID, amountCents, source) VALUES (@gid, @cents, @src)', {
-            gid: parseInt(req.params.id), cents: Math.round(amount * 100), src: source || 'manual'
+        await query('INSERT INTO GoalContribution (goalID, amount, source) VALUES (@gid, @amt, @src)', {
+            gid: parseInt(req.params.id), amt: amount, src: source || 'manual'
         });
 
         // Check if goal completed

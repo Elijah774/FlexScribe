@@ -51,6 +51,14 @@ const WalletUI = (() => {
         if (pendInEl) pendInEl.textContent = snap.fmtPendingIn;
         if (pendOutEl) pendOutEl.textContent = snap.fmtPendingOut;
 
+        // Card holder name from profile
+        const cardNameEl = document.getElementById('wallet-card-name');
+        if (cardNameEl) {
+            var profile = JSON.parse(localStorage.getItem('flexscribe_profile') || 'null');
+            var displayName = (profile && profile.nickname) ? (profile.nickname + ' ' + (profile.fullName || '').split(' ').pop().charAt(0) + '.') : 'Card Holder';
+            cardNameEl.textContent = displayName;
+        }
+
         // Transactions list
         _renderTransactions(snap.transactions);
     }
@@ -271,22 +279,18 @@ const WalletUI = (() => {
     ---------------------------------------------------------- */
     function init() {
         if (_initialized) {
-            _render();
-            /* COMMENTED OUT: API loading disabled for local dev
             WalletStore.loadFromAPI().then(_render).catch(function(err) {
                 console.error('Wallet reload error:', err);
+                _render();
             });
-            */
             return;
         }
         _initialized = true;
         _bindEvents();
-        _render();
-        /* COMMENTED OUT: API loading disabled for local dev
         WalletStore.loadFromAPI().then(_render).catch(function(err) {
             console.error('Wallet initial load error:', err);
+            _render();
         });
-        */
     }
 
     /* ----------------------------------------------------------

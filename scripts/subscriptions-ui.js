@@ -934,18 +934,20 @@ const SubscriptionsUI = (() => {
         }
         if (!valid) return;
 
-        try {
-            if (_editingId) {
-                SubscriptionStore.edit(_editingId, fields);
-                toast('Subscription updated.');
-            } else {
-                SubscriptionStore.add(fields);
-                toast('Subscription added.');
+        (async function() {
+            try {
+                if (_editingId) {
+                    await SubscriptionStore.edit(_editingId, fields);
+                    toast('Subscription updated.');
+                } else {
+                    await SubscriptionStore.add(fields);
+                    toast('Subscription added.');
+                }
+                closeModal();
+            } catch (err) {
+                toast(err.message, 'error');
             }
-            closeModal();
-        } catch (err) {
-            toast(err.message, 'error');
-        }
+        })();
     }
 
     /* ----------------------------------------------------------
@@ -1102,14 +1104,12 @@ const SubscriptionsUI = (() => {
     function init() {
         // Avoid double-init
         if (document.body.dataset.subUiInit === '1') {
-            render(SubscriptionStore.getStats());
-            /* COMMENTED OUT: API loading disabled for local dev
             SubscriptionStore.loadFromAPI().then(function() {
                 render(SubscriptionStore.getStats());
             }).catch(function(err) {
                 console.error('Subscriptions load error:', err);
+                render(SubscriptionStore.getStats());
             });
-            */
             return;
         }
         document.body.dataset.subUiInit = '1';
@@ -1235,17 +1235,13 @@ const SubscriptionsUI = (() => {
         _bindGlobalClose();
         _bindKeyboard();
 
-        // Initial render — load from API first, fall back to SEED data
-        /* COMMENTED OUT: API loading disabled for local dev
+        // Initial render — load from API
         SubscriptionStore.loadFromAPI().then(function() {
             render(SubscriptionStore.getStats());
         }).catch(function(err) {
             console.error('Subscriptions initial load error:', err);
             render(SubscriptionStore.getStats());
         });
-        */
-        // Also render immediately from SEED while API loads
-        render(SubscriptionStore.getStats());
     }
 
     /* ----------------------------------------------------------

@@ -110,7 +110,7 @@ router.post('/transfer-to-goal', async (req, res) => {
         await query('UPDATE FinancialGoal SET currentProgress = currentProgress + @amount, lastTopUpDate = GETDATE() WHERE goalID = @gid', { amount, gid: goalID });
 
         // Record contribution
-        await query('INSERT INTO GoalContribution (goalID, amountCents, source) VALUES (@gid, @cents, @src)', { gid: goalID, cents: Math.round(amount * 100), src: 'wallet' });
+        await query('INSERT INTO GoalContribution (goalID, amount, source) VALUES (@gid, @amt, @src)', { gid: goalID, amt: amount, src: 'wallet' });
 
         // Record transaction
         const goal = await query('SELECT goalName FROM FinancialGoal WHERE goalID = @gid', { gid: goalID });

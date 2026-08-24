@@ -26,6 +26,7 @@ replay_pid*
 # Environment variables (secrets)
 .env
 backend/.env
+backend/.env.remote
 
 # Node modules
 node_modules/

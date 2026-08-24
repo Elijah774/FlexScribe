@@ -1,15 +1,14 @@
-/* ===========================================================
-   db.js — SQL Server connection pool using mssql package
-   Uses Windows Authentication (trusted connection) by default.
-=========================================================== */
 const sql = require('mssql');
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 
 const config = {
     server: process.env.DB_SERVER || 'localhost',
     database: process.env.DB_NAME || 'FlexScribeDB',
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    port: 1433,
     options: {
-        encrypt: false,             // Not needed for local dev
+        encrypt: false,
         trustServerCertificate: true,
         enableArithAbort: true
     },
@@ -19,24 +18,6 @@ const config = {
         idleTimeoutMillis: 30000
     }
 };
-
-// Windows Authentication (trusted connection)
-if (process.env.DB_TRUSTED === 'true') {
-    config.authentication = {
-        type: 'ntlm',
-        options: {
-            domain: '',
-            userName: '',
-            password: ''
-        }
-    };
-    // For Windows Auth with mssql, we use integratedSecurity
-    config.options.trustedConnection = true;
-} else {
-    // SQL Server Authentication
-    config.user = process.env.DB_USER;
-    config.password = process.env.DB_PASSWORD;
-}
 
 let pool = null;
 
@@ -51,10 +32,11 @@ async function getPool() {
 async function query(queryStr, params = {}) {
     const p = await getPool();
     const request = p.request();
-    // Bind parameters
+
     Object.entries(params).forEach(([key, val]) => {
         request.input(key, val);
     });
+
     return request.query(queryStr);
 }
 

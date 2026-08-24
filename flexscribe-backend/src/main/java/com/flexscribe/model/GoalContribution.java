@@ -17,8 +17,8 @@ public class GoalContribution {
     @Column(name = "goalID", nullable = false)
     private Integer goalID;
 
-    @Column(name = "amountCents", nullable = false)
-    private Integer amountCents;
+    @Column(name = "amount", nullable = false)
+    private Double amount;
 
     @Column(name = "source", nullable = false, length = 50)
     @Builder.Default

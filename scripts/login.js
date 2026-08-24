@@ -249,7 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
             setBtnLoading(registerSubmit);
             let result;
             if (typeof API !== 'undefined') { result = await API.Auth.register({ firstName, lastName, email, phone, dob, password, confirmPassword: confirm, marketing }); }
-            else { await new Promise(r => setTimeout(r, 1200)); sessionStorage.setItem('flexscribe_token', 'mock-token'); result = { success: true, data: { scribePoints: 500 } }; }
+            else { await new Promise(r => setTimeout(r, 1200)); sessionStorage.setItem('flexscribe_token', 'mock-token'); result = { success: true, data: { scribeScore: 500 } }; }
             if (result.success) {
                 setBtnSuccess(registerSubmit);
                 setTimeout(() => {
