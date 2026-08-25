@@ -4,6 +4,7 @@
 const express = require('express');
 const { query } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
+const { updateUserAnalytics } = require('../helpers/update-analytics');
 
 const router = express.Router();
 router.use(authenticateToken);
@@ -83,6 +84,7 @@ router.post('/', async (req, res) => {
         });
 
         res.status(201).json(result.recordset[0]);
+        updateUserAnalytics(req.user.subscriberID);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -121,6 +123,7 @@ router.put('/:id', async (req, res) => {
         `, params);
 
         res.json({ message: 'Subscription updated' });
+        updateUserAnalytics(req.user.subscriberID);
     } catch (err) {
         console.error('Subscription update error:', err.message);
         res.status(500).json({ error: err.message });
@@ -135,6 +138,7 @@ router.delete('/:id', async (req, res) => {
             subscriberID: req.user.subscriberID
         });
         res.json({ message: 'Subscription deleted' });
+        updateUserAnalytics(req.user.subscriberID);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -151,6 +155,7 @@ router.patch('/:id/toggle', async (req, res) => {
         `, { id: parseInt(req.params.id), subscriberID: req.user.subscriberID });
 
         res.json({ message: 'Subscription toggled' });
+        updateUserAnalytics(req.user.subscriberID);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

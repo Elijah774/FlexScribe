@@ -63,10 +63,10 @@
     border-color: var(--orange);
 }
 
-/* ── Summary strip (3 stat cards) ──────────────────────── */
+/* ── Summary strip (5 stat cards) ──────────────────────── */
 .analytics-stats {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 16px;
     margin-bottom: 24px;
 }

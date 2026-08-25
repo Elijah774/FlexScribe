@@ -4,6 +4,7 @@
 const express = require('express');
 const { query } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
+const { updateUserAnalytics } = require('../helpers/update-analytics');
 
 const router = express.Router();
 router.use(authenticateToken);
@@ -60,6 +61,7 @@ router.post('/add-funds', async (req, res) => {
         `, { wid: w.walletID, amount, bal: newBalance, desc: 'Funds added via ' + (source || 'Bank Card') });
 
         res.json({ message: 'Funds added', balance: newBalance });
+        updateUserAnalytics(req.user.subscriberID);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -88,6 +90,7 @@ router.post('/withdraw', async (req, res) => {
         `, { wid: w.walletID, amount, bal: newBalance, desc: 'Withdrawal to ' + (destination || 'Bank Account') });
 
         res.json({ message: 'Withdrawal successful', balance: newBalance });
+        updateUserAnalytics(req.user.subscriberID);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -121,6 +124,7 @@ router.post('/transfer-to-goal', async (req, res) => {
         `, { wid: w.walletID, gid: goalID, amount, bal: newBalance, desc: 'Transfer to ' + goalName });
 
         res.json({ message: 'Transferred to goal', balance: newBalance });
+        updateUserAnalytics(req.user.subscriberID);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

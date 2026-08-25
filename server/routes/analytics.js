@@ -67,13 +67,19 @@ router.get('/summary', async (req, res) => {
         const totalIncome = parseFloat(income.recordset[0].totalIncome);
         const savingsRate = totalIncome > 0 ? Math.round(((totalIncome - totalSpent) / totalIncome) * 100) : 0;
 
+        const goalsData = goals.recordset[0];
+        const goalProgressRate = parseFloat(goalsData.totalTarget) > 0
+            ? Math.round((parseFloat(goalsData.totalSaved) / parseFloat(goalsData.totalTarget)) * 100)
+            : 0;
+
         res.json({
             totalSpent,
             totalIncome,
             savingsRate,
+            goalProgressRate,
             monthlyCost: parseFloat(subs.recordset[0].monthlyCost),
             activeSubscriptions: subCount.recordset[0].cnt,
-            goals: goals.recordset[0]
+            goals: goalsData
         });
     } catch (err) {
         console.error('Analytics summary error:', err);

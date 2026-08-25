@@ -5,6 +5,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const { query } = require('../db');
 const { authenticateToken, generateToken } = require('../middleware/auth');
+const { updateUserAnalytics } = require('../helpers/update-analytics');
 
 const router = express.Router();
 
@@ -49,6 +50,7 @@ router.post('/register', async (req, res) => {
             token,
             user: { subscriberID, firstName, lastName, email, userType: 'MainMember' }
         });
+        updateUserAnalytics(subscriberID);
     } catch (err) {
         console.error('Register error:', err);
         res.status(500).json({ error: 'Server error during registration.' });

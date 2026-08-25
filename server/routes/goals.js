@@ -4,6 +4,7 @@
 const express = require('express');
 const { query } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
+const { updateUserAnalytics } = require('../helpers/update-analytics');
 
 const router = express.Router();
 router.use(authenticateToken);
@@ -49,6 +50,7 @@ router.post('/', async (req, res) => {
         `, { sid: req.user.subscriberID, name: goalName, target: targetAmount, deadline: deadline || null, img: imageUrl || null });
 
         res.status(201).json(result.recordset[0]);
+        updateUserAnalytics(req.user.subscriberID);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -88,6 +90,7 @@ router.delete('/:id', async (req, res) => {
         await query('DELETE FROM GoalContribution WHERE goalID = @gid', { gid: parseInt(req.params.id) });
         await query('DELETE FROM FinancialGoal WHERE goalID = @gid AND subscriberID = @sid', { gid: parseInt(req.params.id), sid: req.user.subscriberID });
         res.json({ message: 'Goal deleted' });
+        updateUserAnalytics(req.user.subscriberID);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -114,6 +117,7 @@ router.post('/:id/contribute', async (req, res) => {
         }
 
         res.json({ message: 'Contribution added' });
+        updateUserAnalytics(req.user.subscriberID);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

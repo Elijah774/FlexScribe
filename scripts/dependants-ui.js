@@ -316,6 +316,7 @@ const DependantsUI = (() => {
         if (!email.includes('@')) { $addError.textContent = 'Please enter a valid email.'; return; }
         if (!relationship) { $addError.textContent = 'Please select a relationship.'; return; }
         if (!dob) { $addError.textContent = 'Please enter a date of birth.'; return; }
+        if (dob.split('-')[0].length > 4) { $addError.textContent = 'Please enter a valid year (4 digits).'; return; }
 
         const name = firstName + ' ' + lastName;
         try {
@@ -375,6 +376,7 @@ const DependantsUI = (() => {
         if (!email) { $editError.textContent = 'Please enter an email.'; return; }
         if (!email.includes('@')) { $editError.textContent = 'Please enter a valid email.'; return; }
         if (!dob) { $editError.textContent = 'Please enter a date of birth.'; return; }
+        if (dob.split('-')[0].length > 4) { $editError.textContent = 'Please enter a valid year (4 digits).'; return; }
 
         const name = firstName + ' ' + lastName;
         try {
@@ -660,6 +662,7 @@ const DependantsUI = (() => {
 
         if (!task) { $taskError.textContent = 'Please enter a task name.'; return; }
         if (!dueDate) { $taskError.textContent = 'Please select a due date.'; return; }
+        if (dueDate.split('-')[0].length > 4) { $taskError.textContent = 'Please enter a valid year (4 digits).'; return; }
 
         // Prevent past due dates — only today or future dates are allowed
         const today = new Date().toISOString().split('T')[0];

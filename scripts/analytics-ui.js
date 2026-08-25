@@ -58,6 +58,8 @@ const AnalyticsUI = (() => {
             const data = {
                 totalSpent: parseFloat(summary.totalSpent) || 0,
                 totalIncome: parseFloat(summary.totalIncome) || 0,
+                savingsRate: summary.savingsRate || 0,
+                goalProgressRate: summary.goalProgressRate || 0,
                 riskScore: summary.savingsRate !== undefined ? Math.max(0, 100 - summary.savingsRate) : 50,
                 byCategory: (Array.isArray(categories) ? categories : []).map(c => ({
                     category: c.category || c.categoryName || 'Other',
@@ -113,6 +115,13 @@ const AnalyticsUI = (() => {
         if (data.riskScore <= 30) { riskLabel = 'Low'; riskClass = 'positive'; }
         else if (data.riskScore <= 55) { riskLabel = 'Moderate'; riskClass = ''; }
         else { riskLabel = 'High'; riskClass = 'negative'; }
+
+        var savingsRate = data.savingsRate || 0;
+        var savingsClass = savingsRate >= 20 ? 'positive' : (savingsRate < 10 ? 'negative' : '');
+
+        var goalProgress = data.goalProgressRate || 0;
+        var goalClass = goalProgress >= 50 ? 'positive' : (goalProgress < 20 ? 'negative' : '');
+
         el.innerHTML = `
             <div class="analytics-stat-card">
                 <p class="analytics-stat-label">Total Spent</p>
@@ -123,8 +132,16 @@ const AnalyticsUI = (() => {
                 <p class="analytics-stat-value positive">${formatRand(data.totalIncome)}</p>
             </div>
             <div class="analytics-stat-card">
+                <p class="analytics-stat-label">Savings Rate</p>
+                <p class="analytics-stat-value ${savingsClass}">${savingsRate}%</p>
+            </div>
+            <div class="analytics-stat-card">
+                <p class="analytics-stat-label">Goal Progress</p>
+                <p class="analytics-stat-value ${goalClass}">${goalProgress}%</p>
+            </div>
+            <div class="analytics-stat-card">
                 <p class="analytics-stat-label">Risk Score</p>
-                <p class="analytics-stat-value ${riskClass}">${data.riskScore}/100 <small>(${riskLabel})</small></p>
+                <p class="analytics-stat-value ${riskClass}">${data.riskScore}/100</p>
             </div>
         `;
     }
