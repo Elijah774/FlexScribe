@@ -74,8 +74,8 @@ const DependantSQL = (() => {
        Step 1: Insert into Subscriber table
     ---------------------------------------------------------- */
     const INSERT_SUBSCRIBER_FOR_DEPENDANT = `
-        INSERT INTO Subscriber (firstName, lastName, preferredName, email, passwordHash, phone, userType, scribeScore, avatarUrl, marketingOptIn, createdAt, updatedAt)
-        VALUES (@firstName, @lastName, @preferredName, @email, @passwordHash, @phone, 'Dependant', 0, @avatarUrl, 0, GETDATE(), GETDATE());
+        INSERT INTO Subscriber (firstName, lastName, preferredName, email, passwordHash, phone, userType, scribeScore, avatarUrl, marketingOptIn, twoFactorEnabled, theme, notifyPayments, notifyGoals, notifyWeekly, createdAt, updatedAt)
+        VALUES (@firstName, @lastName, @preferredName, @email, @passwordHash, @phone, 'Dependant', 0, @avatarUrl, 0, 0, 'dark', 1, 1, 0, GETDATE(), GETDATE());
 
         SELECT SCOPE_IDENTITY() AS newSubscriberID;
     `;
@@ -84,8 +84,8 @@ const DependantSQL = (() => {
        ADD — Step 2: Insert into Dependant table
     ---------------------------------------------------------- */
     const INSERT_DEPENDANT = `
-        INSERT INTO Dependant (dependantID, mainMemberID, age, relationship, allowance, spendingLimit, status)
-        VALUES (@dependantID, @mainMemberID, @age, @relationship, @allowance, @spendingLimit, 'invited');
+        INSERT INTO Dependant (dependantID, mainMemberID, age, relationship, allowance, spendingLimit, status, canSpend, canViewWallet, canRequestFunds)
+        VALUES (@dependantID, @mainMemberID, @age, @relationship, @allowance, @spendingLimit, 'invited', 1, 0, 1);
     `;
 
     /* ----------------------------------------------------------

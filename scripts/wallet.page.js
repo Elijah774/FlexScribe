@@ -12,7 +12,7 @@ window._pageContent['wallet'] = `
                             <div class="wallet-card-chip"></div>
                         </div>
                         <div class="wallet-card-bottom">
-                            <p class="wallet-card-number">•••• •••• •••• 4829</p>
+                            <p class="wallet-card-number" id="wallet-card-number">•••• •••• •••• ••••</p>
                             <p class="wallet-card-name" id="wallet-card-name">Card Holder</p>
                         </div>
                     </div>

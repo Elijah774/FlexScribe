@@ -157,16 +157,17 @@ app.post("/auth/register", async (req, res) => {
             .input("passwordHash", sql.VarChar(255), passwordHash)
             .input("userType", sql.VarChar(50), "individual")
             .query(`
-                INSERT INTO Subscriber (firstName, lastName, email, passwordHash, userType)
+                INSERT INTO Subscriber (firstName, lastName, email, passwordHash, userType, scribeScore, marketingOptIn, twoFactorEnabled, theme, notifyPayments, notifyGoals, notifyWeekly, createdAt, updatedAt)
                 OUTPUT INSERTED.subscriberID, INSERTED.firstName, INSERTED.lastName, INSERTED.email, INSERTED.userType
-                VALUES (@firstName, @lastName, @email, @passwordHash, @userType)
+                VALUES (@firstName, @lastName, @email, @passwordHash, @userType, 500, 0, 0, 'dark', 1, 1, 0, GETDATE(), GETDATE())
             `);
         const user = result.recordset[0];
         const token = generateToken(user);
         // Create wallet
         try {
-            await p.request().input("subID", sql.Int, user.subscriberID).input("bal", sql.Decimal(18, 2), 0)
-                .query("INSERT INTO VirtualWallet (subscriberID, balance) VALUES (@subID, @bal)");
+            var cardNum = '4' + Array.from({length: 15}, function() { return Math.floor(Math.random() * 10); }).join('');
+            await p.request().input("subID", sql.Int, user.subscriberID).input("bal", sql.Decimal(18, 2), 0).input("card", sql.VarChar(19), cardNum)
+                .query("INSERT INTO VirtualWallet (subscriberID, balance, cardNumber) VALUES (@subID, @bal, @card)");
         } catch (we) { console.warn("Wallet creation note:", we.message); }
         res.status(201).json({ success: true, data: { token, user: { id: user.subscriberID, name: user.firstName + " " + user.lastName, email: user.email, userType: user.userType }, scribeScore: 500 } });
     } catch (error) {
@@ -637,7 +638,7 @@ app.post("/dependants", authenticate, async (req, res) => {
             .input("em", sql.VarChar(255), depEmail)
             .input("ph", sql.VarChar(255), depHash)
             .input("ut", sql.VarChar(50), "dependant")
-            .query("INSERT INTO Subscriber (firstName, lastName, email, passwordHash, userType) OUTPUT INSERTED.subscriberID VALUES (@fn, @ln, @em, @ph, @ut)");
+            .query("INSERT INTO Subscriber (firstName, lastName, email, passwordHash, userType, scribeScore, marketingOptIn, twoFactorEnabled, theme, notifyPayments, notifyGoals, notifyWeekly, createdAt, updatedAt) OUTPUT INSERTED.subscriberID VALUES (@fn, @ln, @em, @ph, @ut, 0, 0, 0, 'dark', 1, 1, 0, GETDATE(), GETDATE())");
         var newSubID = subResult.recordset[0].subscriberID;
         // Insert into Dependant table
         await p.request()
@@ -645,7 +646,7 @@ app.post("/dependants", authenticate, async (req, res) => {
             .input("mmID", sql.Int, req.user.subscriberID)
             .input("rel", sql.VarChar(100), relationship || "Other")
             .input("bal", sql.Decimal(18, 2), allowanceAmt)
-            .query("INSERT INTO Dependant (dependantID, mainMemberID, relationship, allowance) VALUES (@depID, @mmID, @rel, @bal)");
+            .query("INSERT INTO Dependant (dependantID, mainMemberID, relationship, allowance, status, canSpend, canViewWallet, canRequestFunds) VALUES (@depID, @mmID, @rel, @bal, 'active', 1, 0, 1)");
         res.status(201).json({ success: true, data: { id: newSubID, name: name, status: "active" } });
     } catch (error) {
         console.error("Add dependant error:", error);
@@ -998,6 +999,44 @@ const multer = require("multer");
 const pdfParse = require("pdf-parse");
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
+/** Parse Excel (.xlsx) buffer into transaction objects */
+function _parseXLSX(buffer) {
+    try {
+        var XLSX = require('xlsx');
+        var workbook = XLSX.read(buffer, { type: 'buffer' });
+        var sheetName = workbook.SheetNames[0];
+        var sheet = workbook.Sheets[sheetName];
+        var rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+        if (rows.length < 2) return [];
+
+        // Try to detect header row
+        var header = (rows[0] || []).map(function(h) { return String(h || '').toLowerCase(); });
+        var dateIdx = header.findIndex(function(h) { return h.includes('date'); });
+        var descIdx = header.findIndex(function(h) { return h.includes('description') || h.includes('desc') || h.includes('reference'); });
+        var amtIdx = header.findIndex(function(h) { return h.includes('amount') || h.includes('value') || h.includes('debit'); });
+
+        if (dateIdx === -1) dateIdx = 0;
+        if (descIdx === -1) descIdx = 1;
+        if (amtIdx === -1) amtIdx = 2;
+
+        var transactions = [];
+        for (var i = 1; i < rows.length; i++) {
+            var row = rows[i];
+            if (!row || row.length < 3) continue;
+            var date = String(row[dateIdx] || '').trim();
+            var description = String(row[descIdx] || '').trim();
+            var amount = parseFloat(String(row[amtIdx] || '0').replace(/[^\d.\-]/g, '')) || 0;
+            if (date && description) {
+                transactions.push({ date: date, description: description, amount: amount });
+            }
+        }
+        return transactions;
+    } catch (e) {
+        console.error('XLSX parse error:', e.message);
+        return [];
+    }
+}
+
 /** Parse CSV text into transaction objects */
 function _parseCSV(text) {
     var lines = text.split(/\r?\n/).filter(function(l) { return l.trim().length > 0; });
@@ -1103,8 +1142,8 @@ app.post("/bank-statements/upload", authenticate, upload.single("statement"), as
     try {
         if (!req.file) return res.status(400).json({ success: false, message: "No file uploaded" });
         var ext = (req.file.originalname || '').split('.').pop().toLowerCase();
-        if (ext !== 'csv' && ext !== 'pdf') {
-            return res.status(400).json({ success: false, message: "Only PDF and CSV files are accepted" });
+        if (ext !== 'csv' && ext !== 'pdf' && ext !== 'xlsx') {
+            return res.status(400).json({ success: false, message: "Only PDF, CSV, and Excel (.xlsx) files are accepted" });
         }
         var p = await getPool();
         // Check once-per-year rule
@@ -1119,6 +1158,8 @@ app.post("/bank-statements/upload", authenticate, upload.single("statement"), as
         if (ext === 'csv') {
             var csvText = req.file.buffer.toString('utf-8');
             transactions = _parseCSV(csvText);
+        } else if (ext === 'xlsx') {
+            transactions = _parseXLSX(req.file.buffer);
         } else {
             transactions = await _parsePDF(req.file.buffer);
         }

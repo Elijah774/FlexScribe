@@ -93,8 +93,8 @@ function closeAllMenus(except) {
 
 function _getDashboardGreeting() {
     const profile = JSON.parse(localStorage.getItem('flexscribe_profile') || 'null');
-    const name = profile?.nickname || profile?.fullName?.split(' ')[0] || 'there';
-    return 'Welcome, ' + name + ' \u{1F44B}';
+    const name = profile?.nickname || profile?.fullName?.split(' ')[0] || 'User';
+    return name + "'s Dashboard";
 }
 
 const pageTitles = {
@@ -329,10 +329,10 @@ loadPage('dashboard');
 
             // Update dashboard greeting with real name
             var titleEl = document.querySelector('.page-title');
-            if (titleEl && titleEl.textContent.includes('Welcome')) {
-                titleEl.textContent = 'Welcome, ' + shortName + ' \u{1F44B}';
+            if (titleEl && titleEl.textContent.includes('Dashboard')) {
+                titleEl.textContent = shortName + "'s Dashboard";
             }
-            pageTitles.dashboard.title = 'Welcome, ' + shortName + ' \u{1F44B}';
+            pageTitles.dashboard.title = shortName + "'s Dashboard";
 
             // Cache profile for next load
             var cached = JSON.parse(localStorage.getItem('flexscribe_profile') || '{}');

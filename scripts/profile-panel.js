@@ -181,12 +181,12 @@ const ProfilePanel = (() => {
 
         // Update dashboard greeting
         const greetEl = document.querySelector('.page-title');
-        if (greetEl && greetEl.textContent.includes('\u{1F44B}')) {
-            greetEl.textContent = 'Welcome, ' + nickname + ' \u{1F44B}';
+        if (greetEl && greetEl.textContent.includes('Dashboard')) {
+            greetEl.textContent = nickname + "'s Dashboard";
         }
 
         if (typeof pageTitles !== 'undefined') {
-            pageTitles.dashboard.title = 'Welcome, ' + nickname + ' \u{1F44B}';
+            pageTitles.dashboard.title = nickname + "'s Dashboard";
         }
 
         // Update FlexCard

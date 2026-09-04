@@ -728,6 +728,26 @@ const SubscriptionStore = (() => {
         }
 
 
+        if (!sub.billingDate) {
+
+            throw new Error(
+                'Billing date is required.'
+            );
+        }
+
+
+        {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const selected = new Date(sub.billingDate + 'T00:00:00');
+            if (selected < today) {
+                throw new Error(
+                    'Billing date cannot be in the past.'
+                );
+            }
+        }
+
+
         if (typeof API === 'undefined') {
 
             throw new Error(

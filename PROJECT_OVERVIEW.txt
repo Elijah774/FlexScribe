@@ -1,0 +1,1025 @@
+================================================================================
+FLEXSCRIBE — PROJECT OVERVIEW (Technical Reference Document)
+Generated: August 2026
+================================================================================
+
+================================================================================
+1. PROJECT SUMMARY
+================================================================================
+
+FlexScribe is a personal finance management web application targeting South
+African university students and young professionals. It allows users to:
+- Track and manage recurring subscriptions (Netflix, Spotify, etc.)
+- Maintain a virtual wallet with deposit/withdrawal/transfer capabilities
+- Set and track financial savings goals
+- Manage dependants (family members) with allowance allocation
+- Upload bank statements for AI-powered spending analysis
+- Generate compiled financial reports (downloadable as CSV)
+- View analytics dashboards with spending trends and category breakdowns
+- Earn a "ScribeScore" (financial health metric) that improves with usage
+
+TECH STACK:
+- Frontend: Vanilla HTML/CSS/JavaScript (no frameworks). SPA architecture
+  using a single MASTER.html shell with dynamically loaded page panels.
+  Chosen for simplicity, no build step, and direct file:// compatibility.
+- Backend: Node.js with Express.js (server/ directory, port 3000).
+  Chosen for JavaScript full-stack consistency and npm ecosystem.
+- Database: Microsoft SQL Server (FlexScribeDB). Chosen because it is the
+  prescribed DBMS for the university module (WRRV).
+- Auth: JWT (jsonwebtoken) with bcryptjs password hashing.
+- File parsing: pdf-parse (PDFs), xlsx (Excel), native CSV parsing.
+
+================================================================================
+2. ARCHITECTURE OVERVIEW
+================================================================================
+
+TEXT DIAGRAM:
+                                                                              
+  +------------------+       HTTP/JSON        +------------------+            
+  |                  |  ---- /api/* --->      |                  |            
+  |  BROWSER         |                        |  EXPRESS SERVER   |            
+  |  (pages/         |  <--- JSON resp ---    |  (server/)        |            
+  |   MASTER.html)   |                        |                  |            
+  |                  |                        |  Port 3000       |            
+  +------------------+                        +--------+---------+            
+        |                                              |                      
+        | scripts/api.js                               | server/db.js         
+        | (fetch calls)                                | (mssql queries)      
+        |                                              |                      
+        | Token in sessionStorage                      v                      
+        | sent as Authorization header        +------------------+            
+        |                                     |                  |            
+        +--- Static files served from         |  SQL SERVER      |            
+             project root via express.static  |  (FlexScribeDB)  |            
+                                              |                  |            
+                                              +------------------+            
+
+END-TO-END TRACE: ADDING A SUBSCRIPTION
+------------------------------------------------------------------------
+1. User clicks "Add" button in Subscriptions panel
+   File: scripts/subscriptions-ui.js
+   Function: openAddModal() -> shows the #sub-modal form
+
+2. User fills form and clicks "Add Subscription"
+   File: scripts/subscriptions-ui.js
+   Function: handleModalSubmit(e) -> validates fields (name required, 
+   amount > 0, billing date required and not in past)
+
+3. Calls the backend store
+   File: backend/subscriptions.js
+   Function: add(fields) -> validates again, then calls API.Subscriptions.add()
+
+4. API module sends the request
+   File: scripts/api.js
+   Function: Subscriptions.add(data) -> _fetch('POST', '/subscriptions', data)
+   Sends to: http://localhost:3000/api/subscriptions
+
+5. Express routes the request
+   File: server/routes/subscriptions.js
+   Function: router.post('/', ...) on line 49
+   Middleware: authenticateToken (verifies JWT, attaches req.user.subscriberID)
+
+6. Route handler runs SQL
+   File: server/routes/subscriptions.js, line 56
+   Query: INSERT INTO Subscription (subscriberID, categoryID, serviceName,
+          billingAmount, billingCycle, billingDate, notes, logoClass, 
+          logoText, colorTag, reminderDays, providerUrl) 
+          OUTPUT INSERTED.* VALUES (...)
+
+7. Table affected: dbo.Subscription
+   Columns written: subscriberID, categoryID, serviceName, billingAmount,
+   billingCycle, billingDate, subStatus (defaults to 'active'), autoRenew
+   (defaults to 1), notes, logoClass, logoText, colorTag, reminderDays,
+   providerUrl, createdAt (GETDATE()), updatedAt (GETDATE())
+
+8. Response flows back to frontend, UI re-renders the subscription list.
+
+================================================================================
+3. FOLDER STRUCTURE
+================================================================================
+
+ROOT: d:\Documents\2026 UNI\School Plan\SEMESTER 2\WRRV Project\Flexscibe\
+
+TOP-LEVEL FILES:
+  landing.html          - Public marketing/landing page (not logged in)
+  index.html            - Redirect to landing.html
+  layout.js             - Legacy layout file (deprecated, see scripts/layout.js)
+  flexscribe-local-database.sql - Full CREATE TABLE script for FlexScribeDB
+  DATABASE-INTEGRATION.md       - Documentation on connecting frontend to DB
+  LOCAL-DATABASE-SETUP.md       - SQL Server setup instructions
+  HOW-TO-WORK-ON-PAGES.txt     - Developer guide for page content system
+  convert-pages.ps1             - PowerShell script to convert HTML pages to .page.js format
+  PROJECT_OVERVIEW.txt          - This file
+  .gitignore                    - Git ignore rules
+  pkg-check.txt                 - Dependency verification notes
+
+FOLDER: pages/
+  MASTER.html           - Main SPA shell (sidebar, header, all page panels)
+  ADMIN.html            - Admin panel (separate from main app)
+  login.html            - Login/Register page with tab switching
+  loading.html          - Loading screen shown after login before dashboard
+  signout.html          - Sign-out confirmation page
+  dashboard.html        - Fallback dashboard HTML (overridden by .page.js)
+  wallet.html           - Fallback wallet HTML
+  subscription.html     - Fallback subscriptions HTML
+  goals.html            - Fallback goals HTML
+  analytics.html        - Fallback analytics HTML
+  timeline.html         - Fallback billing timeline HTML
+  dependants.html       - Fallback dependants HTML
+  notifications.html    - Fallback notifications HTML
+  reports.html          - Fallback reports HTML (overridden by .page.js)
+  settings.html         - Fallback settings HTML
+  profile.html          - Profile page (standalone)
+
+FOLDER: scripts/
+  api.js                - Central API module: all backend communication
+  layout.js             - SPA navigation, auth guard, page loading, settings
+  login.js              - Login/register form logic and validation
+  ui-utils.js           - Shared utilities: toast, debounce, modal helpers
+  lucide.min.js         - Lucide icon library (vendored)
+  landing.js            - Landing page interactions (scroll, animations)
+  search.js             - Global search bar functionality
+  profile-panel.js      - Profile slide-out panel logic
+  admin.js              - Admin panel logic
+  dashboard-ui.js       - Dashboard panel: FlexCard, timeline chart, goals, AI
+  dashboard.page.js     - Dashboard HTML template (window._pageContent)
+  subscriptions-ui.js   - Subscriptions panel: list, modals, donut, filters
+  subscription.page.js  - Subscriptions HTML template
+  wallet-ui.js          - Wallet panel: balance display, transactions, modals
+  wallet.page.js        - Wallet HTML template
+  goals-ui.js           - Goals panel: goal cards, add/edit modal, drawer, fund
+  goals.page.js         - Goals HTML template
+  analytics-ui.js       - Analytics panel: donut, bar chart, merchants, budgets
+  analytics.page.js     - Analytics HTML template
+  dependants-ui.js      - Dependants panel: cards, add/edit/drawer, tasks
+  dependants.page.js    - Dependants HTML template
+  reports-ui.js         - Reports panel: generate, upload, modal, CSV export
+  reports.page.js       - Reports HTML template
+  timeline-ui.js        - Billing timeline calendar logic
+  timeline.page.js      - Timeline HTML template
+  notifications.page.js - Notifications HTML template + init function
+  settings.page.js      - Settings HTML template
+
+FOLDER: styles/
+  MASTER.css            - Main app styles (sidebar, header, layout)
+  landing.css           - Landing page styles
+  login.css             - Login/register page styles
+  dashboard.css         - Dashboard panel styles
+  subscription.css      - Subscriptions panel styles
+  wallet.css            - Wallet panel styles
+  goals.css             - Goals panel styles
+  analytics.css         - Analytics panel styles
+  dependants.css        - Dependants panel styles
+  reports.css           - Reports panel styles
+  profile-panel.css     - Profile slide-out panel styles
+  admin.css             - Admin panel styles
+
+FOLDER: server/ (Node.js Express backend — the active server)
+  server.js             - Express app entry point, route mounting, static serving
+  db.js                 - SQL Server connection pool and query() helper
+  .env                  - Environment variables (DB credentials, JWT secret)
+  package.json          - Dependencies and scripts
+  package-lock.json     - Locked dependency versions
+  middleware/
+    auth.js             - JWT authentication middleware (authenticateToken, generateToken)
+  routes/
+    auth.js             - POST /register, POST /login, GET/PUT /profile
+    subscriptions.js    - CRUD for subscriptions + toggle + stats
+    wallet.js           - Balance, transactions, add-funds, withdraw, transfer
+    goals.js            - CRUD for goals + contribute
+    dependants.js       - CRUD for dependants + send-allowance + tasks
+    notifications.js    - List, unread-count, mark-read
+    analytics.js        - Summary, by-category, trend, insights
+    reports.js          - POST /compile, GET / (list reports)
+    bank-statements.js  - POST /upload, GET /report (PDF/CSV/XLSX parsing)
+
+FOLDER: backend/ (Alternative monolithic backend — port 5000)
+  server.js             - All-in-one Express server with all routes inline
+  package.json          - Dependencies
+  auth-sql.js           - SQL templates for auth operations
+  auth-db.js            - Auth database helper functions
+  dependants-sql.js     - SQL templates for dependant operations
+  dependants-db.js      - Dependant database helper functions
+  dependants.js         - Client-side DependantsStore (localStorage + API)
+  subscriptions.js      - Client-side SubscriptionStore (localStorage + API)
+  wallet.js             - Client-side WalletStore (localStorage + API)
+  goals.js              - Client-side GoalsStore (localStorage + API)
+  dashboard.js          - Client-side DashboardStore (widget config)
+  analytics-db.js       - Analytics database functions
+  analytics-sql.js      - Analytics SQL templates
+
+FOLDER: images/
+  smallLogo.png         - FlexScribe logo for header/nav
+
+FOLDER: migrations/
+  001-add-cardNumber.sql - Adds cardNumber column to VirtualWallet table
+
+FOLDER: flexscribe-backend/ (Java Spring Boot backend — not actively used)
+  pom.xml               - Maven config (Spring Boot 3.2.5, Java 21)
+  src/main/java/com/flexscribe/ - Controllers, services, models, repositories
+  src/main/resources/application.properties - Spring config
+
+FOLDER: .kiro/
+  specs/flexscribe-enhancement/ - Kiro spec files (requirements, design, tasks)
+
+FOLDER: .vscode/
+  launch.json           - Chrome debug launch configuration
+
+================================================================================
+4. FEATURES IMPLEMENTED
+================================================================================
+
+------------------------------------------------------------------------
+4.1 AUTHENTICATION
+------------------------------------------------------------------------
+What: Email/password registration and login with JWT token-based sessions.
+New users get 500 ScribeScore, a virtual wallet with generated card number,
+and a MainMember record.
+
+Algorithm:
+- Passwords hashed with bcryptjs (cost factor 10).
+- JWT contains { subscriberID, email, userType }, expires in 7 days.
+- Token stored in sessionStorage (cleared on tab close).
+- Every API call includes Authorization: Bearer {token} header.
+- Auth middleware (authenticateToken) verifies token on all /api/* routes
+  except /api/auth/login, /api/auth/register, /api/health.
+
+Files:
+- Frontend: pages/login.html, scripts/login.js, scripts/api.js (Auth namespace)
+- Backend: server/routes/auth.js, server/middleware/auth.js
+- Database: Subscriber table (passwordHash column)
+
+Key functions:
+- scripts/login.js: login form submit handler (line 134)
+- scripts/api.js: Auth.login(), Auth.register(), Auth.getUser()
+- server/routes/auth.js: router.post('/register'), router.post('/login')
+- server/middleware/auth.js: authenticateToken(), generateToken()
+
+Limitations:
+- No email verification on registration.
+- No password reset endpoint (forgot-password is UI-only, no email sent).
+- No refresh token mechanism — after 7 days, user must re-login.
+- No rate limiting on login attempts.
+
+------------------------------------------------------------------------
+4.2 SUBSCRIPTIONS
+------------------------------------------------------------------------
+What: Full CRUD for recurring subscriptions. Users add services with name,
+amount, billing cycle, category, date. Can pause/unpause, edit, delete.
+Category-based donut chart and upcoming payments list.
+
+Algorithm:
+- Monthly cost normalisation: weekly*4.33, quarterly/3, yearly/12.
+- Upcoming payments = active subs with nextPaymentDate within 30 days.
+- Donut chart computed from category groupings of active subscriptions.
+- Validation: name required, amount > 0, billing date required and cannot
+  be in the past.
+- Provider recommendations: PROVIDERS array in backend/subscriptions.js
+  with 14 SA-relevant services. Excludes already-subscribed services.
+
+Files:
+- Frontend: scripts/subscriptions-ui.js, scripts/subscription.page.js,
+            backend/subscriptions.js (SubscriptionStore)
+- Backend: server/routes/subscriptions.js
+- Database: Subscription, SubscriptionCategory tables
+
+Key functions:
+- subscriptions-ui.js: handleModalSubmit(), _handleRecAddConfirm(),
+  _renderList(), _renderDonut(), _renderUpcoming(), _renderRecommendations()
+- backend/subscriptions.js: add(), edit(), toggle(), remove(), getStats()
+- server/routes/subscriptions.js: POST /, PUT /:id, DELETE /:id, PATCH /:id/toggle
+
+Limitations:
+- No auto-payment processing (subscriptions are tracking only).
+- Provider library is a static array, not from a database table.
+
+------------------------------------------------------------------------
+4.3 VIRTUAL WALLET
+------------------------------------------------------------------------
+What: Each user has one wallet with a balance. Can add funds, withdraw,
+transfer to goals, send to dependants. All operations create WalletTransaction
+records. Virtual card with unique 16-digit number.
+
+Algorithm:
+- Balance updated atomically per operation.
+- Insufficient balance check before debits.
+- Running balance stored on each WalletTransaction.
+- Card number generated on registration: '4' + 15 random digits (Visa format).
+- Card displayed masked: first 4 + dots + last 4 (dashboard), dots + last 4 (wallet).
+
+Files:
+- Frontend: scripts/wallet-ui.js, scripts/wallet.page.js,
+            scripts/dashboard-ui.js (FlexCard), backend/wallet.js (WalletStore)
+- Backend: server/routes/wallet.js
+- Database: VirtualWallet, WalletTransaction tables
+
+Key functions:
+- wallet-ui.js: _render(), _renderTransactions(), _handleAddFunds(),
+  _handleWithdraw(), _handleTransfer()
+- dashboard-ui.js: _renderFlexCard() (fetches cardNumber from API)
+- server/routes/wallet.js: POST /add-funds, POST /withdraw, POST /transfer-to-goal
+
+Limitations:
+- No real payment gateway integration.
+- cardNumber column requires migration (migrations/001-add-cardNumber.sql).
+- Pending in/out values are static (not computed from real pending transactions).
+
+------------------------------------------------------------------------
+4.4 FINANCIAL GOALS
+------------------------------------------------------------------------
+What: Users create savings goals with a name, target amount, and deadline.
+Can contribute funds (from wallet or manually). Progress tracked as
+percentage. Auto-marks completed when progress >= target.
+
+Algorithm:
+- Contribution updates currentProgress on the FinancialGoal row.
+- GoalContribution table stores individual contribution records.
+- Transfer-to-goal from wallet: debits wallet, credits goal, records both
+  a WalletTransaction and a GoalContribution.
+- Validation: target date cannot be in the past, target amount > 0.
+
+Files:
+- Frontend: scripts/goals-ui.js, scripts/goals.page.js, backend/goals.js
+- Backend: server/routes/goals.js, server/routes/wallet.js (transfer-to-goal)
+- Database: FinancialGoal, GoalContribution tables
+
+Key functions:
+- goals-ui.js: _handleModalSave(), _handleAddFunds(), openDrawer()
+- server/routes/goals.js: POST /, POST /:id/contribute, DELETE /:id
+
+Limitations:
+- No recurring auto-contributions.
+- Goal category (Travel, Tech, etc.) stored only in localStorage, not in DB.
+
+------------------------------------------------------------------------
+4.5 DEPENDANTS
+------------------------------------------------------------------------
+What: Main members can add family dependants. Each dependant gets a
+Subscriber account (type='Dependant') and a Dependant record linked to
+the main member. Can send allowances, set spending limits, manage tasks.
+
+Algorithm:
+- Adding a dependant creates a new Subscriber row (with temp password hash)
+  and a Dependant row (linked to mainMemberID).
+- Allowance sending: debits main member's wallet, records WalletTransaction
+  with dependantID reference.
+- Tasks system: DependantTask table with CRUD (pending/in_progress/completed).
+- Permissions: canSpend, canViewWallet, canRequestFunds (bit columns).
+
+Files:
+- Frontend: scripts/dependants-ui.js, scripts/dependants.page.js,
+            backend/dependants.js (DependantsStore)
+- Backend: server/routes/dependants.js
+- Database: Subscriber, Dependant, DependantTask, WalletTransaction tables
+
+Key functions:
+- dependants-ui.js: _handleAddSave(), openEditModal(), openDrawer(),
+  _renderTasks()
+- server/routes/dependants.js: POST /, PUT /:id, DELETE /:id,
+  POST /:id/send-allowance, POST /:id/tasks
+
+Limitations:
+- Dependant cannot log in (temp password, no login flow for dependants).
+- No notification sent to dependant when allowance is received.
+
+------------------------------------------------------------------------
+4.6 NOTIFICATIONS
+------------------------------------------------------------------------
+What: Server-side notification records. Frontend displays them in a
+dropdown (header bell icon) and a full notifications panel with filters.
+
+Files:
+- Frontend: scripts/notifications.page.js (includes _initNotificationsFromAPI),
+            scripts/layout.js (_initHeader loads unread count)
+- Backend: server/routes/notifications.js
+- Database: Notification table
+
+Key functions:
+- notifications.page.js: window._initNotificationsFromAPI()
+- layout.js: _initHeader() calls API.Notifications.getAll()
+- server/routes/notifications.js: GET /, PATCH /:id/read, PATCH /mark-all-read
+
+Limitations:
+- No automatic notification creation (must be inserted manually/by other features).
+- No push notifications or websocket real-time updates.
+
+------------------------------------------------------------------------
+4.7 ANALYTICS
+------------------------------------------------------------------------
+What: Spending analytics computed from real wallet transaction data and
+subscription costs. Provides summary stats, category breakdowns, monthly
+trends, and AI-generated insights.
+
+Algorithm:
+- Summary: sums WalletTransaction amounts by type (debit/credit) within
+  a date range. Normalizes subscription costs to monthly equivalents.
+- By-category: groups active subscriptions by SubscriptionCategory, sums
+  normalized monthly amounts.
+- Trend: groups transactions by FORMAT(date, 'yyyy-MM') for 6 or 12 months.
+- Insights: rule-based (paused subs → tip, goals ≥75% → milestone,
+  empty wallet → warning).
+
+Files:
+- Frontend: scripts/analytics-ui.js, scripts/analytics.page.js
+- Backend: server/routes/analytics.js
+- Database: WalletTransaction, VirtualWallet, Subscription,
+            SubscriptionCategory, FinancialGoal tables
+
+Key functions:
+- analytics-ui.js: render(), renderStats(), renderDonut(), renderBarChart()
+- server/routes/analytics.js: GET /summary, GET /by-category, GET /trend,
+  GET /insights, _rangeToDays()
+
+Limitations:
+- analytics-ui.js still has an independent ANALYTICS_DATA seed object
+  (scripts/analytics-ui.js lines 10-90) that is used as fallback if the
+  API is unavailable. Should be removed once fully DB-connected.
+- No ML-based insights — rules are simple conditional checks.
+
+------------------------------------------------------------------------
+4.8 BANK STATEMENT UPLOAD & PARSING
+------------------------------------------------------------------------
+What: Users upload PDF, CSV, or XLSX bank statements. Server parses
+transactions, analyzes income/expenses/net, detects subscriptions, stores
+results, and awards +100 ScribeScore.
+
+Algorithm (CSV parser):
+- Scans first 5 rows for header keywords (date, description, amount, etc.)
+- Auto-detects column positions by name (supports any column order).
+- Handles separate debit/credit columns (FNB, Standard Bank format).
+- Respects quoted CSV fields.
+
+Algorithm (PDF parser):
+- Extracts text via pdf-parse library.
+- Tries 5 date patterns: YYYY-MM-DD, DD/MM/YYYY, DD/MM/YY, DD Mon YYYY, DD Mon YY.
+- Tries 3 amount patterns: R1,234.56, European 1.234,56, spaced 1 234.56.
+- Takes last amount on each line (skips balance column).
+- Fallback mode: if strict parsing fails, scans for R + digits on any line
+  and associates with the most recent date seen.
+
+Algorithm (XLSX parser):
+- Reads first sheet, scans first 10 rows for header row.
+- Detects columns by name (date, description, amount, debit, credit).
+- Handles separate debit/credit columns.
+
+Algorithm (Subscription detection):
+- Matches transaction descriptions against 60+ known service names
+  (Netflix, Spotify, DSTV, Vodacom, Discovery, etc.).
+- Finds recurring patterns: same merchant 2+ times with amounts within
+  10% of each other.
+- Returns confidence: 'high' (known service or 3+ occurrences) or 'medium'.
+
+Files:
+- Frontend: scripts/reports-ui.js (_uploadFile, _bindUpload),
+            scripts/reports.page.js (upload zone HTML),
+            scripts/api.js (BankStatements.upload)
+- Backend: server/routes/bank-statements.js
+- Database: BankStatement, ScribeScore tables
+
+Key functions:
+- bank-statements.js: _parseCSV(), _parsePDF(), _parseXLSX(),
+  _detectSubscriptions(), _analyze(), router.post('/upload'),
+  router.get('/report')
+- reports-ui.js: _uploadFile(), _resetUploadZone()
+- api.js: BankStatements.upload(file), BankStatements.getReport()
+
+Limitations:
+- PDF parsing is regex-based and fragile for complex bank layouts.
+- No OCR for scanned/image PDFs (only text-based PDFs work).
+- XLSX parsing requires the 'xlsx' npm package to be installed.
+
+------------------------------------------------------------------------
+4.9 REPORT GENERATION & CSV EXPORT
+------------------------------------------------------------------------
+What: Compiles a financial report from wallet transactions, subscription
+costs, goals, and ScribeScore for a selected period. Stores in
+FinancialReport table. Displayed in a modal with a "Download CSV" button.
+
+Algorithm:
+- Queries WalletTransaction for the date range, sums income and expenses.
+- Queries active subscriptions for monthly cost.
+- Queries FinancialGoal for progress.
+- Computes risk level: savings/income ratio (< 0 = high, < 0.1 = medium).
+- Inserts into FinancialReport table.
+- CSV export built client-side from the API response data.
+
+Files:
+- Frontend: scripts/reports-ui.js (_bindGenerateReport, _showReportModal,
+            _exportReportCSV), scripts/reports.page.js
+- Backend: server/routes/reports.js
+- Database: FinancialReport, WalletTransaction, Subscription,
+            SubscriptionCategory, FinancialGoal, ScribeScore, MainMember
+
+Key functions:
+- reports-ui.js: _bindGenerateReport(), _showReportModal(),
+  _exportReportCSV(), _loadPageData()
+- server/routes/reports.js: router.post('/compile'), router.get('/')
+- api.js: Reports.compile(options), Reports.getAll()
+
+Limitations:
+- No PDF export (only CSV).
+- Report doesn't include dependant spending.
+
+------------------------------------------------------------------------
+4.10 SCRIBE SCORE
+------------------------------------------------------------------------
+What: A financial health score starting at 500. Increases by 100 when a
+bank statement is uploaded. Displayed on the dashboard (ring charts) and
+in reports.
+
+Files:
+- Frontend: scripts/dashboard.page.js (ring SVG), scripts/dashboard-ui.js
+- Backend: server/routes/auth.js (initial 500), server/routes/bank-statements.js (+100)
+- Database: ScribeScore table, Subscriber.scribeScore column
+
+Limitations:
+- No algorithm to decrease score (e.g., for overspending).
+- Dashboard rings are static HTML (not dynamically updated from API on load).
+- Only one event awards points (bank statement upload).
+
+================================================================================
+5. DATABASE SCHEMA
+================================================================================
+
+TABLE: Subscriber
+  subscriberID (PK, int, IDENTITY) — Unique user ID
+  firstName (varchar 100, NOT NULL)
+  lastName (varchar 100, NOT NULL)
+  preferredName (varchar 100, NULL)
+  email (varchar 255, NOT NULL, UNIQUE)
+  passwordHash (varchar 255, NOT NULL)
+  phone (varchar 50, NULL)
+  userType (varchar 50, NOT NULL) — 'MainMember' or 'Dependant'
+  scribeScore (int, NOT NULL) — Denormalized score for quick access
+  avatarUrl (varchar MAX, NULL)
+  marketingOptIn (bit, NOT NULL)
+  twoFactorEnabled (bit, NOT NULL)
+  theme (varchar 50, NOT NULL) — 'dark' or 'light'
+  notifyPayments (bit, NOT NULL)
+  notifyGoals (bit, NOT NULL)
+  notifyWeekly (bit, NOT NULL)
+  dateOfBirth (date, NULL)
+  bio (varchar MAX, NULL)
+  accentColor (varchar 10, NULL)
+  termsAcceptedAt (datetime, NULL)
+  createdAt (datetime, NOT NULL)
+  updatedAt (datetime, NOT NULL)
+
+TABLE: MainMember
+  mainMemberID (PK, int) — FK to Subscriber.subscriberID
+  monthlyIncome (decimal 18,2, NULL)
+  planType (varchar 50, NOT NULL) — 'Free', 'Premium', 'Business'
+  riskFlagStatus (varchar 50, NULL)
+
+TABLE: Dependant
+  dependantID (PK, int) — FK to Subscriber.subscriberID
+  mainMemberID (int, NOT NULL) — FK to MainMember.mainMemberID
+  age (int, NULL)
+  relationship (varchar 100, NULL)
+  allowance (decimal 18,2, NOT NULL)
+  spendingLimit (decimal 18,2, NULL)
+  status (varchar 50, NOT NULL) — 'active', 'invited', 'suspended'
+  canSpend (bit, NOT NULL)
+  canViewWallet (bit, NOT NULL)
+  canRequestFunds (bit, NOT NULL)
+
+TABLE: VirtualWallet
+  walletID (PK, int, IDENTITY)
+  subscriberID (int, NOT NULL, UNIQUE) — FK to Subscriber
+  balance (decimal 18,2, NOT NULL)
+  pendingIn (decimal 18,2, NOT NULL)
+  pendingOut (decimal 18,2, NOT NULL)
+  currency (varchar 10, NOT NULL) — 'ZAR'
+  cardNumber (varchar 19, NULL) — 16-digit virtual card number
+  lastTopUpDate (datetime, NULL)
+  createdAt (datetime, NOT NULL)
+
+TABLE: SubscriptionCategory
+  categoryID (PK, int, IDENTITY)
+  categoryName (varchar 100, NOT NULL, UNIQUE)
+  -- Pre-seeded: Entertainment, Music, Shopping, Productivity, Education,
+  --             Utilities, Fitness, News, Gaming, Health, AI, Other
+
+TABLE: Subscription
+  subscriptionID (PK, int, IDENTITY)
+  subscriberID (int, NOT NULL) — FK to Subscriber
+  categoryID (int, NOT NULL) — FK to SubscriptionCategory
+  serviceName (varchar 200, NOT NULL)
+  billingAmount (decimal 18,2, NOT NULL)
+  billingCycle (varchar 20, NOT NULL) — 'weekly','monthly','quarterly','yearly'
+  billingDate (date, NULL)
+  subStatus (varchar 50, NOT NULL) — 'active', 'paused', 'cancelled'
+  autoRenew (bit, NOT NULL)
+  logoClass (varchar 50, NULL)
+  logoText (varchar 10, NULL)
+  notes (varchar 500, NULL)
+  colorTag (varchar 7, NULL)
+  reminderDays (int, NULL)
+  providerUrl (varchar 500, NULL)
+  createdAt (datetime, NOT NULL)
+  updatedAt (datetime, NOT NULL)
+
+TABLE: FinancialGoal
+  goalID (PK, int, IDENTITY)
+  subscriberID (int, NOT NULL) — FK to Subscriber
+  goalName (varchar 200, NOT NULL)
+  targetAmount (decimal 18,2, NOT NULL)
+  currentProgress (decimal 18,2, NOT NULL, default 0)
+  deadline (date, NULL)
+  imageUrl (varchar 500, NULL)
+  goalStatus (varchar 50, NOT NULL) — 'active', 'completed', 'paused'
+  lastTopUpDate (datetime, NULL)
+  createdAt (datetime, NOT NULL)
+
+TABLE: GoalContribution
+  contributionID (PK, int, IDENTITY)
+  goalID (int, NOT NULL) — FK to FinancialGoal
+  amount (decimal 18,2 or int, NOT NULL)
+  source (varchar 50, NOT NULL) — 'wallet', 'manual'
+  createdAt (datetime, NOT NULL)
+
+TABLE: WalletTransaction
+  transactionID (PK, int, IDENTITY)
+  walletID (int, NOT NULL) — FK to VirtualWallet
+  subscriptionID (int, NULL) — FK to Subscription
+  goalID (int, NULL) — FK to FinancialGoal
+  dependantID (int, NULL) — FK to Dependant
+  transactionType (varchar 50, NOT NULL) — 'credit','debit','transfer','refund'
+  transactionAmount (decimal 18,2, NOT NULL)
+  runningBalance (decimal 18,2, NULL)
+  description (varchar 200, NULL)
+  category (varchar 100, NULL)
+  transactionDate (datetime, NOT NULL)
+
+TABLE: Notification
+  notificationID (PK, int, IDENTITY)
+  subscriberID (int, NOT NULL) — FK to Subscriber
+  subscriptionID (int, NULL) — FK to Subscription
+  transactionID (int, NULL) — FK to WalletTransaction
+  notificationType (varchar 50, NOT NULL) — 'payment','goal','security','score','system','dependant'
+  title (varchar 200, NOT NULL)
+  body (varchar MAX, NULL)
+  isRead (bit, NOT NULL, default 0)
+  priority (varchar 20, NOT NULL) — 'low','medium','high'
+  linkTo (varchar 100, NULL)
+  createdAt (datetime, NOT NULL)
+
+TABLE: PaymentSchedule
+  scheduleID (PK, int, IDENTITY)
+  subscriptionID (int, NOT NULL) — FK to Subscription
+  nextPaymentDate (date, NOT NULL)
+  amountDue (decimal 18,2, NOT NULL)
+  scheduleStatus (varchar 50, NOT NULL) — 'pending','paid','overdue','cancelled'
+
+TABLE: ScribeScore
+  scoreID (PK, int, IDENTITY)
+  subscriberID (int, NOT NULL) — FK to Subscriber
+  scoreValue (int, NOT NULL)
+  subscriptionPct (decimal 5,2, NULL)
+  budgetPct (decimal 5,2, NULL)
+  savingsPct (decimal 5,2, NULL)
+  generatedAt (datetime, NOT NULL)
+
+TABLE: FinancialReport
+  reportID (PK, int, IDENTITY)
+  mainMemberID (int, NULL) — FK to MainMember
+  subscriberID (int, NULL)
+  reportDateGenerate (date, NULL)
+  startDate (date, NULL)
+  endDate (date, NULL)
+  totalSubscriptionCost (decimal 18,2, NULL)
+  totalWithdrawals (decimal 18,2, NULL)
+  remainingBalance (decimal 18,2, NULL)
+  riskLevel (varchar 50, NULL)
+  income (decimal 18,2, NULL)
+  expenses (decimal 18,2, NULL)
+  savings (decimal 18,2, NULL)
+  planType (varchar 50, NULL)
+  riskFlagStatus (varchar 50, NULL)
+  createdAt (datetime, NOT NULL)
+
+TABLE: BankStatement
+  statementID (PK, int, IDENTITY)
+  subscriberID (int, NOT NULL) — FK to Subscriber
+  uploadDate (date, NULL)
+  fileName (varchar, NULL)
+  fileSize (int, NULL)
+  fileReference (varchar 500, NULL)
+  statementPeriodStart (date, NULL)
+  statementPeriodEnd (date, NULL)
+  totalIncome (decimal 18,2, NULL)
+  totalExpenses (decimal 18,2, NULL)
+  netCashFlow (decimal 18,2, NULL)
+  transactionCount (int, NULL)
+  parsedData (nvarchar MAX, NULL) — JSON of parsed transactions + subscriptions
+  financialStatus (varchar 50, NULL)
+  monthlyBreakdown (nvarchar MAX, NULL) — JSON
+
+TABLE: DependantTask
+  dependantTaskID (PK, int, IDENTITY)
+  dependantID (int, NOT NULL) — FK to Dependant
+  mainMemberID (int, NOT NULL)
+  taskName (varchar, NOT NULL)
+  description (varchar, NULL)
+  dueDate (date, NULL)
+  reward (decimal, NULL)
+  taskStatus (varchar 50) — 'pending','in_progress','completed','overdue','cancelled'
+  recurring (bit)
+  recurrenceCycle (varchar 50, NULL) — 'daily','weekly','biweekly','monthly'
+  completedAt (datetime, NULL)
+  createdAt (datetime)
+  updatedAt (datetime)
+
+FOREIGN KEY RELATIONSHIPS:
+  MainMember.mainMemberID → Subscriber.subscriberID
+  Dependant.dependantID → Subscriber.subscriberID
+  Dependant.mainMemberID → MainMember.mainMemberID
+  VirtualWallet.subscriberID → Subscriber.subscriberID
+  Subscription.subscriberID → Subscriber.subscriberID
+  Subscription.categoryID → SubscriptionCategory.categoryID
+  FinancialGoal.subscriberID → Subscriber.subscriberID
+  GoalContribution.goalID → FinancialGoal.goalID
+  WalletTransaction.walletID → VirtualWallet.walletID
+  WalletTransaction.subscriptionID → Subscription.subscriptionID
+  WalletTransaction.goalID → FinancialGoal.goalID
+  WalletTransaction.dependantID → Dependant.dependantID
+  Notification.subscriberID → Subscriber.subscriberID
+  Notification.subscriptionID → Subscription.subscriptionID
+  Notification.transactionID → WalletTransaction.transactionID
+  PaymentSchedule.subscriptionID → Subscription.subscriptionID
+  ScribeScore.subscriberID → Subscriber.subscriberID
+  FinancialReport.mainMemberID → MainMember.mainMemberID
+  BankStatement.subscriberID → Subscriber.subscriberID
+  DependantTask.dependantID → Dependant.dependantID
+
+UNUSED TABLES/COLUMNS:
+  - PaymentSchedule: exists but never populated automatically by the app.
+  - FinancialReport.planType: column exists but never written to.
+  - BankStatement.fileName, BankStatement.fileSize: exist but not written
+    (fileReference is used instead).
+  - VirtualWallet.pendingIn, VirtualWallet.pendingOut: exist but never
+    updated by any operation (always stay at default 0).
+
+================================================================================
+6. API ENDPOINTS REFERENCE
+================================================================================
+
+All endpoints prefixed with /api. Auth = requires Bearer token.
+
+METHOD  PATH                            HANDLER FILE                  AUTH  DESCRIPTION
+------  ----                            ------------                  ----  -----------
+POST    /auth/register                  server/routes/auth.js         No    Create account
+POST    /auth/login                     server/routes/auth.js         No    Login, get JWT
+GET     /auth/profile                   server/routes/auth.js         Yes   Get user profile
+PUT     /auth/profile                   server/routes/auth.js         Yes   Update profile
+
+GET     /subscriptions                  server/routes/subscriptions.js Yes  List user subs
+GET     /subscriptions/stats            server/routes/subscriptions.js Yes  Sub statistics
+POST    /subscriptions                  server/routes/subscriptions.js Yes  Add subscription
+PUT     /subscriptions/:id              server/routes/subscriptions.js Yes  Edit subscription
+DELETE  /subscriptions/:id              server/routes/subscriptions.js Yes  Delete subscription
+PATCH   /subscriptions/:id/toggle       server/routes/subscriptions.js Yes  Pause/unpause
+
+GET     /wallet                         server/routes/wallet.js       Yes   Get wallet info
+GET     /wallet/transactions            server/routes/wallet.js       Yes   Transaction history
+POST    /wallet/add-funds               server/routes/wallet.js       Yes   Add money
+POST    /wallet/withdraw                server/routes/wallet.js       Yes   Withdraw money
+POST    /wallet/transfer-to-goal        server/routes/wallet.js       Yes   Transfer to goal
+
+GET     /goals                          server/routes/goals.js        Yes   List goals
+GET     /goals/:id                      server/routes/goals.js        Yes   Goal detail + contributions
+POST    /goals                          server/routes/goals.js        Yes   Create goal
+PUT     /goals/:id                      server/routes/goals.js        Yes   Edit goal
+DELETE  /goals/:id                      server/routes/goals.js        Yes   Delete goal + contributions
+POST    /goals/:id/contribute           server/routes/goals.js        Yes   Add contribution
+
+GET     /dependants                     server/routes/dependants.js   Yes   List dependants
+POST    /dependants                     server/routes/dependants.js   Yes   Add dependant
+PUT     /dependants/:id                 server/routes/dependants.js   Yes   Edit dependant
+DELETE  /dependants/:id                 server/routes/dependants.js   Yes   Remove dependant
+POST    /dependants/:id/send-allowance  server/routes/dependants.js   Yes   Send allowance
+GET     /dependants/:id/tasks           server/routes/dependants.js   Yes   List tasks
+POST    /dependants/:id/tasks           server/routes/dependants.js   Yes   Create task
+PUT     /dependants/:depId/tasks/:taskId server/routes/dependants.js  Yes   Update task
+DELETE  /dependants/:depId/tasks/:taskId server/routes/dependants.js  Yes   Delete task
+
+GET     /notifications                  server/routes/notifications.js Yes  List all
+GET     /notifications/unread-count     server/routes/notifications.js Yes  Unread count
+PATCH   /notifications/:id/read         server/routes/notifications.js Yes  Mark one read
+PATCH   /notifications/mark-all-read    server/routes/notifications.js Yes  Mark all read
+
+GET     /analytics/summary              server/routes/analytics.js    Yes   Spending summary
+GET     /analytics/by-category          server/routes/analytics.js    Yes   Category breakdown
+GET     /analytics/trend                server/routes/analytics.js    Yes   Monthly trend
+GET     /analytics/insights             server/routes/analytics.js    Yes   AI insights
+
+POST    /reports/compile                server/routes/reports.js      Yes   Generate report
+GET     /reports                        server/routes/reports.js      Yes   List reports
+
+POST    /bank-statements/upload         server/routes/bank-statements.js Yes Upload statement
+GET     /bank-statements/report         server/routes/bank-statements.js Yes Get latest report
+
+GET     /health                         server/server.js              No    Health check
+
+================================================================================
+7. HOW TO RUN THE PROJECT
+================================================================================
+
+PREREQUISITES:
+- Node.js v18+ (tested on v24.19.0)
+- SQL Server (local instance, Windows or SQL auth)
+- npm (comes with Node.js)
+
+STEP 1: Clone the repository
+  git clone https://github.com/ivyClique3/FlexScribe.git
+  cd FlexScribe
+
+STEP 2: Create the database
+  Open SQL Server Management Studio (SSMS).
+  Run: flexscribe-local-database.sql
+  This creates FlexScribeDB and all tables with seed data for SubscriptionCategory.
+
+STEP 3: Run the migration (if not already done)
+  In SSMS, run: migrations/001-add-cardNumber.sql
+  This adds the cardNumber column to VirtualWallet.
+
+STEP 4: Configure environment variables
+  Create file: server/.env
+  Contents:
+    DB_SERVER=localhost
+    DB_NAME=FlexScribeDB
+    DB_USER=your_sql_username
+    DB_PASSWORD=your_sql_password
+    DB_TRUSTED=false
+    PORT=3000
+    JWT_SECRET=your_secret_key_here
+
+  If using Windows Authentication, set DB_TRUSTED=true and omit
+  DB_USER/DB_PASSWORD.
+
+STEP 5: Install dependencies
+  cd server
+  npm install
+
+STEP 6: Start the server
+  npm start
+  (or: node server.js)
+
+  You should see:
+    Connected to SQL Server: FlexScribeDB
+    FlexScribe API running on http://localhost:3000
+
+STEP 7: Open the app
+  Browser: http://localhost:3000/landing.html (landing page)
+  Or: http://localhost:3000/pages/MASTER.html (app directly)
+  Or: http://localhost:3000/pages/login.html (login page)
+
+COMMON ERRORS:
+- EADDRINUSE: Port 3000 already in use. Kill the existing node process:
+  netstat -ano | findstr :3000  → note the PID
+  taskkill /PID <pid> /F
+  Then restart.
+
+- Cannot find module 'multer' / 'pdf-parse' / 'xlsx':
+  Run: cd server && npm install
+
+- Login ConnectionError / ETIMEOUT:
+  SQL Server is not running. Start it via SQL Server Configuration Manager.
+  Or check your .env credentials.
+
+- "Invalid column name 'cardNumber'":
+  Run migrations/001-add-cardNumber.sql in SSMS.
+
+- "Cannot insert the value NULL into column 'twoFactorEnabled'":
+  The Subscriber table has NOT NULL columns added after the initial schema.
+  Check that all INSERT statements include: twoFactorEnabled, theme,
+  notifyPayments, notifyGoals, notifyWeekly, createdAt, updatedAt.
+
+================================================================================
+8. WHAT KIRO BUILT VS WHAT WAS MANUAL
+================================================================================
+
+FILES/FEATURES GENERATED OR SUBSTANTIALLY MODIFIED BY KIRO:
+
+Database & Migration:
+- migrations/001-add-cardNumber.sql (entirely Kiro-generated)
+- Seed data INSERT statements for FlexScribeDB (Kiro-generated, run via SSMS)
+- Password hash updates for existing seed users
+
+Backend Routes (Kiro-created):
+- server/routes/reports.js (entire file)
+- server/routes/bank-statements.js (entire file, including all parsers
+  and subscription detection algorithm)
+- Modifications to server/routes/auth.js (scribeScore=500, cardNumber generation)
+- Modifications to server/routes/dependants.js (fixed NOT NULL column issues)
+- Modifications to server/server.js (registered reports + bank-statements routes)
+- Modifications to server/package.json (added multer, pdf-parse, xlsx deps)
+
+Frontend Logic (Kiro-modified):
+- scripts/api.js: USE_MOCK flipped to false, content-type guard on upload
+- scripts/subscriptions-ui.js: billing date validation (past date + required)
+- scripts/goals-ui.js: target date validation (past date + required)
+- scripts/dashboard-ui.js: dynamic card number fetch, removed emojis
+- scripts/wallet-ui.js: dynamic card number display
+- scripts/reports-ui.js: _loadPageData(), _exportReportCSV(), 
+  _resetUploadZone(), all render helpers for live data
+- scripts/reports.page.js: complete rewrite (zeroed all hardcoded values)
+- scripts/dashboard.page.js: zeroed ScribeScore rings, removed hardcoded 
+  card numbers and names
+- scripts/profile-panel.js: greeting change to "[name]'s Dashboard"
+- scripts/layout.js: greeting change, removed emojis
+
+Backend Store Fixes (Kiro-modified):
+- backend/server.js: fixed Subscriber/Dependant INSERTs for NOT NULL columns,
+  added cardNumber generation, scribeScore=500, XLSX support
+- backend/subscriptions.js: added billing date validation
+- backend/auth-sql.js: scribeScore=500, cardNumber in wallet INSERT
+- backend/dependants-sql.js: fixed NOT NULL columns in INSERT
+
+HTML Template Fixes (Kiro-modified):
+- pages/MASTER.html: added date error span, billing date field in rec-add modal
+- pages/dashboard.html: zeroed rings, removed hardcoded card/name
+- pages/wallet.html: removed hardcoded card number and name
+- pages/loading.html: removed emoji
+- pages/login.html: removed emoji
+
+FILES THAT WERE MANUAL (created by team before Kiro involvement):
+- All pages/*.html structural layout and CSS
+- All styles/*.css
+- scripts/login.js (form logic)
+- scripts/subscriptions-ui.js (original modal/list/donut rendering)
+- scripts/goals-ui.js (original goal card/drawer rendering)
+- scripts/dependants-ui.js (original dependant management UI)
+- scripts/wallet-ui.js (original wallet rendering)
+- scripts/analytics-ui.js (chart rendering)
+- scripts/dashboard-ui.js (original dashboard rendering)
+- scripts/timeline-ui.js (calendar rendering)
+- scripts/layout.js (original SPA navigation)
+- server/server.js (original entry point)
+- server/db.js, server/middleware/auth.js
+- server/routes/auth.js, subscriptions.js, wallet.js, goals.js,
+  dependants.js, notifications.js, analytics.js (original implementations)
+- backend/*.js store files (original localStorage + API pattern)
+- landing.html, flexscribe-local-database.sql
+- The entire flexscribe-backend/ Java Spring Boot project
+
+================================================================================
+9. KNOWN ISSUES / NOT YET DONE
+================================================================================
+
+INCOMPLETE:
+1. cardNumber column migration (migrations/001-add-cardNumber.sql) must be
+   run manually in SSMS — the MCP connection lacks ALTER permissions.
+   Until run, card number displays as "---- ---- ---- ----" placeholders.
+
+2. scripts/analytics-ui.js still contains inline ANALYTICS_DATA seed
+   (lines 10-90). This renders hardcoded values if the API is unavailable.
+   Should be replaced with empty-state + API fetch similar to reports.
+
+3. Dashboard ScribeScore rings (dashboard.page.js) start at 0 but are NOT
+   dynamically updated from the ScribeScore API. They only change if the
+   HTML is manually edited or a JS function is added to update stroke-dashoffset.
+
+4. VirtualWallet.pendingIn and pendingOut are never written to by any
+   endpoint — they always stay at 0/default values.
+
+5. PaymentSchedule table is never automatically populated when subscriptions
+   are created or billing dates pass.
+
+6. Notifications are never auto-generated by the system (no triggers on
+   subscription payments, goal milestones, etc.).
+
+FRAGILE:
+7. PDF bank statement parsing (server/routes/bank-statements.js _parsePDF):
+   Complex bank statement PDFs may not extract correctly. Only text-based
+   PDFs work — scanned/image PDFs will return 0 transactions.
+
+8. The frontend has two "backend" layers: the backend/*.js localStorage
+   stores AND the server/routes/ API. Some UI components call the store
+   which then calls the API. If the API is down, the store returns stale
+   localStorage data without clear indication to the user.
+
+9. flexscribe-backend/ (Java Spring Boot) requires Java 21 and Maven, which
+   are not installed on the development machine. It cannot be built or run
+   without environment changes. The Node.js server/ is the active backend.
+
+KNOWN BUGS:
+10. The "Trends Over Time" section on the Reports page shows "No trend data
+    yet" permanently — there's no endpoint call to populate it (the analytics
+    trend endpoint exists but reports-ui.js _loadPageData doesn't call it).
+
+11. The Register endpoint in server/routes/auth.js may fail if the Subscriber
+    table has columns without defaults that were added after the original
+    schema (e.g., dateOfBirth can be NULL so it's fine, but if new NOT NULL
+    columns are added without updating the INSERT, registration will break).
+
+12. After generating a report, the "Generated Reports Table" only updates
+    on the next page load (no immediate re-render after compile).
+
+13. Role-based access control (tier system in layout.js) is commented out
+    for development — all pages are accessible to all users regardless of
+    plan type.
+
+================================================================================
+END OF DOCUMENT
+================================================================================

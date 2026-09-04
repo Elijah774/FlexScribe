@@ -27,7 +27,7 @@ const AuthSQL = (() => {
     ---------------------------------------------------------- */
     const INSERT_SUBSCRIBER = `
         INSERT INTO Subscriber (firstName, lastName, preferredName, email, passwordHash, phone, userType, scribeScore, avatarUrl, marketingOptIn, createdAt, updatedAt)
-        VALUES (@firstName, @lastName, @preferredName, @email, @passwordHash, @phone, 'MainMember', 0, @avatarUrl, @marketingOptIn, GETDATE(), GETDATE());
+        VALUES (@firstName, @lastName, @preferredName, @email, @passwordHash, @phone, 'MainMember', 500, @avatarUrl, @marketingOptIn, GETDATE(), GETDATE());
 
         SELECT SCOPE_IDENTITY() AS newSubscriberID;
     `;
@@ -44,8 +44,8 @@ const AuthSQL = (() => {
        REGISTER — Step 3: Create VirtualWallet for new user
     ---------------------------------------------------------- */
     const INSERT_WALLET_FOR_NEW_USER = `
-        INSERT INTO VirtualWallet (subscriberID, balance, pendingIn, pendingOut, currency, lastTopUpDate, createdAt)
-        VALUES (@subscriberID, 0, 0, 0, 'ZAR', NULL, GETDATE());
+        INSERT INTO VirtualWallet (subscriberID, balance, pendingIn, pendingOut, currency, cardNumber, lastTopUpDate, createdAt)
+        VALUES (@subscriberID, 0, 0, 0, 'ZAR', @cardNumber, NULL, GETDATE());
     `;
 
     /* ----------------------------------------------------------

@@ -519,6 +519,15 @@ const SubscriptionsUI = (() => {
         _q('#rec-add-autorenew').checked = true;
         _q('#rec-add-notify').checked = true;
 
+        // Reset date field
+        const dateInput = _q('#rec-add-date');
+        if (dateInput) {
+            dateInput.value = '';
+            dateInput.classList.remove('sub-modal-field--error');
+        }
+        const dateErr = _q('#rec-add-date-error');
+        if (dateErr) dateErr.textContent = '';
+
         // Show modal
         modal.hidden = false;
         modal.removeAttribute('aria-hidden');
@@ -547,12 +556,34 @@ const SubscriptionsUI = (() => {
         if (cycle === 'quarterly') amount = _recAddProvider.monthlyCost * 3;
         if (cycle === 'yearly') amount = _recAddProvider.monthlyCost * 12;
 
+        // Require a billing date — prompt via the main Add modal if not provided
+        const dateInput = _q('#rec-add-date');
+        const dateValue = dateInput ? dateInput.value : '';
+
+        if (!dateValue) {
+            // Show error on the rec-add modal
+            const errEl = _q('#rec-add-date-error');
+            if (errEl) errEl.textContent = 'Billing date is required.';
+            if (dateInput) dateInput.classList.add('sub-modal-field--error');
+            return;
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const selected = new Date(dateValue + 'T00:00:00');
+        if (selected < today) {
+            const errEl = _q('#rec-add-date-error');
+            if (errEl) errEl.textContent = 'Billing date cannot be in the past.';
+            if (dateInput) dateInput.classList.add('sub-modal-field--error');
+            return;
+        }
+
         const fields = {
             name: _recAddProvider.name,
             amount: amount,
             category: _recAddProvider.category,
             billingCycle: cycle,
-            nextPaymentDate: '',
+            nextPaymentDate: dateValue,
             notes: _recAddProvider.description || '',
             logoClass: _recAddProvider.logoClass || 'default',
             logoText: _recAddProvider.logoText || _recAddProvider.name.charAt(0).toUpperCase(),
@@ -931,6 +962,18 @@ const SubscriptionsUI = (() => {
         if (!fields.amount || parseFloat(fields.amount) <= 0) {
             _setFieldError('sub-modal-amount', 'Enter a valid amount greater than 0.');
             valid = false;
+        }
+        if (!fields.nextPaymentDate) {
+            _setFieldError('sub-modal-date', 'Billing date is required.');
+            valid = false;
+        } else {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const selected = new Date(fields.nextPaymentDate + 'T00:00:00');
+            if (selected < today) {
+                _setFieldError('sub-modal-date', 'Billing date cannot be in the past.');
+                valid = false;
+            }
         }
         if (!valid) return;
 

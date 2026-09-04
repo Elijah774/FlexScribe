@@ -59,6 +59,18 @@ const WalletUI = (() => {
             cardNameEl.textContent = displayName;
         }
 
+        // Card number from wallet API
+        if (typeof API !== 'undefined') {
+            API.Wallet.get().then(function(result) {
+                if (result.success && result.data && result.data.cardNumber) {
+                    var cn = result.data.cardNumber;
+                    var masked = '\u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022 ' + cn.slice(-4);
+                    var numEl = document.querySelector('.wallet-card-number');
+                    if (numEl) numEl.textContent = masked;
+                }
+            }).catch(function() {});
+        }
+
         // Transactions list
         _renderTransactions(snap.transactions);
     }

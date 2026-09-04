@@ -43,17 +43,17 @@ router.post('/', async (req, res) => {
         // Create subscriber record for dependant
         const passwordHash = await bcrypt.hash('temp_' + Date.now(), 10);
         const sub = await query(`
-            INSERT INTO Subscriber (firstName, lastName, email, passwordHash, userType, dateOfBirth)
+            INSERT INTO Subscriber (firstName, lastName, email, passwordHash, userType, dateOfBirth, scribeScore, marketingOptIn, twoFactorEnabled, theme, notifyPayments, notifyGoals, notifyWeekly, createdAt, updatedAt)
             OUTPUT INSERTED.subscriberID
-            VALUES (@fn, @ln, @email, @hash, 'Dependant', @dob)
+            VALUES (@fn, @ln, @email, @hash, 'Dependant', @dob, 0, 0, 0, 'dark', 1, 1, 0, GETDATE(), GETDATE())
         `, { fn: firstName, ln: lastName || '', email, hash: passwordHash, dob: dateOfBirth || null });
 
         const depID = sub.recordset[0].subscriberID;
 
         // Create dependant record with calculated age
         await query(`
-            INSERT INTO Dependant (dependantID, mainMemberID, relationship, allowance, spendingLimit, age)
-            VALUES (@did, @mid, @rel, @allowance, @limit, @age)
+            INSERT INTO Dependant (dependantID, mainMemberID, relationship, allowance, spendingLimit, age, status, canSpend, canViewWallet, canRequestFunds)
+            VALUES (@did, @mid, @rel, @allowance, @limit, @age, 'invited', 1, 0, 1)
         `, { did: depID, mid: req.user.subscriberID, rel: relationship || null, allowance: allowance || 0, limit: spendingLimit || null, age: age });
 
         res.status(201).json({ message: 'Dependant added', dependantID: depID });

@@ -1003,6 +1003,10 @@ const API = (() => {
                 var tok = _token();
                 if (tok) opts.headers['Authorization'] = 'Bearer ' + tok;
                 var res = await fetch(BASE_URL + '/bank-statements/upload', opts);
+                var contentType = res.headers.get('content-type') || '';
+                if (!contentType.includes('application/json')) {
+                    return _err('Server error: endpoint not available. Make sure the server is running and dependencies are installed (run npm install in the server folder).', res.status);
+                }
                 var json = await res.json();
                 if (!res.ok) return _err(json.message || 'Upload failed', res.status);
                 return _ok(json);

@@ -27,6 +27,8 @@ app.use('/api/goals', require('./routes/goals'));
 app.use('/api/dependants', require('./routes/dependants'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/analytics', require('./routes/analytics'));
+app.use('/api/reports', require('./routes/reports'));
+app.use('/api/bank-statements', require('./routes/bank-statements'));
 
 // Health check
 app.get('/api/health', async (req, res) => {
@@ -54,11 +56,11 @@ app.listen(PORT, async () => {
             await query("IF COL_LENGTH('Subscriber', 'avatarUrl') IS NOT NULL ALTER TABLE Subscriber ALTER COLUMN avatarUrl VARCHAR(MAX) NULL");
         } catch (e) { /* ignore if already done */ }
 
-        console.log(`\n🚀 FlexScribe API running on http://localhost:${PORT}`);
-        console.log(`📁 Frontend: http://localhost:${PORT}/landing.html`);
-        console.log(`📁 App:      http://localhost:${PORT}/pages/MASTER.html\n`);
+        console.log(`\nFlexScribe API running on http://localhost:${PORT}`);
+        console.log(`Frontend: http://localhost:${PORT}/landing.html`);
+        console.log(`App:      http://localhost:${PORT}/pages/MASTER.html\n`);
     } catch (err) {
-        console.error('❌ Database connection failed:', err.message);
-        console.log('⚠️  Server running without database. Check your SQL Server.\n');
+        console.error('Database connection failed:', err.message);
+        console.log('Server running without database. Check your SQL Server.\n');
     }
 });

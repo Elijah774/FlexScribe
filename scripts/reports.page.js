@@ -6,7 +6,7 @@ window._pageContent['reports'] = `
                         <div class="rpt-stat-icon"><svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" stroke-width="2"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
                         <div class="rpt-stat-info">
                             <span class="rpt-stat-label">Reports Generated</span>
-                            <span class="rpt-stat-value" id="rpt-stat-count">12</span>
+                            <span class="rpt-stat-value" id="rpt-stat-count">0</span>
                             <span class="rpt-stat-sub">This Year</span>
                         </div>
                     </div>
@@ -14,7 +14,7 @@ window._pageContent['reports'] = `
                         <div class="rpt-stat-icon"><svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M12 2v20M17 7l-5-5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
                         <div class="rpt-stat-info">
                             <span class="rpt-stat-label">Total Spending</span>
-                            <span class="rpt-stat-value" id="rpt-stat-spending">R28,540.00</span>
+                            <span class="rpt-stat-value" id="rpt-stat-spending">R0.00</span>
                             <span class="rpt-stat-sub">This Month</span>
                         </div>
                     </div>
@@ -22,16 +22,16 @@ window._pageContent['reports'] = `
                         <div class="rpt-stat-icon"><svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
                         <div class="rpt-stat-info">
                             <span class="rpt-stat-label">Monthly Savings</span>
-                            <span class="rpt-stat-value" id="rpt-stat-savings">R5,200.00</span>
+                            <span class="rpt-stat-value" id="rpt-stat-savings">R0.00</span>
                             <span class="rpt-stat-sub">This Month</span>
                         </div>
                     </div>
                     <div class="rpt-stat-card">
                         <div class="rpt-stat-icon"><svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M22 4L12 14.01l-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
                         <div class="rpt-stat-info">
-                            <span class="rpt-stat-label">Report Accuracy</span>
-                            <span class="rpt-stat-value" id="rpt-stat-accuracy">98%</span>
-                            <span class="rpt-stat-sub rpt-sub-green">Excellent</span>
+                            <span class="rpt-stat-label">Scribe Score</span>
+                            <span class="rpt-stat-value" id="rpt-stat-accuracy">0</span>
+                            <span class="rpt-stat-sub" id="rpt-stat-accuracy-sub">--</span>
                         </div>
                     </div>
                 </div>
@@ -52,7 +52,7 @@ window._pageContent['reports'] = `
                                     <option>Last 6 Months</option>
                                     <option>This Year</option>
                                 </select>
-                                <span class="rpt-date-range" id="rpt-date-range">01 Jul 2025 - 31 Jul 2025</span>
+                                <span class="rpt-date-range" id="rpt-date-range"></span>
                                 <label class="rpt-form-label" style="margin-top:12px">Report Type</label>
                                 <select id="rpt-type" class="rpt-select">
                                     <option>Detailed Report</option>
@@ -85,21 +85,9 @@ window._pageContent['reports'] = `
                             <h3 class="rpt-card-title">Statement Analysis (AI)</h3>
                             <span class="rpt-badge-new">New</span>
                         </div>
-                        <p class="rpt-card-sub">AI has analysed your latest statement.</p>
+                        <p class="rpt-card-sub">Upload a bank statement to get AI analysis.</p>
                         <div class="rpt-analysis-result" id="rpt-analysis-result">
-                            <div class="rpt-analysis-status">
-                                <svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke="var(--green)" stroke-width="2" stroke-linecap="round"/><path d="M22 4L12 14.01l-3-3" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                <div>
-                                    <strong>Analysis Complete</strong>
-                                    <p class="rpt-analysis-file">Uploaded: FNB_Statement_July.pdf<br>31 Jul 2025 · 342 Transactions</p>
-                                </div>
-                            </div>
-                            <div class="rpt-analysis-metrics">
-                                <div class="rpt-metric"><span class="rpt-metric-val">12</span><span class="rpt-metric-label">Subscriptions Found</span></div>
-                                <div class="rpt-metric"><span class="rpt-metric-val">3</span><span class="rpt-metric-label">New Subscriptions</span></div>
-                                <div class="rpt-metric"><span class="rpt-metric-val">2</span><span class="rpt-metric-label">Unknown Charges</span></div>
-                                <div class="rpt-metric"><span class="rpt-metric-val">R680</span><span class="rpt-metric-label">Potential Savings</span></div>
-                            </div>
+                            <p style="color:var(--text-light);font-size:13px;">No statement uploaded yet. Upload one to see analysis.</p>
                         </div>
                         <a href="#" class="rpt-link" onclick="return false">Review Detected Items &rarr;</a>
                     </div>
@@ -122,11 +110,9 @@ window._pageContent['reports'] = `
                             <input type="file" id="rpt-file-input" accept=".pdf,.csv,.xlsx" hidden>
                         </div>
                         <p class="rpt-upload-hint">Supported: PDF, CSV, Excel (.xlsx) &middot; Max size: 10MB</p>
-                        <div class="rpt-recent-uploads">
+                        <div class="rpt-recent-uploads" id="rpt-recent-uploads">
                             <h4>Recent Uploads</h4>
-                            <div class="rpt-upload-item"><span>FNB_Statement_July.pdf</span><span class="rpt-upload-date">31 Jul 2025</span><span class="rpt-upload-status complete">Complete &#10003;</span></div>
-                            <div class="rpt-upload-item"><span>FNB_Statement_June.pdf</span><span class="rpt-upload-date">30 Jun 2025</span><span class="rpt-upload-status complete">Complete &#10003;</span></div>
-                            <div class="rpt-upload-item"><span>FNB_Statement_May.pdf</span><span class="rpt-upload-date">31 May 2025</span><span class="rpt-upload-status complete">Complete &#10003;</span></div>
+                            <p style="color:var(--text-light);font-size:13px;">No uploads yet.</p>
                         </div>
                         <a href="#" class="rpt-link" onclick="return false">View all uploads &rarr;</a>
                         <button id="rpt-see-full-report-btn" style="display:none;margin-top:12px;width:100%;padding:12px;background:var(--orange);color:#fff;border:none;border-radius:10px;font-weight:600;font-size:14px;cursor:pointer;">See Full Report</button>
@@ -136,10 +122,8 @@ window._pageContent['reports'] = `
                     <div class="rpt-insights-card">
                         <h3 class="rpt-card-title">AI Financial Insights</h3>
                         <p class="rpt-card-sub">Smart insights based on your financial behaviour.</p>
-                        <ul class="rpt-insights-list">
-                            <li>You spent 12% less on entertainment. Great job! Keep it up.</li>
-                            <li>Spotify and Netflix account for 21% of your recurring costs.</li>
-                            <li>You're on track to reach your Laptop Goal in 5 months.</li>
+                        <ul class="rpt-insights-list" id="rpt-insights-list">
+                            <li style="color:var(--text-light)">Generate a report to see personalised insights.</li>
                         </ul>
                         <a href="#" class="rpt-link" onclick="return false">View all insights &rarr;</a>
                     </div>
@@ -151,26 +135,11 @@ window._pageContent['reports'] = `
                             <div class="rpt-donut-wrap">
                                 <svg viewBox="0 0 200 200" class="rpt-donut" id="rpt-donut">
                                     <circle cx="100" cy="100" r="72" fill="none" stroke="var(--border)" stroke-width="28"/>
-                                    <circle cx="100" cy="100" r="72" fill="none" stroke="#ff6a1a" stroke-width="28" stroke-dasharray="133 452.4" stroke-dashoffset="0" transform="rotate(-90 100 100)"/>
-                                    <circle cx="100" cy="100" r="72" fill="none" stroke="#3ecf6e" stroke-width="28" stroke-dasharray="108 452.4" stroke-dashoffset="-133" transform="rotate(-90 100 100)"/>
-                                    <circle cx="100" cy="100" r="72" fill="none" stroke="#3b82f6" stroke-width="28" stroke-dasharray="73 452.4" stroke-dashoffset="-241" transform="rotate(-90 100 100)"/>
-                                    <circle cx="100" cy="100" r="72" fill="none" stroke="#8b5cf6" stroke-width="28" stroke-dasharray="47 452.4" stroke-dashoffset="-314" transform="rotate(-90 100 100)"/>
-                                    <circle cx="100" cy="100" r="72" fill="none" stroke="#f43f5e" stroke-width="28" stroke-dasharray="39 452.4" stroke-dashoffset="-361" transform="rotate(-90 100 100)"/>
-                                    <circle cx="100" cy="100" r="72" fill="none" stroke="#06b6d4" stroke-width="28" stroke-dasharray="25 452.4" stroke-dashoffset="-400" transform="rotate(-90 100 100)"/>
-                                    <circle cx="100" cy="100" r="72" fill="none" stroke="#a855f7" stroke-width="28" stroke-dasharray="18 452.4" stroke-dashoffset="-425" transform="rotate(-90 100 100)"/>
-                                    <circle cx="100" cy="100" r="72" fill="none" stroke="var(--text-light)" stroke-width="28" stroke-dasharray="9 452.4" stroke-dashoffset="-443" transform="rotate(-90 100 100)"/>
                                 </svg>
-                                <div class="rpt-donut-center"><span class="rpt-donut-value">R28,540</span><span class="rpt-donut-label">Total Spent</span></div>
+                                <div class="rpt-donut-center"><span class="rpt-donut-value" id="rpt-donut-value">R0</span><span class="rpt-donut-label">Total Spent</span></div>
                             </div>
-                            <ul class="rpt-breakdown-legend">
-                                <li><span class="rpt-dot" style="background:#ff6a1a"></span>Subscriptions<span class="rpt-leg-amt">R8,420</span><span class="rpt-leg-pct">29.5%</span></li>
-                                <li><span class="rpt-dot" style="background:#3ecf6e"></span>Housing<span class="rpt-leg-amt">R6,850</span><span class="rpt-leg-pct">24.0%</span></li>
-                                <li><span class="rpt-dot" style="background:#3b82f6"></span>Food &amp; Groceries<span class="rpt-leg-amt">R4,620</span><span class="rpt-leg-pct">16.2%</span></li>
-                                <li><span class="rpt-dot" style="background:#8b5cf6"></span>Transport<span class="rpt-leg-amt">R2,960</span><span class="rpt-leg-pct">10.4%</span></li>
-                                <li><span class="rpt-dot" style="background:#f43f5e"></span>Entertainment<span class="rpt-leg-amt">R2,450</span><span class="rpt-leg-pct">8.6%</span></li>
-                                <li><span class="rpt-dot" style="background:#06b6d4"></span>Shopping<span class="rpt-leg-amt">R1,560</span><span class="rpt-leg-pct">5.5%</span></li>
-                                <li><span class="rpt-dot" style="background:#a855f7"></span>Medical<span class="rpt-leg-amt">R1,110</span><span class="rpt-leg-pct">3.9%</span></li>
-                                <li><span class="rpt-dot" style="background:var(--text-light)"></span>Other<span class="rpt-leg-amt">R560</span><span class="rpt-leg-pct">1.9%</span></li>
+                            <ul class="rpt-breakdown-legend" id="rpt-breakdown-legend">
+                                <li style="color:var(--text-light)">No spending data yet.</li>
                             </ul>
                         </div>
                         <a href="#" class="rpt-link" onclick="loadPage('analytics');return false">View detailed analytics &rarr;</a>
@@ -205,84 +174,31 @@ window._pageContent['reports'] = `
                                     <th>Type</th>
                                     <th>Period</th>
                                     <th>Generated On</th>
-                                    <th>Size</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="rpt-table-body">
-                                <tr>
-                                    <td><span class="rpt-row-icon">&#128196;</span> July 2025 Financial Report</td>
-                                    <td>Detailed</td>
-                                    <td>01 Jul - 31 Jul 2025</td>
-                                    <td>31 Jul 2025, 10:14 AM</td>
-                                    <td>2.4 MB</td>
-                                    <td class="rpt-actions-cell">
-                                        <button class="rpt-icon-btn" title="Download"><svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-                                        <button class="rpt-icon-btn" title="Share"><svg viewBox="0 0 24 24" fill="none" width="15" height="15"><circle cx="18" cy="5" r="3" stroke="currentColor" stroke-width="2"/><circle cx="6" cy="12" r="3" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="19" r="3" stroke="currentColor" stroke-width="2"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" stroke="currentColor" stroke-width="2"/></svg></button>
-                                        <button class="rpt-icon-btn" title="Delete"><svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><span class="rpt-row-icon">&#128196;</span> June 2025 Financial Report</td>
-                                    <td>Summary</td>
-                                    <td>01 Jun - 30 Jun 2025</td>
-                                    <td>30 Jun 2025, 09:18 AM</td>
-                                    <td>1.8 MB</td>
-                                    <td class="rpt-actions-cell">
-                                        <button class="rpt-icon-btn" title="Download"><svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-                                        <button class="rpt-icon-btn" title="Share"><svg viewBox="0 0 24 24" fill="none" width="15" height="15"><circle cx="18" cy="5" r="3" stroke="currentColor" stroke-width="2"/><circle cx="6" cy="12" r="3" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="19" r="3" stroke="currentColor" stroke-width="2"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" stroke="currentColor" stroke-width="2"/></svg></button>
-                                        <button class="rpt-icon-btn" title="Delete"><svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><span class="rpt-row-icon">&#128196;</span> Q2 2025 Financial Report</td>
-                                    <td>Quarterly</td>
-                                    <td>01 Apr - 30 Jun 2025</td>
-                                    <td>01 Jul 2025, 11:02 AM</td>
-                                    <td>3.7 MB</td>
-                                    <td class="rpt-actions-cell">
-                                        <button class="rpt-icon-btn" title="Download"><svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-                                        <button class="rpt-icon-btn" title="Share"><svg viewBox="0 0 24 24" fill="none" width="15" height="15"><circle cx="18" cy="5" r="3" stroke="currentColor" stroke-width="2"/><circle cx="6" cy="12" r="3" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="19" r="3" stroke="currentColor" stroke-width="2"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" stroke="currentColor" stroke-width="2"/></svg></button>
-                                        <button class="rpt-icon-btn" title="Delete"><svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><span class="rpt-row-icon">&#128196;</span> May 2025 Financial Report</td>
-                                    <td>Summary</td>
-                                    <td>01 May - 31 May 2025</td>
-                                    <td>31 May 2025, 08:44 AM</td>
-                                    <td>1.6 MB</td>
-                                    <td class="rpt-actions-cell">
-                                        <button class="rpt-icon-btn" title="Download"><svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-                                        <button class="rpt-icon-btn" title="Share"><svg viewBox="0 0 24 24" fill="none" width="15" height="15"><circle cx="18" cy="5" r="3" stroke="currentColor" stroke-width="2"/><circle cx="6" cy="12" r="3" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="19" r="3" stroke="currentColor" stroke-width="2"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" stroke="currentColor" stroke-width="2"/></svg></button>
-                                        <button class="rpt-icon-btn" title="Delete"><svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
-                                    </td>
-                                </tr>
+                                <tr><td colspan="5" style="text-align:center;color:var(--text-light);padding:24px;">No reports generated yet. Use the form above to compile your first report.</td></tr>
                             </tbody>
                         </table>
                     </div>
-                    <a href="#" class="rpt-link" onclick="return false">View full reports &rarr;</a>
                 </div>
 
                 <!-- Bottom Grid Row -->
                 <div class="rpt-bottom-grid">
                     <!-- Financial Health Score -->
                     <div class="rpt-health-card">
-                        <div class="rpt-card-title-row"><h3 class="rpt-card-title">Financial Health Score</h3><select class="rpt-select rpt-select-sm"><option>This Month</option><option>Last Month</option></select></div>
+                        <div class="rpt-card-title-row"><h3 class="rpt-card-title">Financial Health Score</h3></div>
                         <div class="rpt-health-body">
                             <div class="rpt-health-ring-wrap">
                                 <svg viewBox="0 0 160 160" class="rpt-health-ring">
                                     <circle cx="80" cy="80" r="65" fill="none" stroke="var(--border)" stroke-width="12"/>
-                                    <circle cx="80" cy="80" r="65" fill="none" stroke="var(--green)" stroke-width="12" stroke-dasharray="372" stroke-dashoffset="33.5" stroke-linecap="round" transform="rotate(-90 80 80)"/>
+                                    <circle cx="80" cy="80" r="65" fill="none" stroke="var(--green)" stroke-width="12" stroke-dasharray="408.4" stroke-dashoffset="408.4" stroke-linecap="round" transform="rotate(-90 80 80)" id="rpt-health-ring-fill"/>
                                 </svg>
-                                <div class="rpt-health-center"><span class="rpt-health-val">91%</span><span class="rpt-health-label">Excellent</span></div>
+                                <div class="rpt-health-center"><span class="rpt-health-val" id="rpt-health-val">0%</span><span class="rpt-health-label" id="rpt-health-label">No data</span></div>
                             </div>
-                            <ul class="rpt-health-legend">
-                                <li><span class="rpt-dot" style="background:var(--green)"></span>Income Stability<span class="rpt-leg-pct">94%</span></li>
-                                <li><span class="rpt-dot" style="background:var(--orange)"></span>Savings Habit<span class="rpt-leg-pct">88%</span></li>
-                                <li><span class="rpt-dot" style="background:#3b82f6"></span>Subscription Efficiency<span class="rpt-leg-pct">92%</span></li>
-                                <li><span class="rpt-dot" style="background:#8b5cf6"></span>Budget Discipline<span class="rpt-leg-pct">90%</span></li>
-                                <li><span class="rpt-dot" style="background:#06b6d4"></span>Emergency Fund<span class="rpt-leg-pct">75%</span></li>
+                            <ul class="rpt-health-legend" id="rpt-health-legend">
+                                <li style="color:var(--text-light)">Generate a report to see your health score.</li>
                             </ul>
                         </div>
                         <a href="#" class="rpt-link" onclick="return false">View full report &rarr;</a>
@@ -290,48 +206,23 @@ window._pageContent['reports'] = `
 
                     <!-- Trends Over Time -->
                     <div class="rpt-trends-card">
-                        <div class="rpt-card-title-row"><h3 class="rpt-card-title">Trends Over Time</h3><select class="rpt-select rpt-select-sm"><option>6 Months</option><option>12 Months</option></select></div>
+                        <div class="rpt-card-title-row"><h3 class="rpt-card-title">Trends Over Time</h3></div>
                         <div class="rpt-trends-legend"><span class="rpt-dot" style="background:var(--orange)"></span>Spending <span class="rpt-dot" style="background:var(--green);margin-left:12px"></span>Savings</div>
                         <div class="rpt-trends-chart" id="rpt-trends-chart">
-                            <div class="rpt-chart-tooltip" id="rpt-chart-tooltip" hidden>
-                                <span class="rpt-tooltip-month">Jul '25</span>
-                                <span class="rpt-tooltip-val orange">Spending: R28,540</span>
-                                <span class="rpt-tooltip-val green">Savings: R5,200</span>
-                            </div>
-                            <svg viewBox="0 0 400 140" class="rpt-trends-svg" preserveAspectRatio="none">
-                                <!-- Spending line -->
-                                <polyline points="20,110 90,95 160,100 230,80 300,85 370,70" fill="none" stroke="var(--orange)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                <!-- Savings line -->
-                                <polyline points="20,120 90,115 160,112 230,105 300,100 370,95" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                                <!-- Dots spending -->
-                                <circle cx="20" cy="110" r="3.5" fill="var(--orange)"/>
-                                <circle cx="90" cy="95" r="3.5" fill="var(--orange)"/>
-                                <circle cx="160" cy="100" r="3.5" fill="var(--orange)"/>
-                                <circle cx="230" cy="80" r="3.5" fill="var(--orange)"/>
-                                <circle cx="300" cy="85" r="3.5" fill="var(--orange)"/>
-                                <circle cx="370" cy="70" r="3.5" fill="var(--orange)"/>
-                                <!-- Dots savings -->
-                                <circle cx="20" cy="120" r="3.5" fill="var(--green)"/>
-                                <circle cx="90" cy="115" r="3.5" fill="var(--green)"/>
-                                <circle cx="160" cy="112" r="3.5" fill="var(--green)"/>
-                                <circle cx="230" cy="105" r="3.5" fill="var(--green)"/>
-                                <circle cx="300" cy="100" r="3.5" fill="var(--green)"/>
-                                <circle cx="370" cy="95" r="3.5" fill="var(--green)"/>
+                            <svg viewBox="0 0 400 140" class="rpt-trends-svg" preserveAspectRatio="none" id="rpt-trends-svg">
+                                <line x1="20" y1="130" x2="380" y2="130" stroke="var(--border)" stroke-width="0.5"/>
+                                <text x="200" y="75" text-anchor="middle" fill="var(--text-light)" font-size="12">No trend data yet</text>
                             </svg>
-                            <div class="rpt-chart-labels"><span>Feb '25</span><span>Mar '25</span><span>Apr '25</span><span>May '25</span><span>Jun '25</span><span>Jul '25</span></div>
+                            <div class="rpt-chart-labels" id="rpt-chart-labels"></div>
                         </div>
                         <a href="#" class="rpt-link" onclick="loadPage('analytics');return false">View full analytics &rarr;</a>
                     </div>
 
                     <!-- Top Categories -->
                     <div class="rpt-topcats-card">
-                        <div class="rpt-card-title-row"><h3 class="rpt-card-title">Top Categories</h3><select class="rpt-select rpt-select-sm"><option>This Month</option><option>Last Month</option></select></div>
-                        <ul class="rpt-topcats-list">
-                            <li><span class="rpt-cat-dot" style="background:#ff6a1a"></span><span class="rpt-cat-name">Subscriptions</span><span class="rpt-cat-amt">R8,420</span><span class="rpt-cat-pct">29.5%</span></li>
-                            <li><span class="rpt-cat-dot" style="background:#3ecf6e"></span><span class="rpt-cat-name">Housing</span><span class="rpt-cat-amt">R6,850</span><span class="rpt-cat-pct">24.0%</span></li>
-                            <li><span class="rpt-cat-dot" style="background:#3b82f6"></span><span class="rpt-cat-name">Food &amp; Groceries</span><span class="rpt-cat-amt">R4,620</span><span class="rpt-cat-pct">16.2%</span></li>
-                            <li><span class="rpt-cat-dot" style="background:#8b5cf6"></span><span class="rpt-cat-name">Transport</span><span class="rpt-cat-amt">R2,960</span><span class="rpt-cat-pct">10.4%</span></li>
-                            <li><span class="rpt-cat-dot" style="background:#f43f5e"></span><span class="rpt-cat-name">Entertainment</span><span class="rpt-cat-amt">R2,450</span><span class="rpt-cat-pct">8.6%</span></li>
+                        <div class="rpt-card-title-row"><h3 class="rpt-card-title">Top Categories</h3></div>
+                        <ul class="rpt-topcats-list" id="rpt-topcats-list">
+                            <li style="color:var(--text-light)">No category data yet.</li>
                         </ul>
                         <a href="#" class="rpt-link" onclick="return false">View all categories &rarr;</a>
                     </div>
@@ -339,27 +230,11 @@ window._pageContent['reports'] = `
                     <!-- Recommendations -->
                     <div class="rpt-recommendations-card">
                         <h3 class="rpt-card-title">Recommendations</h3>
-                        <ul class="rpt-rec-list">
-                            <li class="rpt-rec-item">
+                        <ul class="rpt-rec-list" id="rpt-rec-list">
+                            <li class="rpt-rec-item" style="color:var(--text-light)">
                                 <div class="rpt-rec-text">
-                                    <strong>Cancel unused subscriptions</strong>
-                                    <p>You have 2 subscriptions you haven't used in the last 30 days.</p>
+                                    <p>Add subscriptions and generate a report to receive personalised recommendations.</p>
                                 </div>
-                                <span class="rpt-rec-save">Save R119 <small>/mo</small></span>
-                            </li>
-                            <li class="rpt-rec-item">
-                                <div class="rpt-rec-text">
-                                    <strong>Switch to cheaper plan</strong>
-                                    <p>You can save up to R120/month by switching Spotify to the Student Plan.</p>
-                                </div>
-                                <span class="rpt-rec-save">Save R120 <small>/mo</small></span>
-                            </li>
-                            <li class="rpt-rec-item">
-                                <div class="rpt-rec-text">
-                                    <strong>Bundle your subscriptions</strong>
-                                    <p>Bundle your subscriptions and save up to R200/month on entertainment.</p>
-                                </div>
-                                <span class="rpt-rec-save">Save R200 <small>/mo</small></span>
                             </li>
                         </ul>
                         <a href="#" class="rpt-link" onclick="return false">View all recommendations &rarr;</a>

@@ -5,7 +5,7 @@ themeToggle.addEventListener('click', () => {
 })
 
 const pageTitles = {
-    dashboard: { title: "Dashboard", heading: "Welcome, INSERTNAME ", sub: "Good day, here's a snapshot of your money." },
+    dashboard: { title: "Dashboard", heading: "Dashboard", sub: "Good day, here's a snapshot of your money." },
     wallet: { title: "Wallet", heading: "Wallet", sub: "Manage your balance, virtual card and transactions." },
     subscription: { title: "Subscriptions", heading: "Subscriptions", sub: "NUMBER OF services, AMOUNT active monthly" },
     goals: { title: "Goals", heading: "Goals", sub: "Set targets and watch your savings grow." },

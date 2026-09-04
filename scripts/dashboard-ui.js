@@ -15,6 +15,7 @@ const DashboardUI = (function () {
         _renderAI();
         _renderGoals();
         _renderTransactions();
+        _renderScribeScore();
         if (!_initialized) {
             _bindEvents();
             _initialized = true;
@@ -82,6 +83,63 @@ const DashboardUI = (function () {
             var balEl = document.getElementById('dash-fc-balance');
             if (balEl) balEl.textContent = snap.fmtBalance;
         }
+
+        // Fetch card number from wallet API
+        if (typeof API !== 'undefined') {
+            API.Wallet.get().then(function(result) {
+                if (result.success && result.data && result.data.cardNumber) {
+                    var cn = result.data.cardNumber;
+                    var masked = cn.slice(0, 4) + ' \u2022\u2022\u2022\u2022 \u2022\u2022\u2022\u2022 ' + cn.slice(-4);
+                    var numEl = document.getElementById('dash-fc-number');
+                    if (numEl) numEl.textContent = masked;
+                }
+            }).catch(function() {});
+        }
+    }
+
+    // ═══ Scribe Score Ring (dynamic from API) ═══
+    function _renderScribeScore() {
+        if (typeof API === 'undefined') return;
+
+        API.Auth.getUser().then(function(result) {
+            if (!result.success || !result.data) return;
+            var score = parseInt(result.data.scribeScore) || 0;
+
+            // Max score is 1000 for ring purposes
+            var maxScore = 1000;
+            var pct = Math.min(score / maxScore, 1); // 0 to 1
+
+            // Update the score value text
+            var valueEl = document.getElementById('dash-score-value');
+            if (valueEl) valueEl.textContent = score;
+
+            // Update the outer ring (Financial Health) — r=70, circumference=440
+            var outerRing = document.querySelector('.dash-ring-outer');
+            if (outerRing) {
+                var outerCircumference = 440;
+                var outerOffset = outerCircumference - (pct * outerCircumference);
+                outerRing.style.strokeDashoffset = outerOffset;
+                outerRing.style.transition = 'stroke-dashoffset 1s ease-out';
+            }
+
+            // Update the inner ring (Scribe Score) — r=52, circumference=327
+            var innerRing = document.querySelector('.dash-ring-inner');
+            if (innerRing) {
+                var innerCircumference = 327;
+                var innerOffset = innerCircumference - (pct * innerCircumference);
+                innerRing.style.strokeDashoffset = innerOffset;
+                innerRing.style.transition = 'stroke-dashoffset 1s ease-out';
+            }
+
+            // Update legend text
+            var healthPct = Math.round(pct * 100);
+            var scorePct = Math.round(pct * 100);
+            var legends = document.querySelectorAll('.dash-score-leg');
+            if (legends.length >= 2) {
+                legends[0].innerHTML = '<span class="dash-dot green"></span>Financial Health ' + healthPct + '%';
+                legends[1].innerHTML = '<span class="dash-dot orange"></span>Scribe Score ' + scorePct + '%';
+            }
+        }).catch(function() {});
     }
 
     // ═══ Timeline Chart (SVG Line Graph) ═══
@@ -277,14 +335,14 @@ const DashboardUI = (function () {
                         list.innerHTML = '<p style="font-size:13px;color:var(--text-light)">No active goals. Create one to start tracking!</p>';
                         return;
                     }
-                    var icons = { Travel: '✈️', Tech: '💻', Education: '📚', Emergency: '🚨', Home: '🏠', Vehicle: '🚗', Other: '🎯' };
+                    var icons = { Travel: 'T', Tech: 'Tc', Education: 'Ed', Emergency: 'Em', Home: 'H', Vehicle: 'V', Other: 'O' };
                     list.innerHTML = goals.map(function(g) {
                         var target = parseFloat(g.targetAmount) || 1;
                         var saved = parseFloat(g.currentProgress) || 0;
                         var pct = Math.min(100, Math.round((saved / target) * 100));
-                        var emoji = icons[g.category] || '🎯';
+                        var icon = icons[g.category] || 'O';
                         return '<div class="dash-goal-row">' +
-                            '<span class="dash-goal-emoji">' + emoji + '</span>' +
+                            '<span class="dash-goal-emoji">' + icon + '</span>' +
                             '<div class="dash-goal-info"><p class="dash-goal-name">' + (g.goalName || '') + '</p><div class="dash-goal-bar"><div class="dash-goal-fill" style="width:' + pct + '%"></div></div></div>' +
                             '<span class="dash-goal-pct">' + pct + '%</span>' +
                             '</div>';

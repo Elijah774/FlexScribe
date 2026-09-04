@@ -194,7 +194,8 @@
                 <div class="sub-modal-row">
                     <div class="sub-modal-field">
                         <label for="sub-modal-date">Next payment date</label>
-                        <input type="date" id="sub-modal-date">
+                        <input type="date" id="sub-modal-date" required>
+                        <span class="sub-modal-field-error" id="sub-modal-date-error"></span>
                     </div>
                     <div class="sub-modal-field">
                         <label for="sub-modal-logoclass">Icon style</label>
@@ -419,6 +420,13 @@
                     <option value="quarterly">Quarterly</option>
                     <option value="yearly">Yearly</option>
                 </select>
+            </div>
+
+            <!-- First billing date -->
+            <div class="sub-modal-field">
+                <label for="rec-add-date">First billing date</label>
+                <input type="date" id="rec-add-date" required>
+                <span class="sub-modal-field-error" id="rec-add-date-error"></span>
             </div>
 
             <!-- Payment source selector -->

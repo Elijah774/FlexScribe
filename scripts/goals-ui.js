@@ -282,6 +282,10 @@ const GoalsUI = (() => {
 
         if (!name) { $modalError.textContent = 'Please enter a goal name.'; return; }
         if (!targetAmount || targetAmount <= 0) { $modalError.textContent = 'Please enter a valid target amount.'; return; }
+        if (!targetDate) { $modalError.textContent = 'Please select a target date.'; return; }
+        var today = new Date(); today.setHours(0, 0, 0, 0);
+        var selectedDate = new Date(targetDate + 'T00:00:00');
+        if (selectedDate < today) { $modalError.textContent = 'Target date cannot be in the past.'; return; }
 
         // Call the real backend API
 
@@ -407,15 +411,15 @@ const GoalsUI = (() => {
 
     function _getCategoryIcon(category) {
         const icons = {
-            Travel:    '✈️',
-            Tech:      '💻',
-            Education: '📚',
-            Emergency: '🚨',
-            Home:      '🏠',
-            Vehicle:   '🚗',
-            Other:     '🎯'
+            Travel:    'T',
+            Tech:      'Tc',
+            Education: 'Ed',
+            Emergency: 'Em',
+            Home:      'H',
+            Vehicle:   'V',
+            Other:     'O'
         };
-        return icons[category] || '🎯';
+        return icons[category] || 'O';
     }
 
     /* ----------------------------------------------------------
