@@ -21,39 +21,48 @@ html {
 =========================================================== */
 
 :root {
-    /* ── Surfaces ── */
-    --background: #090B10;
-    --section:    #11151B;
-    --card:       #181D24;
+    /* ── Surfaces (seamless: containers barely stand out) ── */
+    --background: #0B0C0F;
+    --section:    #101115;   /* container surface */
+    --card:       #101115;   /* container surface — same, no floating boxes */
+    --raised:     #131418;   /* pills / toggles / nested elements */
 
-    /* ── Borders ── */
-    --border:     #272D35;
+    /* ── Borders (hairline only) ── */
+    --border:      rgba(255, 255, 255, 0.055);
+    --border-soft: rgba(255, 255, 255, 0.035);
 
     /* ── Typography ── */
-    --text:       #F5F5F5;
-    --text-light: #A3ABB8;
+    --text:       #F2F1ED;   /* primary */
+    --text-light: #94969D;   /* secondary */
+    --text-muted: #5C5E65;   /* tertiary — least-important metadata only */
 
     /* ── Brand ── */
-    --orange:       #FF8A34;
-    --orange-hover: #FF9B54;
-    --orange-tint:  rgba(255, 138, 52, 0.12);
-    --orange-glow:  rgba(255, 138, 52, 0.20);
+    --orange:       #FF7A29;
+    --orange-hover: #FF8F4D;
+    --orange-tint:  rgba(255, 122, 41, 0.12);
+    --orange-glow:  rgba(255, 122, 41, 0.20);
 
-    /* ── Semantic colours ── */
-    --green:  #B9F15B;
-    --purple: #A77CFF;
-    --blue:   #3B82F6;
-    --yellow: #FACC15;
-    --danger: #F87171;
+    /* ── Semantic colours ──
+       Off-palette hues (purple/blue/yellow) are remapped onto the
+       approved palette so no legacy colours survive site-wide. */
+    --green:  #6FDB8F;
+    --danger: #E36565;
+    --purple: #A77CFF;   /* vibrant purple — secondary accent */
+    --purple-tint: rgba(167, 124, 255, 0.14);
+    --blue:   #A77CFF;   /* was blue — now purple secondary */
+    --yellow: #FF7A29;   /* was yellow — now accent orange */
+
+    /* ── Card widget gradient ── */
+    --card-gradient: radial-gradient(140% 140% at 15% 0%, #1F1712, #171412 65%);
 
     /* ── Interactive states ── */
-    --hover:    #1E2530;
-    --input-bg: #0D1117;
+    --hover:    #131418;   /* raised surface */
+    --input-bg: #101115;
 
-    /* ── Shadows ── */
-    --shadow:       0 4px 24px rgba(0, 0, 0, 0.35);
-    --shadow-hover: 0 8px 32px rgba(255, 138, 52, 0.12);
-    --shadow-card:  0 2px 12px rgba(0, 0, 0, 0.25);
+    /* ── Shadows (seamless — no drop shadows) ── */
+    --shadow:       none;
+    --shadow-hover: none;
+    --shadow-card:  none;
 
     /* ── Transitions ── */
     --t-fast: 150ms ease;
@@ -79,34 +88,38 @@ body.light-mode {
     --text-light: #6B7280;
     --green:  #5FA10B;
     --purple: #7C4DFF;
-    --blue:   #3B82F6;
+    --blue:   #94969D;
     --yellow: #F5B83D;
     --danger: #D92D2D;
     --hover:    #F1F2F4;
     --input-bg: #FFFFFF;
     --shadow:       0 4px 12px rgba(20, 23, 31, 0.06);
-    --shadow-hover: 0 8px 24px rgba(255, 138, 52, 0.10);
+    --shadow-hover: 0 8px 24px rgba(255, 122, 41, 0.10);
     --shadow-card:  0 2px 8px rgba(20, 23, 31, 0.08);
 }
 
 /* dark-mode class still supported for theme toggle */
 body.dark-mode {
-    --background: #090B10;
-    --section:    #11151B;
-    --card:       #181D24;
-    --border:     #272D35;
-    --text:       #F5F5F5;
-    --text-light: #A3ABB8;
-    --green:  #B9F15B;
+    --background: #0B0C0F;
+    --section:    #101115;
+    --card:       #101115;
+    --raised:     #131418;
+    --border:      rgba(255, 255, 255, 0.055);
+    --border-soft: rgba(255, 255, 255, 0.035);
+    --text:       #F2F1ED;
+    --text-light: #94969D;
+    --text-muted: #5C5E65;
+    --green:  #6FDB8F;
     --purple: #A77CFF;
-    --blue:   #3B82F6;
-    --yellow: #FACC15;
-    --danger: #F87171;
-    --hover:    #1E2530;
-    --input-bg: #0D1117;
-    --shadow:       0 4px 24px rgba(0, 0, 0, 0.45);
-    --shadow-hover: 0 8px 32px rgba(255, 138, 52, 0.15);
-    --shadow-card:  0 2px 12px rgba(0, 0, 0, 0.35);
+    --purple-tint: rgba(167, 124, 255, 0.14);
+    --blue:   #A77CFF;
+    --yellow: #FF7A29;
+    --danger: #E36565;
+    --hover:    #131418;
+    --input-bg: #101115;
+    --shadow:       none;
+    --shadow-hover: none;
+    --shadow-card:  none;
 }
 
 /* ===========================================================
@@ -127,7 +140,7 @@ body {
 =========================================================== */
 *:focus { outline: none; }
 *:focus-visible {
-    outline: 2px solid rgba(255, 138, 52, 0.7);
+    outline: 2px solid rgba(255, 122, 41, 0.7);
     outline-offset: 2px;
     border-radius: 4px;
 }
@@ -300,7 +313,7 @@ a:hover {
 }
 .header-search:focus-within {
     border-color: var(--orange);
-    box-shadow: 0 0 0 3px rgba(255, 138, 52, 0.1);
+    box-shadow: 0 0 0 3px rgba(255, 122, 41, 0.1);
 }
 .header-search svg {
     color: var(--text-light);
@@ -402,7 +415,7 @@ a:hover {
     text-overflow: ellipsis;
 }
 .search-result-title mark {
-    background: rgba(255, 138, 52, 0.25);
+    background: rgba(255, 122, 41, 0.25);
     color: var(--orange);
     border-radius: 2px;
     padding: 0 2px;
@@ -1158,12 +1171,12 @@ textarea:focus {
 }
 
 .notif-full-icon.goals {
-    background: rgba(185, 241, 91, 0.12);
+    background: rgba(111, 219, 143, 0.12);
     color: var(--green);
 }
 
 .notif-full-icon.general {
-    background: rgba(59, 130, 246, 0.12);
+    background: rgba(167, 124, 255, 0.14);
     color: var(--blue);
 }
 
@@ -1215,7 +1228,7 @@ textarea:focus {
 }
 
 .settings-section--danger {
-    border-color: rgba(248, 113, 113, 0.2);
+    border-color: rgba(227, 101, 101, 0.2);
 }
 
 .settings-section-title {
@@ -1369,8 +1382,8 @@ textarea:focus {
 .settings-btn--primary:hover { background: var(--orange-hover); }
 .settings-btn--secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
 .settings-btn--secondary:hover { border-color: var(--orange); }
-.settings-btn--danger { background: transparent; border: 1px solid rgba(248,113,113,0.3); color: var(--danger); }
-.settings-btn--danger:hover { background: rgba(248,113,113,0.08); border-color: var(--danger); }
+.settings-btn--danger { background: transparent; border: 1px solid rgba(227,101,101,0.3); color: var(--danger); }
+.settings-btn--danger:hover { background: rgba(227,101,101,0.08); border-color: var(--danger); }
 
 .settings-btn-row {
     display: flex;
@@ -1442,7 +1455,7 @@ textarea:focus {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(248, 113, 113, 0.12);
+    background: rgba(227, 101, 101, 0.12);
     border-radius: 50%;
     color: var(--danger);
 }
@@ -1501,5 +1514,5 @@ textarea:focus {
 }
 
 .signout-confirm-ok:hover {
-    background: #EF4444;
+    background: #E36565;
 }

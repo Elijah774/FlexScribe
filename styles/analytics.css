@@ -360,8 +360,8 @@
     transition: width 0.6s ease, background 0.3s;
 }
 
-.budget-bar-fill.green  { background: #22c55e; }
-.budget-bar-fill.yellow { background: #FACC15; }
+.budget-bar-fill.green  { background: #6FDB8F; }
+.budget-bar-fill.yellow { background: #FF7A29; }
 .budget-bar-fill.red    { background: var(--danger); }
 
 /* ── Responsive ──────────────────────────────────────── */

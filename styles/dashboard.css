@@ -99,7 +99,7 @@
     width: 200px;
     height: 200px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(255,138,52,0.08) 0%, transparent 60%);
+    background: radial-gradient(circle, rgba(255,122,41,0.08) 0%, transparent 60%);
 }
 .dash-flipcard-back {
     background: linear-gradient(135deg, var(--orange) 0%, #E05A00 100%);
@@ -154,7 +154,7 @@
 .dash-link-btn {
     background: none;
     border: none;
-    color: var(--orange);
+    color: var(--text-light);
     font-size: 12.5px;
     font-weight: 600;
     cursor: pointer;
@@ -251,7 +251,7 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
-    background: linear-gradient(135deg, var(--card) 0%, rgba(255,138,52,0.03) 100%);
+    background: linear-gradient(135deg, var(--card) 0%, rgba(255,122,41,0.03) 100%);
 }
 .dash-ai-header { display: flex; align-items: center; gap: 10px; }
 .dash-ai-header h4 { font-size: 14px; font-weight: 600; color: var(--text); }
@@ -327,8 +327,8 @@
     display: flex; align-items: center; justify-content: center;
     font-size: 14px; flex-shrink: 0;
 }
-.dash-txn-icon.credit { background: rgba(185,241,91,0.12); color: var(--green); }
-.dash-txn-icon.debit { background: rgba(248,113,113,0.12); color: var(--danger); }
+.dash-txn-icon.credit { background: rgba(111,219,143,0.12); color: var(--green); }
+.dash-txn-icon.debit { background: rgba(227,101,101,0.12); color: var(--danger); }
 .dash-txn-info { flex: 1; min-width: 0; }
 .dash-txn-name { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dash-txn-date { font-size: 11px; color: var(--text-light); }

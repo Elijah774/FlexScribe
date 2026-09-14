@@ -40,9 +40,9 @@ window._pageContent['timeline'] = `
 .tl-day.today { background: var(--hover); font-weight: 700; box-shadow: inset 0 0 0 2px var(--orange); }
 .tl-day.has-event { cursor: pointer; }
 .tl-day.has-event:hover { background: var(--hover); }
-.tl-day.has-due { background: rgba(255, 138, 52, 0.12); }
-.tl-day.has-renew { background: rgba(167, 124, 255, 0.12); }
-.tl-day.has-due.has-renew { background: linear-gradient(135deg, rgba(255,138,52,0.12), rgba(167,124,255,0.12)); }
+.tl-day.has-due { background: rgba(255, 122, 41, 0.12); }
+.tl-day.has-renew { background: rgba(167, 124, 255, 0.14); }
+.tl-day.has-due.has-renew { background: linear-gradient(135deg, rgba(255,122,41,0.12), rgba(167,124,255,0.14)); }
 .tl-day-num { font-size: 14px; font-weight: 500; }
 .tl-day-dots { display: flex; gap: 3px; margin-top: 4px; position: absolute; bottom: 4px; }
 .tl-day-dot { width: 5px; height: 5px; border-radius: 50%; }
@@ -60,7 +60,7 @@ window._pageContent['timeline'] = `
 .tl-detail-name { font-size: 13px; font-weight: 600; color: var(--text); }
 .tl-detail-amount { font-size: 14px; font-weight: 700; color: var(--orange); }
 .tl-detail-badge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin-left: 8px; }
-.tl-badge-due { background: rgba(255,138,52,0.15); color: var(--orange); }
+.tl-badge-due { background: rgba(255,122,41,0.15); color: var(--orange); }
 .tl-badge-renew { background: rgba(167,124,255,0.15); color: var(--purple); }
 </style>
 `;

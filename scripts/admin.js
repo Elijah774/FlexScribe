@@ -56,12 +56,12 @@ const ADMIN_DATA = {
     ],
 
     categories: [
-        { name: 'Entertainment', amount: 48500, pct: 38, color: '#FF8A34' },
-        { name: 'Music',         amount: 22100, pct: 17, color: '#B9F15B' },
-        { name: 'Shopping',      amount: 18900, pct: 15, color: '#3B82F6' },
+        { name: 'Entertainment', amount: 48500, pct: 38, color: '#FF7A29' },
+        { name: 'Music',         amount: 22100, pct: 17, color: '#6FDB8F' },
+        { name: 'Shopping',      amount: 18900, pct: 15, color: '#94969D' },
         { name: 'Productivity',  amount: 15400, pct: 12, color: '#A77CFF' },
-        { name: 'Utilities',     amount: 12200, pct: 10, color: '#FACC15' },
-        { name: 'Other',         amount: 10300, pct: 8,  color: '#F87171' },
+        { name: 'Utilities',     amount: 12200, pct: 10, color: '#FFB65C' },
+        { name: 'Other',         amount: 10300, pct: 8,  color: '#E36565' },
     ]
 };
 

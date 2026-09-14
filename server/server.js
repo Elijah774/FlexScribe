@@ -59,8 +59,22 @@ app.listen(PORT, async () => {
         console.log(`\nFlexScribe API running on http://localhost:${PORT}`);
         console.log(`Frontend: http://localhost:${PORT}/landing.html`);
         console.log(`App:      http://localhost:${PORT}/pages/MASTER.html\n`);
+
+        // Start the notification scheduler (billing + reminders + summaries).
+        // Guarded by DISABLE_SCHEDULER so tests / tooling can run the API
+        // without the background cron firing. Only starts once the DB is up.
+        if (process.env.DISABLE_SCHEDULER === 'true') {
+            console.log('[scheduler] disabled via DISABLE_SCHEDULER=true');
+        } else {
+            try {
+                require('./services/scheduler').start();
+            } catch (e) {
+                console.error('[scheduler] failed to start:', e.message);
+            }
+        }
     } catch (err) {
         console.error('Database connection failed:', err.message);
         console.log('Server running without database. Check your SQL Server.\n');
+        console.log('[scheduler] not started (no database connection).');
     }
 });

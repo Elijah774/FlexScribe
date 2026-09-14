@@ -17,6 +17,17 @@
                     </div>
                 </div>
 
+                <!-- Low-funds warning (shown when balance < total subscriptions) -->
+                <div class="wallet-funds-warning" id="wallet-funds-warning" hidden
+                     style="display:none;align-items:center;gap:12px;background:rgba(227,101,101,0.12);border:1px solid var(--danger,#E36565);border-radius:12px;padding:14px 16px;margin-bottom:16px;">
+                    <svg viewBox="0 0 24 24" fill="none" width="22" height="22" style="flex-shrink:0;color:var(--danger,#E36565)"><path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <div style="flex:1;">
+                        <p style="font-weight:600;color:var(--text);margin:0 0 2px;">Your balance won't cover your subscriptions</p>
+                        <p style="font-size:13px;color:var(--text-light);margin:0;" id="wallet-funds-warning-msg">Add funds to cover your upcoming subscription payments.</p>
+                    </div>
+                    <button class="wallet-action-btn" id="wallet-warning-add-btn" style="flex-shrink:0;">Add Funds</button>
+                </div>
+
                 <!-- Stat Cards -->
                 <div class="wallet-stats">
                     <div class="wallet-stat-card">
@@ -25,6 +36,13 @@
                         </div>
                         <p class="wallet-stat-label">Available Balance</p>
                         <p class="wallet-stat-value" id="wallet-stat-available">R0.00</p>
+                    </div>
+                    <div class="wallet-stat-card">
+                        <div class="wallet-stat-icon orange">
+                            <svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M4 12a8 8 0 0114-5.3M20 12a8 8 0 01-14 5.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M18 3v4h-4M6 21v-4h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                        <p class="wallet-stat-label">Total Subscriptions</p>
+                        <p class="wallet-stat-value" id="wallet-stat-subs-total">R0.00</p>
                     </div>
                     <div class="wallet-stat-card">
                         <div class="wallet-stat-icon blue">

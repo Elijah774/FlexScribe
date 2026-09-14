@@ -7,20 +7,20 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
-    --background: #090B10;
-    --section:    #11151B;
-    --card:       #181D24;
-    --border:     #272D35;
-    --text:       #F5F5F5;
-    --text-light: #A3ABB8;
+    --background: #0B0C0F;
+    --section:    #101115;
+    --card:       #101115;
+    --border:     rgba(255,255,255,0.055);
+    --text:       #F2F1ED;
+    --text-light: #94969D;
     --text-muted: #6B7280;
-    --orange:       #FF8A34;
-    --orange-hover: #FF9B54;
-    --orange-tint:  rgba(255, 138, 52, 0.12);
-    --green:  #B9F15B;
-    --danger: #F87171;
-    --hover:    #1E2530;
-    --input-bg: #0D1117;
+    --orange:       #FF7A29;
+    --orange-hover: #FF8F4D;
+    --orange-tint:  rgba(255, 122, 41, 0.12);
+    --green:  #6FDB8F;
+    --danger: #E36565;
+    --hover:    #131418;
+    --input-bg: #101115;
     --shadow:   0 4px 24px rgba(0, 0, 0, 0.45);
     --t-fast: 150ms ease;
     --t-med:  250ms ease;
@@ -35,7 +35,7 @@
 
 *:focus { outline: none; }
 *:focus-visible {
-    outline: 2px solid rgba(255, 138, 52, 0.7);
+    outline: 2px solid rgba(255, 122, 41, 0.7);
     outline-offset: 2px;
     border-radius: 3px;
 }
@@ -61,7 +61,7 @@ body::before {
     transform: translateX(-50%);
     width: 600px;
     height: 600px;
-    background: radial-gradient(circle, rgba(255,138,52,0.08) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(255,122,41,0.08) 0%, transparent 70%);
     pointer-events: none;
     z-index: 0;
 }
@@ -179,7 +179,7 @@ input:focus {
     box-shadow: 0 0 0 3px var(--orange-tint);
 }
 input.input-error { border-color: var(--danger); }
-input.input-error:focus { box-shadow: 0 0 0 3px rgba(248,113,113,0.15); }
+input.input-error:focus { box-shadow: 0 0 0 3px rgba(227,101,101,0.15); }
 
 /* ── Input group (icon wrapper + eye toggle) ── */
 .input-group {
@@ -319,7 +319,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     text-align: right;
 }
 .strength-weak    .strength-bar:nth-child(1)  { background: var(--danger); }
-.strength-fair    .strength-bar:nth-child(-n+2){ background: #FACC15; }
+.strength-fair    .strength-bar:nth-child(-n+2){ background: #FF7A29; }
 .strength-strong  .strength-bar:nth-child(-n+3){ background: var(--orange); }
 .strength-vstrong .strength-bar                { background: var(--green); }
 
@@ -413,8 +413,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 /* ── Error banner ── */
 .auth-error {
-    background: rgba(248,113,113,0.12);
-    border: 1px solid rgba(248,113,113,0.3);
+    background: rgba(227,101,101,0.12);
+    border: 1px solid rgba(227,101,101,0.3);
     border-radius: var(--radius-md);
     padding: 11px 14px;
     color: var(--danger);
@@ -495,7 +495,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .success-screen.visible { display: flex; }
 .success-icon {
     width: 72px; height: 72px;
-    background: rgba(185,241,91,0.12);
+    background: rgba(111,219,143,0.12);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -512,7 +512,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .success-screen p  { color: var(--text-light); font-size: 14px; line-height: 1.5; }
 .success-points {
     background: var(--orange-tint);
-    border: 1px solid rgba(255,138,52,0.3);
+    border: 1px solid rgba(255,122,41,0.3);
     border-radius: var(--radius-lg);
     padding: 12px 24px;
     color: var(--orange);

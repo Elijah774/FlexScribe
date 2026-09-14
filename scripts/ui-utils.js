@@ -36,8 +36,8 @@ const UIUtils = (() => {
     const TOAST_COLORS = {
         success: 'var(--green)',
         error:   'var(--danger)',
-        info:    'var(--blue, #3B82F6)',
-        warning: 'var(--yellow, #FACC15)',
+        info:    'var(--blue, #94969D)',
+        warning: 'var(--yellow, #FFB65C)',
     };
 
     let _toastContainer = null;

@@ -5,6 +5,7 @@ const express = require('express');
 const { query } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 const { updateUserAnalytics } = require('../helpers/update-analytics');
+const notificationEvents = require('../services/notificationEvents');
 
 const router = express.Router();
 router.use(authenticateToken);
@@ -83,8 +84,11 @@ router.post('/', async (req, res) => {
             providerUrl: providerUrl || null
         });
 
-        res.status(201).json(result.recordset[0]);
+        const created = result.recordset[0];
+        res.status(201).json(created);
         updateUserAnalytics(req.user.subscriberID);
+        // Fire-and-forget notification (never blocks the response)
+        notificationEvents.subscriptionAdded(req.user.subscriberID, created);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -124,6 +128,19 @@ router.put('/:id', async (req, res) => {
 
         res.json({ message: 'Subscription updated' });
         updateUserAnalytics(req.user.subscriberID);
+
+        // Resolve the service name for the notification (from body or DB)
+        (async () => {
+            let name = serviceName;
+            if (!name) {
+                const row = await query(
+                    'SELECT serviceName FROM Subscription WHERE subscriptionID = @subID AND subscriberID = @sid',
+                    { subID: params.subID, sid: req.user.subscriberID }
+                );
+                name = row.recordset[0] ? row.recordset[0].serviceName : null;
+            }
+            notificationEvents.subscriptionUpdated(req.user.subscriberID, params.subID, name);
+        })().catch(e => console.error('[subscriptions] update notification error:', e.message));
     } catch (err) {
         console.error('Subscription update error:', err.message);
         res.status(500).json({ error: err.message });
@@ -133,12 +150,26 @@ router.put('/:id', async (req, res) => {
 // DELETE /api/subscriptions/:id
 router.delete('/:id', async (req, res) => {
     try {
+        const subID = parseInt(req.params.id);
+
+        // Capture details BEFORE deleting so we can notify with the name/date
+        const existing = await query(
+            'SELECT serviceName, billingDate FROM Subscription WHERE subscriptionID = @id AND subscriberID = @subscriberID',
+            { id: subID, subscriberID: req.user.subscriberID }
+        );
+
         await query('DELETE FROM Subscription WHERE subscriptionID = @id AND subscriberID = @subscriberID', {
-            id: parseInt(req.params.id),
+            id: subID,
             subscriberID: req.user.subscriberID
         });
         res.json({ message: 'Subscription deleted' });
         updateUserAnalytics(req.user.subscriberID);
+
+        if (existing.recordset[0]) {
+            const row = existing.recordset[0];
+            const finalDate = row.billingDate ? new Date(row.billingDate).toISOString().slice(0, 10) : null;
+            notificationEvents.subscriptionCancelled(req.user.subscriberID, subID, row.serviceName, finalDate);
+        }
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -147,15 +178,28 @@ router.delete('/:id', async (req, res) => {
 // PATCH /api/subscriptions/:id/toggle
 router.patch('/:id/toggle', async (req, res) => {
     try {
+        const subID = parseInt(req.params.id);
         await query(`
             UPDATE Subscription SET
                 subStatus = CASE WHEN subStatus = 'active' THEN 'paused' ELSE 'active' END,
                 updatedAt = GETDATE()
             WHERE subscriptionID = @id AND subscriberID = @subscriberID
-        `, { id: parseInt(req.params.id), subscriberID: req.user.subscriberID });
+        `, { id: subID, subscriberID: req.user.subscriberID });
 
         res.json({ message: 'Subscription toggled' });
         updateUserAnalytics(req.user.subscriberID);
+
+        // Read the resulting state and only notify on transition to 'paused'
+        (async () => {
+            const row = await query(
+                'SELECT serviceName, subStatus FROM Subscription WHERE subscriptionID = @id AND subscriberID = @sid',
+                { id: subID, sid: req.user.subscriberID }
+            );
+            const sub = row.recordset[0];
+            if (sub && sub.subStatus === 'paused') {
+                notificationEvents.subscriptionPaused(req.user.subscriberID, subID, sub.serviceName);
+            }
+        })().catch(e => console.error('[subscriptions] toggle notification error:', e.message));
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

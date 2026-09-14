@@ -375,8 +375,8 @@
     width: 100%;
     padding: 12px;
     background: transparent;
-    color: var(--danger, #F87171);
-    border: 1px solid var(--danger, #F87171);
+    color: var(--danger, #E36565);
+    border: 1px solid var(--danger, #E36565);
     border-radius: var(--radius-sm, 8px);
     font-size: 14px;
     font-weight: 600;
@@ -386,7 +386,7 @@
 }
 
 .pp-delete-btn:hover {
-    background: var(--danger, #F87171);
+    background: var(--danger, #E36565);
     color: #fff;
 }
 
@@ -461,12 +461,12 @@
 }
 
 .pp-confirm-save {
-    background: var(--orange, #FF8A34);
+    background: var(--orange, #FF7A29);
     color: #fff;
 }
 
 .pp-confirm-save:hover {
-    background: var(--orange-hover, #FF9B54);
+    background: var(--orange-hover, #FF8F4D);
 }
 
 /* ── Delete confirmation specific ── */
@@ -477,22 +477,22 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(248, 113, 113, 0.12);
+    background: rgba(227, 101, 101, 0.12);
     border-radius: 50%;
-    color: var(--danger, #F87171);
+    color: var(--danger, #E36565);
 }
 
 .pp-delete-title {
-    color: var(--danger, #F87171);
+    color: var(--danger, #E36565);
 }
 
 .pp-confirm-delete {
-    background: var(--danger, #F87171);
+    background: var(--danger, #E36565);
     color: #fff;
 }
 
 .pp-confirm-delete:hover {
-    background: #EF4444;
+    background: #E36565;
 }
 
 /* ═══════════════ Edit Profile Modal Window ═══════════════ */
@@ -579,7 +579,7 @@
 
 .pp-edit-modal-field input:focus,
 .pp-edit-modal-field textarea:focus {
-    border-color: var(--orange, #FF8A34);
+    border-color: var(--orange, #FF7A29);
 }
 
 .pp-edit-modal-field textarea {

@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="../styles/dashboard.css">
     <link rel="stylesheet" href="../styles/subscription.css">
     <link rel="stylesheet" href="../styles/wallet.css">
+    <link rel="stylesheet" href="../styles/topup-overlay.css">
     <link rel="stylesheet" href="../styles/goals.css">
     <link rel="stylesheet" href="../styles/analytics.css">
     <link rel="stylesheet" href="../styles/dependants.css">
@@ -110,6 +111,12 @@
 
             <!-- ═══════════════════ WALLET PANEL ═══════════════════ -->
             <div id="panel-wallet" class="page-panel" hidden></div>
+
+            <!-- ═══════════════════ WALLET DEPOSIT (TOP UP) PANEL ═══════════════════ -->
+            <div id="panel-wallet-deposit" class="page-panel" hidden></div>
+
+            <!-- ═══════════════════ WALLET WITHDRAW PANEL ═══════════════════ -->
+            <div id="panel-wallet-withdraw" class="page-panel" hidden></div>
 
             <!-- ═══════════════════ GOALS PANEL ═══════════════════ -->
             <div id="panel-goals" class="page-panel" hidden></div>
@@ -685,31 +692,120 @@
 <div id="wallet-add-modal" class="wallet-modal-backdrop" hidden aria-modal="true" role="dialog" aria-labelledby="wallet-add-title">
     <div class="wallet-modal-box">
         <div class="wallet-modal-header">
-            <h2 id="wallet-add-title">Add Funds</h2>
+            <div>
+                <h2 id="wallet-add-title">Top Up Wallet</h2>
+                <p class="wallet-modal-sub">Add money to your FlexScribe wallet</p>
+            </div>
             <button class="icon-btn wallet-modal-close-btn" aria-label="Close modal">
                 <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
             </button>
         </div>
+
+        <!-- Progress stepper -->
+        <ol class="wallet-stepper" id="wallet-topup-stepper" data-active="method">
+            <li data-step-key="method"><span class="wallet-step-dot">1</span><span class="wallet-step-label">Method</span></li>
+            <li data-step-key="amount"><span class="wallet-step-dot">2</span><span class="wallet-step-label">Amount</span></li>
+            <li data-step-key="review"><span class="wallet-step-dot">3</span><span class="wallet-step-label">Review</span></li>
+            <li data-step-key="result"><span class="wallet-step-dot">4</span><span class="wallet-step-label">Done</span></li>
+        </ol>
+
+        <!-- STEP 1: method -->
+        <div class="wallet-modal-body" data-step="method">
+            <div class="wallet-option-list" id="wallet-topup-methods">
+                <button type="button" class="wallet-option" data-method="Bank Transfer" aria-pressed="true">
+                    <span class="wallet-option-icon"><svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M3 21h18M4 10h16M5 10V7l7-4 7 4v3M6 21V10M18 21V10M10 21V10M14 21V10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                    <span class="wallet-option-text"><span class="wallet-option-title">Bank Transfer</span><span class="wallet-option-desc">Transfer funds from your bank account</span></span>
+                    <span class="wallet-option-status">Available</span>
+                </button>
+                <button type="button" class="wallet-option" data-method="EFT">
+                    <span class="wallet-option-icon"><svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M4 7h16v10H4zM4 11h16M8 15h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                    <span class="wallet-option-text"><span class="wallet-option-title">EFT</span><span class="wallet-option-desc">Transfer funds using electronic funds transfer</span></span>
+                    <span class="wallet-option-status">Available</span>
+                </button>
+                <button type="button" class="wallet-option is-disabled" data-method="Card" disabled aria-disabled="true">
+                    <span class="wallet-option-icon"><svg viewBox="0 0 24 24" fill="none" width="20" height="20"><rect x="3" y="6" width="18" height="12" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M3 10h18" stroke="currentColor" stroke-width="1.8"/></svg></span>
+                    <span class="wallet-option-text"><span class="wallet-option-title">Debit/Credit Card</span><span class="wallet-option-desc">Add money using a saved card</span></span>
+                    <span class="wallet-option-status muted">Coming soon</span>
+                </button>
+            </div>
+        </div>
+        <div class="wallet-modal-footer" data-step="method">
+            <button type="button" class="wallet-btn wallet-btn--secondary wallet-modal-cancel-btn">Cancel</button>
+            <button type="button" class="wallet-btn wallet-btn--primary" id="wallet-topup-method-continue">Continue</button>
+        </div>
+
+        <!-- STEP 2: amount -->
         <form id="wallet-add-form" novalidate>
-            <div class="wallet-modal-body">
+            <div class="wallet-modal-body" data-step="amount">
+                <p class="wallet-field-hint" id="wallet-topup-available">Available Balance: R0.00</p>
                 <div class="wallet-modal-field">
-                    <label for="wallet-add-amount">Amount (R)</label>
-                    <input type="number" id="wallet-add-amount" placeholder="0.00" min="0.01" step="0.01">
+                    <label for="wallet-add-amount">Amount</label>
+                    <input type="number" id="wallet-add-amount" placeholder="R500.00" min="0.01" step="0.01" inputmode="decimal">
                 </div>
-                <div class="wallet-modal-field">
-                    <label for="wallet-add-source">Source</label>
-                    <select id="wallet-add-source">
-                        <option value="Bank Card">Bank Card</option>
-                        <option value="EFT">EFT</option>
-                    </select>
+                <div class="wallet-quick-amounts" data-target="wallet-add-amount">
+                    <button type="button" class="wallet-chip" data-amt="100">R100</button>
+                    <button type="button" class="wallet-chip" data-amt="250">R250</button>
+                    <button type="button" class="wallet-chip" data-amt="500">R500</button>
+                    <button type="button" class="wallet-chip" data-amt="1000">R1,000</button>
+                    <button type="button" class="wallet-chip" data-amt="2000">R2,000</button>
                 </div>
                 <span class="field-error" id="wallet-add-error"></span>
             </div>
-            <div class="wallet-modal-footer">
-                <button type="button" class="wallet-btn wallet-btn--secondary wallet-modal-cancel-btn">Cancel</button>
-                <button type="submit" class="wallet-btn wallet-btn--primary">Confirm</button>
+            <div class="wallet-modal-footer" data-step="amount">
+                <button type="button" class="wallet-btn wallet-btn--secondary" id="wallet-topup-amount-back">Back</button>
+                <button type="submit" class="wallet-btn wallet-btn--primary">Review</button>
             </div>
         </form>
+
+        <!-- STEP 3: review -->
+        <div class="wallet-modal-body" data-step="review" hidden>
+            <h3 class="wallet-review-heading">Review Top Up</h3>
+            <ul class="wallet-review-lines">
+                <li><span>Funding Method</span><span id="wallet-topup-review-method">—</span></li>
+                <li><span>Amount</span><span id="wallet-topup-review-amount" class="num">R0.00</span></li>
+                <li><span>Processing Fee</span><span class="num">R0.00</span></li>
+                <li class="wallet-review-total"><span>Total</span><span id="wallet-topup-review-total" class="num">R0.00</span></li>
+            </ul>
+            <p class="wallet-modal-info">Your funds will be added to your FlexScribe wallet once the transfer is confirmed.</p>
+            <span class="field-error" id="wallet-topup-review-error"></span>
+        </div>
+        <div class="wallet-modal-footer" data-step="review" hidden>
+            <button type="button" class="wallet-btn wallet-btn--secondary" id="wallet-topup-review-back">Back</button>
+            <button type="button" class="wallet-btn wallet-btn--primary" id="wallet-topup-confirm-btn">Confirm Top Up</button>
+        </div>
+
+        <!-- STEP: processing -->
+        <div class="wallet-modal-body wallet-processing" data-step="processing" hidden>
+            <div class="wallet-spinner" aria-hidden="true"></div>
+            <p class="wallet-processing-msg">Processing your top up…</p>
+        </div>
+
+        <!-- STEP 4: result (success) -->
+        <div class="wallet-modal-body wallet-result" data-step="result" hidden>
+            <div class="wallet-result-icon success">
+                <svg viewBox="0 0 24 24" fill="none" width="34" height="34"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <h3 class="wallet-result-title">Top Up Successful</h3>
+            <p class="wallet-result-msg" id="wallet-topup-result-msg">—</p>
+            <div class="wallet-result-ref" id="wallet-topup-result-ref">—</div>
+            <p class="wallet-field-hint" id="wallet-topup-result-balance"></p>
+        </div>
+        <div class="wallet-modal-footer" data-step="result" hidden>
+            <button type="button" class="wallet-btn wallet-btn--primary wallet-modal-close-btn">Done</button>
+        </div>
+
+        <!-- STEP: failure -->
+        <div class="wallet-modal-body wallet-result" data-step="failure" hidden>
+            <div class="wallet-result-icon failure">
+                <svg viewBox="0 0 24 24" fill="none" width="34" height="34"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+            </div>
+            <h3 class="wallet-result-title">Top Up Failed</h3>
+            <p class="wallet-result-msg" id="wallet-topup-fail-msg">We couldn't add the funds to your wallet. Your existing balance has not been changed.</p>
+        </div>
+        <div class="wallet-modal-footer" data-step="failure" hidden>
+            <button type="button" class="wallet-btn wallet-btn--secondary wallet-modal-close-btn">Close</button>
+            <button type="button" class="wallet-btn wallet-btn--primary" id="wallet-topup-retry-btn">Try Again</button>
+        </div>
     </div>
 </div>
 
@@ -804,6 +900,261 @@
                 <button type="submit" class="wallet-btn wallet-btn--primary">Confirm</button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- ═══════════════ TRANSFER TO USER MODAL (merchant) ═══════════════ -->
+<div id="wallet-user-transfer-modal" class="wallet-modal-backdrop" hidden aria-modal="true" role="dialog" aria-labelledby="wallet-user-transfer-title">
+    <div class="wallet-modal-box">
+        <div class="wallet-modal-header">
+            <div>
+                <h2 id="wallet-user-transfer-title">Transfer Money</h2>
+                <p class="wallet-modal-sub">Send money from your FlexScribe wallet</p>
+            </div>
+            <button class="icon-btn wallet-modal-close-btn" aria-label="Close modal">
+                <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>
+        </div>
+
+        <!-- Progress stepper -->
+        <ol class="wallet-stepper" id="wallet-uxfer-stepper" data-active="details">
+            <li data-step-key="details"><span class="wallet-step-dot">1</span><span class="wallet-step-label">Recipient</span></li>
+            <li data-step-key="amount"><span class="wallet-step-dot">2</span><span class="wallet-step-label">Amount</span></li>
+            <li data-step-key="review"><span class="wallet-step-dot">3</span><span class="wallet-step-label">Review</span></li>
+            <li data-step-key="result"><span class="wallet-step-dot">4</span><span class="wallet-step-label">Done</span></li>
+        </ol>
+
+        <!-- STEP 1: recipient -->
+        <div class="wallet-modal-body" data-step="details">
+            <p class="wallet-review-heading">Who are you sending money to?</p>
+            <div class="wallet-modal-field">
+                <label for="wallet-uxfer-recipient">Recipient email or name</label>
+                <div class="wallet-recipient-row">
+                    <input type="text" id="wallet-uxfer-recipient" placeholder="e.g. jane@email.com" autocomplete="off">
+                    <button type="button" class="wallet-btn wallet-btn--secondary" id="wallet-uxfer-resolve-btn">Search</button>
+                </div>
+                <div class="wallet-recipient-result" id="wallet-uxfer-recipient-result" hidden></div>
+            </div>
+            <span class="field-error" id="wallet-uxfer-error"></span>
+        </div>
+        <div class="wallet-modal-footer" data-step="details">
+            <button type="button" class="wallet-btn wallet-btn--secondary wallet-modal-cancel-btn">Cancel</button>
+            <button type="button" class="wallet-btn wallet-btn--primary" id="wallet-uxfer-recipient-continue" disabled>Continue</button>
+        </div>
+
+        <!-- STEP 2: amount -->
+        <form id="wallet-user-transfer-form" novalidate>
+            <div class="wallet-modal-body" data-step="amount" hidden>
+                <p class="wallet-field-hint" id="wallet-uxfer-available">Available Balance: R0.00</p>
+                <div class="wallet-modal-field">
+                    <label for="wallet-uxfer-amount">Amount</label>
+                    <input type="number" id="wallet-uxfer-amount" placeholder="R150.00" min="0.01" step="0.01" inputmode="decimal">
+                </div>
+                <div class="wallet-quick-amounts" data-target="wallet-uxfer-amount">
+                    <button type="button" class="wallet-chip" data-amt="100">R100</button>
+                    <button type="button" class="wallet-chip" data-amt="250">R250</button>
+                    <button type="button" class="wallet-chip" data-amt="500">R500</button>
+                    <button type="button" class="wallet-chip" data-amt="1000">R1,000</button>
+                </div>
+                <div class="wallet-modal-field">
+                    <label for="wallet-uxfer-note">Message (optional)</label>
+                    <input type="text" id="wallet-uxfer-note" placeholder="Thanks for helping with the project" maxlength="180" autocomplete="off">
+                </div>
+                <span class="field-error" id="wallet-uxfer-amount-error"></span>
+            </div>
+            <div class="wallet-modal-footer" data-step="amount" hidden>
+                <button type="button" class="wallet-btn wallet-btn--secondary" id="wallet-uxfer-amount-back">Back</button>
+                <button type="submit" class="wallet-btn wallet-btn--primary" id="wallet-uxfer-review-btn">Review</button>
+            </div>
+        </form>
+
+        <!-- STEP 3: review -->
+        <div class="wallet-modal-body wallet-review" data-step="review" hidden>
+            <div class="wallet-review-amount num" id="wallet-uxfer-review-amount">R0.00</div>
+            <p class="wallet-review-sub">will be sent to</p>
+            <div class="wallet-review-recipient" id="wallet-uxfer-review-recipient">—</div>
+            <ul class="wallet-review-lines">
+                <li><span>Fee</span><span class="num">R0.00</span></li>
+                <li><span>Message</span><span id="wallet-uxfer-review-note">—</span></li>
+                <li class="wallet-review-total"><span>Balance after transfer</span><span id="wallet-uxfer-review-newbal" class="num">—</span></li>
+            </ul>
+            <span class="field-error" id="wallet-uxfer-review-error"></span>
+        </div>
+        <div class="wallet-modal-footer" data-step="review" hidden>
+            <button type="button" class="wallet-btn wallet-btn--secondary" id="wallet-uxfer-back-btn">Back</button>
+            <button type="button" class="wallet-btn wallet-btn--primary" id="wallet-uxfer-confirm-btn">Confirm Transfer</button>
+        </div>
+
+        <!-- STEP: processing -->
+        <div class="wallet-modal-body wallet-processing" data-step="processing" hidden>
+            <div class="wallet-spinner" aria-hidden="true"></div>
+            <p class="wallet-processing-msg">Sending your transfer…</p>
+        </div>
+
+        <!-- STEP 4: result (success) -->
+        <div class="wallet-modal-body wallet-result" data-step="result" hidden>
+            <div class="wallet-result-icon success">
+                <svg viewBox="0 0 24 24" fill="none" width="34" height="34"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <h3 class="wallet-result-title">Transfer Successful</h3>
+            <p class="wallet-result-msg" id="wallet-uxfer-result-msg">—</p>
+            <div class="wallet-result-ref" id="wallet-uxfer-result-ref">—</div>
+            <p class="wallet-field-hint" id="wallet-uxfer-result-date"></p>
+        </div>
+        <div class="wallet-modal-footer" data-step="result" hidden>
+            <button type="button" class="wallet-btn wallet-btn--primary wallet-modal-close-btn">Done</button>
+        </div>
+
+        <!-- STEP: failure -->
+        <div class="wallet-modal-body wallet-result" data-step="failure" hidden>
+            <div class="wallet-result-icon failure">
+                <svg viewBox="0 0 24 24" fill="none" width="34" height="34"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+            </div>
+            <h3 class="wallet-result-title">Transfer Failed</h3>
+            <p class="wallet-result-msg" id="wallet-uxfer-fail-msg">The transfer could not be completed. Your balance has not been changed.</p>
+        </div>
+        <div class="wallet-modal-footer" data-step="failure" hidden>
+            <button type="button" class="wallet-btn wallet-btn--secondary wallet-modal-close-btn">Close</button>
+            <button type="button" class="wallet-btn wallet-btn--primary" id="wallet-uxfer-retry-btn">Try Again</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ WITHDRAW (merchant) MODAL ═══════════════ -->
+<div id="wallet-withdraw2-modal" class="wallet-modal-backdrop" hidden aria-modal="true" role="dialog" aria-labelledby="wallet-withdraw2-title">
+    <div class="wallet-modal-box">
+        <div class="wallet-modal-header">
+            <div>
+                <h2 id="wallet-withdraw2-title">Withdraw Funds</h2>
+                <p class="wallet-modal-sub">Transfer funds from your wallet to your bank account</p>
+            </div>
+            <button class="icon-btn wallet-modal-close-btn" aria-label="Close modal">
+                <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>
+        </div>
+
+        <!-- Progress stepper -->
+        <ol class="wallet-stepper" id="wallet-wdl-stepper" data-active="details">
+            <li data-step-key="details"><span class="wallet-step-dot">1</span><span class="wallet-step-label">Bank Account</span></li>
+            <li data-step-key="amount"><span class="wallet-step-dot">2</span><span class="wallet-step-label">Amount</span></li>
+            <li data-step-key="review"><span class="wallet-step-dot">3</span><span class="wallet-step-label">Review</span></li>
+            <li data-step-key="result"><span class="wallet-step-dot">4</span><span class="wallet-step-label">Done</span></li>
+        </ol>
+
+        <!-- STEP 1: bank account -->
+        <div class="wallet-modal-body" data-step="details">
+            <p class="wallet-review-heading">Select Bank Account</p>
+            <div class="wallet-option-list" id="wallet-wdl-accounts">
+                <p class="wallet-field-hint">Loading accounts…</p>
+            </div>
+            <button type="button" class="wallet-add-account-btn" id="wallet-wdl-add-account">
+                <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                Add Bank Account
+            </button>
+            <span class="field-error" id="wallet-wdl-error"></span>
+        </div>
+        <div class="wallet-modal-footer" data-step="details">
+            <button type="button" class="wallet-btn wallet-btn--secondary wallet-modal-cancel-btn">Cancel</button>
+            <button type="button" class="wallet-btn wallet-btn--primary" id="wallet-wdl-account-continue" disabled>Continue</button>
+        </div>
+
+        <!-- STEP 2: amount -->
+        <form id="wallet-withdraw2-form" novalidate>
+            <div class="wallet-modal-body" data-step="amount" hidden>
+                <p class="wallet-field-hint">Available to Withdraw</p>
+                <p class="wallet-avail-big num" id="wallet-wdl-available">R0.00</p>
+                <div class="wallet-modal-field">
+                    <label for="wallet-wdl-amount">Amount</label>
+                    <input type="number" id="wallet-wdl-amount" placeholder="R250.00" min="0.01" step="0.01" inputmode="decimal">
+                </div>
+                <div class="wallet-quick-amounts" data-target="wallet-wdl-amount">
+                    <button type="button" class="wallet-chip" data-amt="100">R100</button>
+                    <button type="button" class="wallet-chip" data-amt="250">R250</button>
+                    <button type="button" class="wallet-chip" data-amt="500">R500</button>
+                    <button type="button" class="wallet-chip" data-amt="1000">R1,000</button>
+                    <button type="button" class="wallet-chip wallet-chip--all" id="wallet-wdl-all">Withdraw All</button>
+                </div>
+                <span class="field-error" id="wallet-wdl-amount-error"></span>
+            </div>
+            <div class="wallet-modal-footer" data-step="amount" hidden>
+                <button type="button" class="wallet-btn wallet-btn--secondary" id="wallet-wdl-amount-back">Back</button>
+                <button type="submit" class="wallet-btn wallet-btn--primary">Review</button>
+            </div>
+        </form>
+
+        <!-- STEP 3: review -->
+        <div class="wallet-modal-body" data-step="review" hidden>
+            <h3 class="wallet-review-heading">Review Withdrawal</h3>
+            <ul class="wallet-review-lines">
+                <li><span>Bank Account</span><span id="wallet-wdl-review-dest">—</span></li>
+                <li><span>Amount</span><span id="wallet-wdl-review-amount" class="num">R0.00</span></li>
+                <li><span>Fee</span><span class="num">R0.00</span></li>
+                <li class="wallet-review-total"><span>Total</span><span id="wallet-wdl-review-total" class="num">R0.00</span></li>
+                <li><span>Balance after</span><span id="wallet-wdl-review-newbal" class="num">—</span></li>
+            </ul>
+            <p class="wallet-modal-info">Withdrawals may take some time to complete.</p>
+            <span class="field-error" id="wallet-wdl-review-error"></span>
+        </div>
+        <div class="wallet-modal-footer" data-step="review" hidden>
+            <button type="button" class="wallet-btn wallet-btn--secondary" id="wallet-wdl-back-btn">Back</button>
+            <button type="button" class="wallet-btn wallet-btn--primary" id="wallet-wdl-confirm-btn">Confirm Withdrawal</button>
+        </div>
+
+        <!-- STEP: processing -->
+        <div class="wallet-modal-body wallet-processing" data-step="processing" hidden>
+            <div class="wallet-spinner" aria-hidden="true"></div>
+            <p class="wallet-processing-msg">Submitting your withdrawal…</p>
+        </div>
+
+        <!-- STEP 4: result (submitted / pending) -->
+        <div class="wallet-modal-body wallet-result" data-step="result" hidden>
+            <div class="wallet-result-icon pending">
+                <svg viewBox="0 0 24 24" fill="none" width="34" height="34"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </div>
+            <h3 class="wallet-result-title">Withdrawal Submitted</h3>
+            <p class="wallet-result-msg" id="wallet-wdl-result-msg">—</p>
+            <div class="wallet-result-ref" id="wallet-wdl-result-ref">—</div>
+            <p class="wallet-field-hint" id="wallet-wdl-result-dest"></p>
+            <span class="wallet-status-pill pending">Pending</span>
+        </div>
+        <div class="wallet-modal-footer" data-step="result" hidden>
+            <button type="button" class="wallet-btn wallet-btn--primary wallet-modal-close-btn">Done</button>
+        </div>
+
+        <!-- STEP: failure -->
+        <div class="wallet-modal-body wallet-result" data-step="failure" hidden>
+            <div class="wallet-result-icon failure">
+                <svg viewBox="0 0 24 24" fill="none" width="34" height="34"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+            </div>
+            <h3 class="wallet-result-title">Withdrawal Failed</h3>
+            <p class="wallet-result-msg" id="wallet-wdl-fail-msg">The withdrawal could not be completed. Your balance has not been changed.</p>
+        </div>
+        <div class="wallet-modal-footer" data-step="failure" hidden>
+            <button type="button" class="wallet-btn wallet-btn--secondary wallet-modal-close-btn">Close</button>
+            <button type="button" class="wallet-btn wallet-btn--primary" id="wallet-wdl-retry-btn">Try Again</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════ TRANSACTION DETAIL MODAL ═══════════════ -->
+<div id="wallet-tx-detail-modal" class="wallet-modal-backdrop" hidden aria-modal="true" role="dialog" aria-labelledby="wallet-tx-detail-title">
+    <div class="wallet-modal-box">
+        <div class="wallet-modal-header">
+            <h2 id="wallet-tx-detail-title">Transaction details</h2>
+            <button class="icon-btn wallet-modal-close-btn" aria-label="Close modal">
+                <svg viewBox="0 0 24 24" fill="none" width="18" height="18"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>
+        </div>
+        <div class="wallet-modal-body">
+            <div class="wallet-detail-amount" id="wallet-detail-amount">R0.00</div>
+            <div class="wallet-detail-status" id="wallet-detail-status">—</div>
+            <ul class="wallet-detail-lines" id="wallet-detail-lines">
+                <!-- Rendered by WalletUI -->
+            </ul>
+        </div>
+        <div class="wallet-modal-footer">
+            <button type="button" class="wallet-btn wallet-btn--primary wallet-modal-close-btn">Close</button>
+        </div>
     </div>
 </div>
 
@@ -1350,6 +1701,10 @@
 <script src="../scripts/goals.page.js"></script>
 <script src="../scripts/notifications.page.js"></script>
 <script src="../scripts/wallet.page.js"></script>
+<script src="../scripts/wallet-deposit.page.js"></script>
+<script src="../scripts/wallet-withdraw.page.js"></script>
+<script src="../scripts/wallet-flows.js"></script>
+<script src="../scripts/wallet-topup-overlay.js"></script>
 <script src="../scripts/subscription.page.js"></script>
 <script src="../scripts/dashboard.page.js"></script>
 <script src="../scripts/analytics.page.js"></script>

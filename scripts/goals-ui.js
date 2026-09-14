@@ -398,13 +398,13 @@ const GoalsUI = (() => {
     ---------------------------------------------------------- */
     function _getBannerColor(category) {
         const colors = {
-            Travel:    'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)',
-            Tech:      'linear-gradient(135deg, #A77CFF 0%, #7C3AED 100%)',
-            Education: 'linear-gradient(135deg, #FACC15 0%, #EAB308 100%)',
-            Emergency: 'linear-gradient(135deg, #F87171 0%, #DC2626 100%)',
-            Home:      'linear-gradient(135deg, #B9F15B 0%, #65A30D 100%)',
-            Vehicle:   'linear-gradient(135deg, #38BDF8 0%, #0284C7 100%)',
-            Other:     'linear-gradient(135deg, #6B7280 0%, #374151 100%)'
+            Travel:    'linear-gradient(135deg, #A77CFF 0%, #6D3FD4 100%)',
+            Tech:      'linear-gradient(135deg, #A77CFF 0%, #6D3FD4 100%)',
+            Education: 'linear-gradient(135deg, #FF9B6B 0%, #C56A2E 100%)',
+            Emergency: 'linear-gradient(135deg, #E36565 0%, #B23A3A 100%)',
+            Home:      'linear-gradient(135deg, #6FDB8F 0%, #3E9E5C 100%)',
+            Vehicle:   'linear-gradient(135deg, #94969D 0%, #5C5E65 100%)',
+            Other:     'linear-gradient(135deg, #5C5E65 0%, #2A2C31 100%)'
         };
         return colors[category] || colors.Other;
     }

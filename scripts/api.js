@@ -496,6 +496,113 @@ const API = (() => {
         },
 
 
+        /**
+         * Paginated / filtered transaction history.
+         * @param {Object} opts { type, status, limit, offset }
+         * Returns { success, data: { transactions, total, limit, offset } }
+         */
+        async getTransactions(opts = {}) {
+
+            if (USE_MOCK) {
+                return _mock({ transactions: [], total: 0, limit: 25, offset: 0 });
+            }
+
+            const qs = [];
+            if (opts.type)   qs.push('type='   + encodeURIComponent(opts.type));
+            if (opts.status) qs.push('status=' + encodeURIComponent(opts.status));
+            if (opts.limit != null)  qs.push('limit='  + encodeURIComponent(opts.limit));
+            if (opts.offset != null) qs.push('offset=' + encodeURIComponent(opts.offset));
+
+            return _fetch(
+                'GET',
+                '/wallet/transactions' + (qs.length ? '?' + qs.join('&') : '')
+            );
+        },
+
+
+        /** Single transaction detail (ownership-checked server-side). */
+        async getTransaction(id) {
+
+            if (USE_MOCK) {
+                return _mock({});
+            }
+
+            return _fetch(
+                'GET',
+                '/wallet/transactions/' + encodeURIComponent(id)
+            );
+        },
+
+
+        /** Trend chart data aggregated from real transactions. */
+        async getTrends(opts = {}) {
+
+            if (USE_MOCK) {
+                return _mock({ labels: [], values: [], total: 0 });
+            }
+
+            const qs = [];
+            if (opts.metric) qs.push('metric=' + encodeURIComponent(opts.metric));
+            if (opts.period) qs.push('period=' + encodeURIComponent(opts.period));
+
+            return _fetch(
+                'GET',
+                '/wallet/trends' + (qs.length ? '?' + qs.join('&') : '')
+            );
+        },
+
+
+        /** Resolve a transfer recipient by email or exact name. */
+        async resolveRecipient(identifier) {
+
+            if (USE_MOCK) {
+                return _mock({ subscriberID: 0, name: 'Mock User' });
+            }
+
+            return _fetch(
+                'GET',
+                '/wallet/recipients/' + encodeURIComponent(identifier)
+            );
+        },
+
+
+        /** Simulated withdrawal destinations for the current user. */
+        async getDestinations() {
+
+            if (USE_MOCK) {
+                return _mock([]);
+            }
+
+            return _fetch(
+                'GET',
+                '/wallet/destinations'
+            );
+        },
+
+
+        /**
+         * Transfer available funds to another FlexScribe user.
+         * @param {Object} opts { recipientUserID | recipient, amount, note }
+         */
+        async transferToUser(opts) {
+
+            if (USE_MOCK) {
+                return _mock({ reference: 'FS-TRF-000001', amount: opts.amount });
+            }
+
+            return _fetch(
+                'POST',
+                '/wallet/transfer',
+                {
+                    recipientUserID: opts.recipientUserID,
+                    recipient: opts.recipient,
+                    amount: opts.amount,
+                    note: opts.note
+                }
+            );
+        },
+
+
         async addFunds(
             amount,
             source = 'Bank Card'
@@ -519,9 +626,39 @@ const API = (() => {
         },
 
 
+        /** Top Up the wallet (canonical route; method is the funding source). */
+        async topUp(amount, method = 'Bank Transfer') {
+
+            if (USE_MOCK) {
+                return _mock({ balance: amount, reference: 'FS-DEP-000001', status: 'completed' });
+            }
+
+            return _fetch(
+                'POST',
+                '/wallet/top-up',
+                { amount: amount, method: method }
+            );
+        },
+
+
+        /** Mark a pending withdrawal as settled (simulated clearing). */
+        async settleWithdrawal(transactionID) {
+
+            if (USE_MOCK) {
+                return _mock({ status: 'completed' });
+            }
+
+            return _fetch(
+                'POST',
+                '/wallet/withdraw/' + encodeURIComponent(transactionID) + '/settle'
+            );
+        },
+
+
         async withdraw(
             amount,
-            destination
+            destination,
+            destinationID
         ) {
 
             if (USE_MOCK) {
@@ -536,7 +673,8 @@ const API = (() => {
                 '/wallet/withdraw',
                 {
                     amount: amount,
-                    destination: destination
+                    destination: destination,
+                    destinationID: destinationID
                 }
             );
         },

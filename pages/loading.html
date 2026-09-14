@@ -7,14 +7,14 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root {
-    --bg: #090B10;
-    --card: #181D24;
-    --border: #272D35;
-    --orange: #FF8A34;
-    --orange-glow: rgba(255, 138, 52, 0.25);
-    --text: #F5F5F5;
-    --text-light: #A3ABB8;
-    --green: #B9F15B;
+    --bg: #0B0C0F;
+    --card: #101115;
+    --border: rgba(255,255,255,0.055);
+    --orange: #FF7A29;
+    --orange-glow: rgba(255, 122, 41, 0.25);
+    --text: #F2F1ED;
+    --text-light: #94969D;
+    --green: #6FDB8F;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -40,7 +40,7 @@ body {
     width: 600px;
     height: 600px;
     transform: translate(-50%, -50%);
-    background: radial-gradient(circle, rgba(255,138,52,0.08) 0%, transparent 65%);
+    background: radial-gradient(circle, rgba(255,122,41,0.08) 0%, transparent 65%);
     animation: pulse-glow 3s ease-in-out infinite;
     pointer-events: none;
     z-index: 0;
@@ -264,54 +264,116 @@ body {
     <strong>Tip:</strong> You can track up to 5 subscriptions on the Free plan — upgrade anytime for unlimited.
 </div>
 
+<!-- API client (needed so the loader can prefetch real data) -->
+<script src="../scripts/api.js"></script>
 <script>
 'use strict';
 
-(function() {
+/*
+   Event-driven loader.
+   - Guards for an auth token (bounces to login if missing).
+   - Prefetches the real data the app needs (wallet, subscriptions,
+     goals, unread notifications) and advances the progress bar as
+     each request settles — so progress reflects actual readiness.
+   - Warms the SPA page cache in sessionStorage so MASTER.html can
+     reuse the already-fetched data instead of refetching.
+   - Redirects to MASTER.html once everything has settled (with a
+     safety timeout so a slow/failed request never traps the user).
+*/
+(function () {
     const fill     = document.getElementById('progress-fill');
     const pctText  = document.getElementById('progress-text');
     const statusEl = document.getElementById('status-msg');
     const loader   = document.getElementById('loader');
 
-    const messages = [
-        { pct: 10,  text: 'Verifying your session...' },
-        { pct: 25,  text: 'Loading your wallet...' },
-        { pct: 40,  text: 'Fetching subscriptions...' },
-        { pct: 55,  text: 'Syncing financial goals...' },
-        { pct: 70,  text: 'Calculating Scribe Score...' },
-        { pct: 85,  text: 'Preparing your dashboard...' },
-        { pct: 95,  text: 'Almost there...' },
-        { pct: 100, text: 'Welcome back!' },
-    ];
+    const TOKEN_KEY = 'flexscribe_token';
+    const APP_URL   = 'MASTER.html';
+    const LOGIN_URL = 'login.html';
+    const SAFETY_MS = 8000;   // never hang longer than this
 
-    let currentStep = 0;
+    let done = false;
 
-    function nextStep() {
-        if (currentStep >= messages.length) {
-            setTimeout(function() {
-                loader.classList.add('exit');
-                setTimeout(function() {
-                    window.location.href = 'MASTER.html';
-                }, 500);
-            }, 600);
-            return;
-        }
-
-        const step = messages[currentStep];
-        fill.style.width = step.pct + '%';
-        pctText.textContent = step.pct + '%';
-        statusEl.textContent = step.text;
-        statusEl.style.animation = 'none';
-        void statusEl.offsetWidth;
-        statusEl.style.animation = '';
-
-        currentStep++;
-
-        const delay = 250 + Math.random() * 300;
-        setTimeout(nextStep, delay);
+    /* ---- 1. Session guard ---- */
+    const token = sessionStorage.getItem(TOKEN_KEY);
+    if (!token) {
+        // No valid session — don't pretend to load, go back to login.
+        window.location.replace(LOGIN_URL);
+        return;
     }
 
-    setTimeout(nextStep, 400);
+    /* ---- progress helpers ---- */
+    let shownPct = 0;
+    function setStatus(text) {
+        statusEl.textContent = text;
+        statusEl.style.animation = 'none';
+        void statusEl.offsetWidth;   // restart the fade-in animation
+        statusEl.style.animation = '';
+    }
+    function setProgress(pct, text) {
+        // Never let the bar go backwards.
+        shownPct = Math.max(shownPct, Math.min(100, Math.round(pct)));
+        fill.style.width = shownPct + '%';
+        pctText.textContent = shownPct + '%';
+        if (text) setStatus(text);
+    }
+
+    /* ---- 2. Define the real prefetch tasks ---- */
+    // Each task runs a real API call, caches the result for the app,
+    // and (whether it succeeds or fails) counts as "settled" so a
+    // single failing endpoint can't block entry to the app.
+    function cache(key, result) {
+        try {
+            if (result && result.success) {
+                sessionStorage.setItem('flexscribe_prefetch_' + key, JSON.stringify(result.data));
+            }
+        } catch (e) { /* storage full / serialisation issue — non-fatal */ }
+    }
+
+    const tasks = [
+        { text: 'Loading your wallet...',      run: () => API.Wallet.get().then(r => cache('wallet', r)) },
+        { text: 'Fetching subscriptions...',   run: () => API.Subscriptions.getAll().then(r => cache('subscriptions', r)) },
+        { text: 'Syncing financial goals...',  run: () => API.Goals.getAll().then(r => cache('goals', r)) },
+        { text: 'Checking notifications...',   run: () => API.Notifications.getAll().then(r => cache('notifications', r)) },
+    ];
+
+    setProgress(8, 'Verifying your session...');
+
+    /* ---- 3. Run tasks, advancing the bar as each settles ---- */
+    const total = tasks.length;
+    let settled = 0;
+
+    function afterEach() {
+        settled++;
+        // Reserve the last 10% for the hand-off animation.
+        const pct = 15 + Math.round((settled / total) * 75);
+        // Show the NEXT task's label if there is one.
+        const next = tasks[settled];
+        setProgress(pct, next ? next.text : 'Preparing your dashboard...');
+        if (settled >= total) finish();
+    }
+
+    setStatus(tasks[0].text);
+    tasks.forEach(function (task) {
+        // Guard each call so a throw doesn't stop the others.
+        let p;
+        try { p = task.run(); } catch (e) { p = Promise.resolve(); }
+        Promise.resolve(p).catch(function () { /* ignore per-task errors */ })
+            .then(afterEach);
+    });
+
+    /* ---- 4. Finish + hand off to the app ---- */
+    function finish() {
+        if (done) return;
+        done = true;
+        setProgress(100, 'Welcome back!');
+        setTimeout(function () {
+            loader.classList.add('exit');
+            setTimeout(function () { window.location.href = APP_URL; }, 500);
+        }, 500);
+    }
+
+    // Safety net: if the network stalls, proceed anyway after SAFETY_MS.
+    setTimeout(finish, SAFETY_MS);
 })();
 </script>
 </body>

@@ -5,6 +5,7 @@ const express = require('express');
 const { query } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 const { updateUserAnalytics } = require('../helpers/update-analytics');
+const notificationEvents = require('../services/notificationEvents');
 
 const router = express.Router();
 router.use(authenticateToken);
@@ -111,13 +112,21 @@ router.post('/:id/contribute', async (req, res) => {
         });
 
         // Check if goal completed
-        const goal = await query('SELECT targetAmount, currentProgress FROM FinancialGoal WHERE goalID = @gid', { gid: parseInt(req.params.id) });
-        if (goal.recordset.length > 0 && parseFloat(goal.recordset[0].currentProgress) >= parseFloat(goal.recordset[0].targetAmount)) {
+        const goal = await query('SELECT goalName, targetAmount, currentProgress FROM FinancialGoal WHERE goalID = @gid', { gid: parseInt(req.params.id) });
+        const goalRow = goal.recordset[0];
+        if (goalRow && parseFloat(goalRow.currentProgress) >= parseFloat(goalRow.targetAmount)) {
             await query("UPDATE FinancialGoal SET goalStatus = 'completed' WHERE goalID = @gid", { gid: parseInt(req.params.id) });
         }
 
         res.json({ message: 'Contribution added' });
         updateUserAnalytics(req.user.subscriberID);
+        // Fire goal milestone notification (25/50/75/100%) if a new milestone was reached
+        if (goalRow) {
+            notificationEvents.goalMilestoneCheck(
+                req.user.subscriberID, parseInt(req.params.id),
+                goalRow.goalName, goalRow.currentProgress, goalRow.targetAmount
+            );
+        }
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

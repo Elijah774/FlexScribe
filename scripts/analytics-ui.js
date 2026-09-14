@@ -12,12 +12,12 @@ const AnalyticsUI = (() => {
         Shopping:      'var(--blue)',
         Productivity:  'var(--purple)',
         Education:     'var(--yellow)',
-        Utilities:     '#22c55e',
-        Fitness:       '#f43f5e',
-        News:          '#06b6d4',
-        Gaming:        '#a855f7',
-        Health:        '#ec4899',
-        AI:            '#14b8a6',
+        Utilities:     '#6FDB8F',
+        Fitness:       '#E36565',
+        News:          '#94969D',
+        Gaming:        '#A77CFF',
+        Health:        '#A77CFF',
+        AI:            '#6FDB8F',
         Other:         'var(--text-light)',
     };
 

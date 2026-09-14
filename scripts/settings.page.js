@@ -1,4 +1,4 @@
-﻿window._pageContent = window._pageContent || {};
+window._pageContent = window._pageContent || {};
 window._pageContent['settings'] = `
                 <!-- Appearance -->
                 <div class="settings-section">
@@ -13,12 +13,12 @@ window._pageContent['settings'] = `
                     <div class="settings-row">
                         <span class="settings-label">Accent Color</span>
                         <div class="settings-accent-row" id="settings-accent-row">
-                            <button class="settings-accent" data-color="#FF8A34" style="background:#FF8A34" aria-label="Orange"></button>
-                            <button class="settings-accent" data-color="#3B82F6" style="background:#3B82F6" aria-label="Blue"></button>
-                            <button class="settings-accent" data-color="#8B5CF6" style="background:#8B5CF6" aria-label="Purple"></button>
-                            <button class="settings-accent" data-color="#3ECF6E" style="background:#3ECF6E" aria-label="Green"></button>
-                            <button class="settings-accent" data-color="#F5B83D" style="background:#F5B83D" aria-label="Gold"></button>
-                            <button class="settings-accent" data-color="#F87171" style="background:#F87171" aria-label="Red"></button>
+                            <button class="settings-accent" data-color="#FF7A29" style="background:#FF7A29" aria-label="Orange"></button>
+                            <button class="settings-accent" data-color="#94969D" style="background:#94969D" aria-label="Blue"></button>
+                            <button class="settings-accent" data-color="#FF9B6B" style="background:#FF9B6B" aria-label="Purple"></button>
+                            <button class="settings-accent" data-color="#6FDB8F" style="background:#6FDB8F" aria-label="Green"></button>
+                            <button class="settings-accent" data-color="#FFB65C" style="background:#FFB65C" aria-label="Gold"></button>
+                            <button class="settings-accent" data-color="#E36565" style="background:#E36565" aria-label="Red"></button>
                         </div>
                     </div>
                 </div>

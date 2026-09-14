@@ -100,6 +100,8 @@ function _getDashboardGreeting() {
 const pageTitles = {
     dashboard:     { title: _getDashboardGreeting(), heading: "", sub: "" },
     wallet:        { title: "Wallet",         heading: "Wallet",                sub: "Manage your balance, virtual card and transactions." },
+    'wallet-deposit':  { title: "Top Up",   heading: "Top Up",   sub: "Add money to your FlexScribe wallet." },
+    'wallet-withdraw': { title: "Withdraw", heading: "Withdraw", sub: "Transfer funds to your bank account." },
     subscription:  { title: "Subscriptions", heading: "Subscriptions",         sub: "Manage and track all your recurring subscriptions." },
     goals:         { title: "Goals",          heading: "Goals",                 sub: "Set targets and watch your savings grow." },
     analytics:     { title: "Analytics",      heading: "Analytics",             sub: "Interactive charts powered by your wallet activity." },
@@ -194,6 +196,11 @@ function loadPage(pageName) {
     const activeItem = document.querySelector(`.nav-item[data-page="${pageName}"]`);
     if (activeItem) activeItem.classList.add('active');
 
+    // The Withdraw wizard renders as a full-tab takeover (covers the
+    // sidebar + topbar); every other page keeps the dashboard shell.
+    document.body.classList.toggle('withdraw-fullscreen', pageName === 'wallet-withdraw');
+
+
     // Load content from external file then init the page
     _loadPageContent(pageName, target, function () {
         // Re-render Lucide icons that may be inside the newly shown panel
@@ -210,6 +217,14 @@ function loadPage(pageName) {
 
         if (pageName === 'wallet' && typeof WalletUI !== 'undefined') {
             WalletUI.init();
+        }
+
+        if (pageName === 'wallet-deposit' && typeof WalletDepositUI !== 'undefined') {
+            WalletDepositUI.init();
+        }
+
+        if (pageName === 'wallet-withdraw' && typeof WalletWithdrawUI !== 'undefined') {
+            WalletWithdrawUI.init();
         }
 
         if (pageName === 'goals' && typeof GoalsUI !== 'undefined') {
@@ -528,7 +543,7 @@ function _initSettingsPanel() {
     document.querySelectorAll('.settings-theme-btn').forEach(b => b.classList.toggle('active', b.dataset.theme === theme));
 
     // Accent
-    const accent = localStorage.getItem(ACCENT_KEY) || '#FF8A34';
+    const accent = localStorage.getItem(ACCENT_KEY) || '#FF7A29';
     document.querySelectorAll('.settings-accent').forEach(s => s.classList.toggle('active', s.dataset.color === accent));
 
     // Notifications
@@ -643,7 +658,7 @@ if (typeof ProfilePanel !== 'undefined') ProfilePanel.init();
 // Apply saved accent on page load (works with both themes)
 (function() {
     const savedAccent = localStorage.getItem('flexscribe_dashboard_accent');
-    if (savedAccent && savedAccent !== '#FF8A34') {
+    if (savedAccent && savedAccent !== '#FF7A29') {
         _applyAccent(savedAccent);
     }
 })();

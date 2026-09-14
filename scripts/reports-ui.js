@@ -653,7 +653,7 @@ const ReportsUI = (() => {
         var total = totalMonthly || categories.reduce(function(s, c) { return s + (c.amount || 0); }, 0);
         if (valueEl) valueEl.textContent = 'R' + total.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
-        var colors = ['#ff6a1a', '#3ecf6e', '#3b82f6', '#8b5cf6', '#f43f5e', '#06b6d4', '#a855f7'];
+        var colors = ['#FF7A29', '#6FDB8F', '#A77CFF', '#FFB65C', '#E36565', '#94969D', '#7C4DFF'];
         var circumference = 2 * Math.PI * 72; // 452.4
         var offset = 0;
         var slicesHtml = '<circle cx="100" cy="100" r="72" fill="none" stroke="var(--border)" stroke-width="28"/>';
@@ -675,7 +675,7 @@ const ReportsUI = (() => {
     function _renderTopCategories(categories) {
         var list = document.getElementById('rpt-topcats-list');
         if (!list) return;
-        var colors = ['#ff6a1a', '#3ecf6e', '#3b82f6', '#8b5cf6', '#f43f5e'];
+        var colors = ['#FF7A29', '#6FDB8F', '#A77CFF', '#FFB65C', '#E36565'];
         var total = categories.reduce(function(s, c) { return s + (c.amount || 0); }, 0);
         list.innerHTML = categories.slice(0, 5).map(function(cat, i) {
             var pct = total > 0 ? ((cat.amount / total) * 100).toFixed(1) : '0.0';

@@ -36,17 +36,17 @@
 }
 
 .goals-stat-icon.green {
-    background: rgba(185, 241, 91, 0.12);
+    background: rgba(111, 219, 143, 0.12);
     color: var(--green);
 }
 
 .goals-stat-icon.orange {
-    background: rgba(255, 138, 52, 0.12);
+    background: rgba(255, 122, 41, 0.12);
     color: var(--orange);
 }
 
 .goals-stat-icon.blue {
-    background: rgba(59, 130, 246, 0.12);
+    background: rgba(167, 124, 255, 0.14);
     color: var(--blue);
 }
 
@@ -114,7 +114,7 @@
 
 .goal-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(255, 138, 52, 0.12);
+    box-shadow: 0 8px 24px rgba(255, 122, 41, 0.12);
 }
 
 .goal-card-banner {
@@ -221,16 +221,16 @@
     font-weight: 500;
     padding: 3px 10px;
     border-radius: 12px;
-    background: rgba(255, 138, 52, 0.1);
+    background: rgba(255, 122, 41, 0.1);
     color: var(--orange);
 }
 
-.goal-category-badge[data-cat="Travel"]    { background: rgba(59, 130, 246, 0.1);  color: var(--blue); }
-.goal-category-badge[data-cat="Tech"]      { background: rgba(167, 124, 255, 0.1); color: var(--purple); }
-.goal-category-badge[data-cat="Education"] { background: rgba(250, 204, 21, 0.1);  color: var(--yellow); }
-.goal-category-badge[data-cat="Emergency"] { background: rgba(248, 113, 113, 0.1); color: var(--danger); }
-.goal-category-badge[data-cat="Home"]      { background: rgba(185, 241, 91, 0.1);  color: var(--green); }
-.goal-category-badge[data-cat="Vehicle"]   { background: rgba(59, 130, 246, 0.1);  color: var(--blue); }
+.goal-category-badge[data-cat="Travel"]    { background: rgba(167, 124, 255, 0.12);  color: var(--purple); }
+.goal-category-badge[data-cat="Tech"]      { background: rgba(167, 124, 255, 0.12); color: var(--purple); }
+.goal-category-badge[data-cat="Education"] { background: rgba(255, 122, 41, 0.1);  color: var(--orange); }
+.goal-category-badge[data-cat="Emergency"] { background: rgba(227, 101, 101, 0.1); color: var(--danger); }
+.goal-category-badge[data-cat="Home"]      { background: rgba(111, 219, 143, 0.1);  color: var(--green); }
+.goal-category-badge[data-cat="Vehicle"]   { background: rgba(167, 124, 255, 0.12);  color: var(--purple); }
 .goal-category-badge[data-cat="Other"]     { background: rgba(163, 171, 184, 0.1); color: var(--text-light); }
 
 /* ── Add New Goal Card ── */
@@ -248,7 +248,7 @@
 
 .goal-card--add:hover {
     border-color: var(--orange);
-    background: rgba(255, 138, 52, 0.04);
+    background: rgba(255, 122, 41, 0.04);
     transform: none;
     box-shadow: none;
 }
@@ -359,7 +359,7 @@
 .goals-modal-field input:focus,
 .goals-modal-field select:focus {
     border-color: var(--orange);
-    box-shadow: 0 0 0 3px rgba(255, 138, 52, 0.1);
+    box-shadow: 0 0 0 3px rgba(255, 122, 41, 0.1);
     outline: none;
 }
 
@@ -553,8 +553,8 @@
     font-size: 13px;
     color: var(--text-light);
     padding: 12px 14px;
-    background: rgba(255, 138, 52, 0.06);
-    border: 1px solid rgba(255, 138, 52, 0.15);
+    background: rgba(255, 122, 41, 0.06);
+    border: 1px solid rgba(255, 122, 41, 0.15);
     border-radius: 10px;
     line-height: 1.5;
 }
@@ -589,12 +589,12 @@
 }
 
 .goals-btn--danger {
-    background: rgba(248, 113, 113, 0.12);
+    background: rgba(227, 101, 101, 0.12);
     color: var(--danger);
 }
 
 .goals-btn--danger:hover {
-    background: rgba(248, 113, 113, 0.2);
+    background: rgba(227, 101, 101, 0.2);
 }
 
 /* ── Add Funds to Goal (quick action inside drawer) ── */
@@ -617,7 +617,7 @@
 
 .goals-add-funds-row input:focus {
     border-color: var(--orange);
-    box-shadow: 0 0 0 3px rgba(255, 138, 52, 0.1);
+    box-shadow: 0 0 0 3px rgba(255, 122, 41, 0.1);
     outline: none;
 }
 

@@ -1,0 +1,419 @@
+/* =============================================================
+   FlexScribe — Top Up full-screen takeover
+   styles/topup-overlay.css
+
+   Fixed, viewport-covering overlay (sits above the whole grid:
+   logo, header, sidebar, main). Third-party gateway phases use
+   their OWN visual identity so it feels like leaving the app.
+============================================================= */
+
+/* Lock the page behind the overlay */
+body.tuo-open { overflow: hidden; }
+
+.tuo {
+    position: fixed;
+    inset: 0;
+    z-index: 4000;                 /* above shell/dropdowns (~50), below toasts (9999) */
+    background: #0B0C0F;
+    color: #F2F1ED;
+    font-family: 'Inter', system-ui, sans-serif;
+    display: none;
+    overflow-y: auto;
+    -webkit-font-smoothing: antialiased;
+}
+.tuo.is-open { display: block; animation: tuo-in .28s ease; }
+@keyframes tuo-in { from { opacity: 0; } to { opacity: 1; } }
+
+.tuo-shell {
+    max-width: 560px;
+    margin: 0 auto;
+    min-height: 100%;
+    padding: 22px 22px 48px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ── Header ── */
+.tuo-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+}
+.tuo-back {
+    width: 40px; height: 40px;
+    border-radius: 11px;
+    display: flex; align-items: center; justify-content: center;
+    background: #101115;
+    border: 1px solid rgba(255,255,255,0.06);
+    color: #F2F1ED;
+    cursor: pointer;
+    transition: border-color .15s, color .15s;
+    flex-shrink: 0;
+}
+.tuo-back:hover { border-color: #FF7A29; color: #FF7A29; }
+.tuo-brand { display: flex; flex-direction: column; line-height: 1.1; }
+.tuo-brand-name { font-size: 18px; font-weight: 800; }
+.tuo-brand-name span { color: #FF7A29; }
+.tuo-brand-sub { font-size: 12px; color: #94969D; margin-top: 2px; }
+
+/* ── Step indicator ── */
+.tuo-steps {
+    display: flex;
+    list-style: none;
+    margin: 0 0 30px;
+    padding: 0;
+}
+.tuo-steps li {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    font-size: 12px;
+    color: #5C5E65;
+}
+.tuo-steps li:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 15px; left: 50%;
+    width: 100%; height: 2px;
+    background: rgba(255,255,255,0.06);
+    z-index: 0;
+}
+.tuo-steps li.is-done:not(:last-child)::after { background: #6FDB8F; }
+.tuo-step-num {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: #131418;
+    border: 1px solid rgba(255,255,255,0.06);
+    color: #5C5E65;
+    font-size: 13px; font-weight: 700;
+    position: relative; z-index: 1;
+    transition: background .2s, color .2s, border-color .2s;
+}
+.tuo-steps li.is-active .tuo-step-num { background: #FF7A29; color: #1a0e04; border-color: #FF7A29; }
+.tuo-steps li.is-active { color: #F2F1ED; font-weight: 600; }
+.tuo-steps li.is-done .tuo-step-num { background: rgba(111,219,143,0.16); color: #6FDB8F; border-color: transparent; font-size: 0; }
+.tuo-steps li.is-done .tuo-step-num::before {
+    content: '';
+    width: 9px; height: 5px;
+    border-left: 2px solid #6FDB8F;
+    border-bottom: 2px solid #6FDB8F;
+    transform: rotate(-45deg) translateY(-1px);
+}
+
+/* ── Body / phases ── */
+.tuo-body { flex: 1; }
+.tuo-phase { animation: tuo-fade .25s ease; }
+/* A hidden phase must never render — this beats the per-phase
+   display:flex rules below (.tuo-processing/.tuo-confirm/.tuo-third)
+   which would otherwise override the native [hidden] attribute and
+   cause every panel to show at once. */
+.tuo-phase[hidden] { display: none !important; }
+@keyframes tuo-fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+.tuo-h2 { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+.tuo-sub { font-size: 13.5px; color: #94969D; margin-bottom: 20px; }
+.tuo-sub strong { color: #F2F1ED; }
+
+/* ── Method cards ── */
+.tuo-methods { display: flex; flex-direction: column; gap: 12px; margin-bottom: 22px; }
+.tuo-method {
+    display: flex; align-items: center; gap: 14px;
+    width: 100%; text-align: left;
+    padding: 16px;
+    border-radius: 14px;
+    background: #101115;
+    border: 1.5px solid rgba(255,255,255,0.06);
+    color: #F2F1ED;
+    font-family: inherit;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+}
+.tuo-method:hover { border-color: rgba(255,122,41,0.5); }
+.tuo-method[aria-pressed="true"] { border-color: #FF7A29; background: rgba(255,122,41,0.07); }
+.tuo-method-radio {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 2px solid #5C5E65; flex-shrink: 0; position: relative;
+    transition: border-color .15s;
+}
+.tuo-method[aria-pressed="true"] .tuo-method-radio { border-color: #FF7A29; }
+.tuo-method[aria-pressed="true"] .tuo-method-radio::after {
+    content: ''; position: absolute; inset: 3px; border-radius: 50%; background: #FF7A29;
+}
+.tuo-method-icon {
+    width: 42px; height: 42px; border-radius: 11px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,122,41,0.12); color: #FF7A29; flex-shrink: 0;
+}
+.tuo-method-icon.ozow { background: rgba(0,174,239,0.14); color: #33BEF0; }
+.tuo-method-icon.payfast { background: rgba(45,199,169,0.14); color: #2DC7A9; }
+.tuo-method-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.tuo-method-name { font-size: 15px; font-weight: 600; }
+.tuo-method-desc { font-size: 12.5px; color: #94969D; }
+
+/* ── Amount ── */
+.tuo-amount-field {
+    display: flex; align-items: center;
+    background: #101115;
+    border: 1.5px solid rgba(255,255,255,0.06);
+    border-radius: 14px;
+    padding: 6px 18px;
+    margin-bottom: 14px;
+    transition: border-color .15s;
+}
+.tuo-amount-field:focus-within { border-color: #FF7A29; }
+.tuo-currency { font-size: 28px; font-weight: 700; color: #94969D; }
+.tuo-amount-input {
+    flex: 1; background: none; border: none; outline: none;
+    color: #F2F1ED; font-size: 32px; font-weight: 700;
+    font-family: inherit; font-variant-numeric: tabular-nums;
+    padding: 14px 8px; width: 100%;
+}
+.tuo-amount-input::-webkit-outer-spin-button,
+.tuo-amount-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+.tuo-chips { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+.tuo-chip {
+    flex: 1; min-width: 70px;
+    background: #131418;
+    border: 1px solid rgba(255,255,255,0.06);
+    color: #F2F1ED; border-radius: 10px;
+    padding: 12px 8px; font-size: 13.5px; font-weight: 600;
+    font-family: inherit; font-variant-numeric: tabular-nums;
+    cursor: pointer;
+    transition: border-color .15s, color .15s;
+}
+.tuo-chip:hover { border-color: #FF7A29; color: #FF7A29; }
+
+.tuo-error { display: block; font-size: 12.5px; color: #E36565; min-height: 16px; margin-bottom: 10px; }
+
+/* ── Review summary ── */
+.tuo-summary {
+    background: #101115;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 14px;
+    padding: 4px 18px;
+    margin-bottom: 16px;
+}
+.tuo-summary-row {
+    display: flex; justify-content: space-between; gap: 16px;
+    padding: 14px 0; font-size: 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.tuo-summary-row:last-child { border-bottom: none; }
+.tuo-summary-row > span:first-child { color: #94969D; }
+.tuo-summary-row > span:last-child { color: #F2F1ED; font-weight: 600; text-align: right; }
+.tuo-summary-row .mono { font-family: 'IBM Plex Mono','Courier New',monospace; letter-spacing: 0.4px; }
+.num { font-variant-numeric: tabular-nums; }
+
+.tuo-note {
+    font-size: 12.5px; color: #94969D;
+    background: #131418; border-radius: 10px;
+    padding: 12px 14px; margin-bottom: 18px; line-height: 1.5;
+}
+
+/* ── Native card form ── */
+.tuo-form { display: flex; flex-direction: column; gap: 14px; margin-bottom: 18px; }
+.tuo-field { display: flex; flex-direction: column; gap: 7px; }
+.tuo-field-row { display: flex; gap: 12px; }
+.tuo-field-row .tuo-field { flex: 1; }
+.tuo-label { font-size: 12.5px; color: #94969D; font-weight: 500; }
+.tuo-field input {
+    background: #131418;
+    border: 1.5px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 13px 14px;
+    color: #F2F1ED; font-size: 15px; font-family: inherit;
+    font-variant-numeric: tabular-nums;
+    transition: border-color .15s;
+}
+.tuo-field input:focus { outline: none; border-color: #FF7A29; }
+.tuo-encrypt-note {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 12px; color: #6FDB8F;
+}
+
+/* ── Actions ── */
+.tuo-actions { display: flex; gap: 12px; margin-top: 8px; }
+.tuo-actions--center { justify-content: center; }
+.tuo-actions--center .tuo-btn { flex: 0 1 220px; }
+.tuo-btn {
+    flex: 1; padding: 15px 20px; border-radius: 12px;
+    font-size: 14.5px; font-weight: 600; font-family: inherit;
+    cursor: pointer; border: none;
+    transition: background .15s, transform .1s, border-color .15s, opacity .15s;
+}
+.tuo-btn:active { transform: scale(0.98); }
+.tuo-btn--primary { background: #FF7A29; color: #1a0e04; }
+.tuo-btn--primary:hover { background: #FF8F4D; }
+.tuo-btn--primary:disabled { opacity: 0.45; cursor: not-allowed; }
+.tuo-btn--secondary { background: transparent; color: #F2F1ED; border: 1px solid rgba(255,255,255,0.12); }
+.tuo-btn--secondary:hover { border-color: #5C5E65; }
+.tuo-btn--danger { background: #E36565; color: #fff; }
+.tuo-btn--danger:hover { background: #d24f4f; }
+
+/* ── Spinners ── */
+.tuo-spinner {
+    width: 30px; height: 30px; border-radius: 50%;
+    border: 3px solid rgba(255,255,255,0.12);
+    border-top-color: #FF7A29;
+    animation: tuo-spin .8s linear infinite;
+}
+.tuo-spinner.big { width: 52px; height: 52px; border-width: 4px; }
+.tuo-spinner.ozow { border-top-color: #33BEF0; }
+.tuo-spinner.payfast { border-top-color: #2DC7A9; }
+@keyframes tuo-spin { to { transform: rotate(360deg); } }
+
+/* ── Processing ── */
+.tuo-processing {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 18px; padding: 70px 0; text-align: center;
+}
+.tuo-processing-msg { font-size: 16px; font-weight: 600; }
+.tuo-processing-sub { font-size: 13px; color: #94969D; }
+
+/* ── Confirmation / failure ── */
+.tuo-confirm { display: flex; flex-direction: column; align-items: center; text-align: center; padding-top: 20px; }
+.tuo-check {
+    width: 80px; height: 80px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(111,219,143,0.14); color: #6FDB8F;
+    margin-bottom: 18px;
+    animation: tuo-pop .35s cubic-bezier(.4,0,.2,1);
+}
+.tuo-check.failure { background: rgba(227,101,101,0.14); color: #E36565; }
+@keyframes tuo-pop { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.tuo-confirm-title { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+.tuo-confirm-msg { font-size: 14px; color: #94969D; max-width: 380px; margin-bottom: 22px; }
+.tuo-confirm .tuo-summary { width: 100%; text-align: left; }
+.tuo-status-pill {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.5px; padding: 3px 10px; border-radius: 999px;
+}
+.tuo-status-pill.success { background: rgba(111,219,143,0.16); color: #6FDB8F; }
+
+/* ── Discard dialog ── */
+.tuo-discard {
+    position: fixed; inset: 0; z-index: 4100;
+    background: rgba(0,0,0,0.6);
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+    animation: tuo-in .2s ease;
+}
+.tuo-discard[hidden] { display: none; }
+.tuo-discard-box {
+    background: #101115;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 26px;
+    max-width: 380px; width: 100%;
+    text-align: center;
+}
+.tuo-discard-box h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+.tuo-discard-box p { font-size: 13.5px; color: #94969D; margin-bottom: 20px; line-height: 1.5; }
+.tuo-discard-actions { display: flex; gap: 12px; }
+
+/* =============================================================
+   THIRD-PARTY GATEWAYS — deliberately break from the app theme
+============================================================= */
+.tuo-third { min-height: 420px; }
+.tuo-redirect {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 16px; padding: 90px 0; text-align: center;
+    color: #94969D; font-size: 15px;
+}
+
+/* ---- Ozow (light, blue brand) ---- */
+.ozow-gw {
+    background: #FFFFFF;
+    border-radius: 16px;
+    overflow: hidden;
+    color: #1a2733;
+    border: 1px solid rgba(0,0,0,0.06);
+}
+.ozow-topbar {
+    background: #00AEEF;
+    color: #fff;
+    padding: 16px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+}
+.ozow-logo { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+.ozow-secure { font-size: 12px; opacity: 0.9; }
+.ozow-body { padding: 22px 20px 24px; }
+.ozow-amount { font-size: 15px; color: #1a2733; margin-bottom: 4px; }
+.ozow-amount strong { color: #0088c4; }
+.ozow-prompt { font-size: 13px; color: #5a6b7a; margin-bottom: 16px; }
+.ozow-banks { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+.ozow-bank {
+    padding: 13px; border-radius: 10px;
+    border: 1.5px solid #e2e8ee; background: #f7fafc;
+    color: #1a2733; font-size: 13.5px; font-weight: 600;
+    font-family: inherit; cursor: pointer;
+    transition: border-color .15s, background .15s;
+}
+.ozow-bank:hover { border-color: #00AEEF; }
+.ozow-bank.selected { border-color: #00AEEF; background: rgba(0,174,239,0.08); }
+.ozow-approve {
+    width: 100%; padding: 14px; border: none; border-radius: 10px;
+    background: #00AEEF; color: #fff; font-size: 15px; font-weight: 700;
+    font-family: inherit; cursor: pointer; margin-bottom: 10px;
+}
+.ozow-approve:hover { background: #0099d4; }
+.ozow-cancel {
+    width: 100%; padding: 11px; border: none; background: none;
+    color: #5a6b7a; font-size: 13px; font-family: inherit; cursor: pointer;
+    text-decoration: underline;
+}
+
+/* ---- Payfast (dark teal brand) ---- */
+.pf-gw {
+    background: #ffffff;
+    border-radius: 16px; overflow: hidden;
+    color: #2b2b2b;
+    border: 1px solid rgba(0,0,0,0.06);
+}
+.pf-topbar {
+    background: #0a3d3a;
+    color: #fff; padding: 16px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+}
+.pf-logo { font-size: 18px; font-weight: 800; letter-spacing: 1px; color: #2DC7A9; }
+.pf-secure { font-size: 12px; opacity: 0.85; }
+.pf-body { padding: 20px; }
+.pf-merchant { font-size: 13px; color: #6b6b6b; }
+.pf-amount { font-size: 16px; margin-bottom: 18px; }
+.pf-amount strong { color: #0a3d3a; }
+.pf-form { display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px; }
+.pf-field { display: flex; flex-direction: column; gap: 6px; }
+.pf-field span { font-size: 12px; color: #6b6b6b; }
+.pf-row { display: flex; gap: 12px; }
+.pf-row .pf-field { flex: 1; }
+.pf-field input {
+    padding: 12px 13px; border: 1.5px solid #dcdcdc; border-radius: 8px;
+    font-size: 14px; font-family: inherit; color: #2b2b2b;
+    font-variant-numeric: tabular-nums;
+}
+.pf-field input:focus { outline: none; border-color: #2DC7A9; }
+.pf-pay {
+    width: 100%; padding: 14px; border: none; border-radius: 8px;
+    background: #2DC7A9; color: #06302b; font-size: 15px; font-weight: 700;
+    font-family: inherit; cursor: pointer; margin-bottom: 10px;
+}
+.pf-pay:hover { background: #27b096; }
+.pf-cancel {
+    width: 100%; padding: 11px; border: none; background: none;
+    color: #6b6b6b; font-size: 13px; font-family: inherit; cursor: pointer;
+    text-decoration: underline;
+}
+
+/* ── Responsive ── */
+@media (max-width: 560px) {
+    .tuo-step-label { display: none; }
+    .tuo-actions { flex-direction: column-reverse; }
+    .tuo-actions--center .tuo-btn { flex: 1; }
+    .ozow-banks { grid-template-columns: 1fr; }
+}

@@ -34,3 +34,7 @@ backend/node_modules/
 
 # Backup files
 *.backup.js
+
+# Database backups
+backups/
+*.bak

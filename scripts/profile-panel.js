@@ -307,7 +307,7 @@ const ProfilePanel = (() => {
     function init() {
         _bindEvents();
         const savedAccent = localStorage.getItem(ACCENT_KEY);
-        if (savedAccent && savedAccent !== '#FF8A34') {
+        if (savedAccent && savedAccent !== '#FF7A29') {
             const targets = [document.documentElement, document.body];
             targets.forEach(el => {
                 el.style.setProperty('--orange', savedAccent);
