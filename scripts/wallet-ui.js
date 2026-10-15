@@ -792,10 +792,23 @@ const WalletUI = (() => {
             const items = result.data
                 .filter(s => (s.subStatus || s.status || 'active') === 'active')
                 .map(function (s) {
+                    // Roll the stored anchor forward to the next future date
+                    // (never show a past one) using the shared helper when loaded.
+                    const rawDate = (s.billingDate || s.nextPaymentDate || '');
+                    const anchorIso = rawDate ? String(rawDate).split('T')[0] : '';
+                    let nextIso = anchorIso || null;
+                    if (anchorIso && typeof SubscriptionStore !== 'undefined' && SubscriptionStore.getNextPaymentDate) {
+                        const nd = SubscriptionStore.getNextPaymentDate({
+                            active: true,
+                            nextPaymentDate: anchorIso,
+                            billingCycle: s.billingCycle || 'monthly'
+                        });
+                        if (nd) nextIso = SubscriptionStore.toISODate(nd);
+                    }
                     return {
                         name: s.serviceName || s.name || 'Subscription',
                         amount: parseFloat(s.billingAmount != null ? s.billingAmount : s.amount) || 0,
-                        date: s.billingDate || s.nextPaymentDate || null,
+                        date: nextIso,
                         logoText: s.logoText || (s.serviceName || 'S').charAt(0)
                     };
                 })

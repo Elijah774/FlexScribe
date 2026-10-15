@@ -60,36 +60,10 @@ window._pageContent['reports'] = `
                                     <option>Quarterly</option>
                                 </select>
                             </div>
-                            <div class="rpt-compile-right">
-                                <label class="rpt-form-label">Include in Report</label>
-                                <div class="rpt-check-grid">
-                                    <label class="rpt-check"><input type="checkbox" checked> Wallet Summary</label>
-                                    <label class="rpt-check"><input type="checkbox" checked> Transactions</label>
-                                    <label class="rpt-check"><input type="checkbox" checked> Subscriptions</label>
-                                    <label class="rpt-check"><input type="checkbox" checked> Spending Categories</label>
-                                    <label class="rpt-check"><input type="checkbox" checked> Goals Progress</label>
-                                    <label class="rpt-check"><input type="checkbox" checked> AI Insights &amp; Recommendations</label>
-                                    <label class="rpt-check"><input type="checkbox" checked> Dependants</label>
-                                    <label class="rpt-check"><input type="checkbox" checked> Financial Health Score</label>
-                                </div>
-                            </div>
                         </div>
                         <button class="rpt-generate-btn" id="rpt-generate-btn">
                             Generate Report
                         </button>
-                    </div>
-
-                    <!-- Statement Analysis (AI) -->
-                    <div class="rpt-ai-analysis-card">
-                        <div class="rpt-card-title-row">
-                            <h3 class="rpt-card-title">Statement Analysis (AI)</h3>
-                            <span class="rpt-badge-new">New</span>
-                        </div>
-                        <p class="rpt-card-sub">Upload a bank statement to get AI analysis.</p>
-                        <div class="rpt-analysis-result" id="rpt-analysis-result">
-                            <p style="color:var(--text-light);font-size:13px;">No statement uploaded yet. Upload one to see analysis.</p>
-                        </div>
-                        <a href="#" class="rpt-link" onclick="return false">Review Detected Items &rarr;</a>
                     </div>
                 </div>
 
@@ -116,33 +90,6 @@ window._pageContent['reports'] = `
                         </div>
                         <a href="#" class="rpt-link" onclick="return false">View all uploads &rarr;</a>
                         <button id="rpt-see-full-report-btn" style="display:none;margin-top:12px;width:100%;padding:12px;background:var(--orange);color:#fff;border:none;border-radius:10px;font-weight:600;font-size:14px;cursor:pointer;">See Full Report</button>
-                    </div>
-
-                    <!-- AI Financial Insights -->
-                    <div class="rpt-insights-card">
-                        <h3 class="rpt-card-title">AI Financial Insights</h3>
-                        <p class="rpt-card-sub">Smart insights based on your financial behaviour.</p>
-                        <ul class="rpt-insights-list" id="rpt-insights-list">
-                            <li style="color:var(--text-light)">Generate a report to see personalised insights.</li>
-                        </ul>
-                        <a href="#" class="rpt-link" onclick="return false">View all insights &rarr;</a>
-                    </div>
-
-                    <!-- Spending Breakdown -->
-                    <div class="rpt-breakdown-card">
-                        <h3 class="rpt-card-title">Spending Breakdown</h3>
-                        <div class="rpt-breakdown-content">
-                            <div class="rpt-donut-wrap">
-                                <svg viewBox="0 0 200 200" class="rpt-donut" id="rpt-donut">
-                                    <circle cx="100" cy="100" r="72" fill="none" stroke="var(--border)" stroke-width="28"/>
-                                </svg>
-                                <div class="rpt-donut-center"><span class="rpt-donut-value" id="rpt-donut-value">R0</span><span class="rpt-donut-label">Total Spent</span></div>
-                            </div>
-                            <ul class="rpt-breakdown-legend" id="rpt-breakdown-legend">
-                                <li style="color:var(--text-light)">No spending data yet.</li>
-                            </ul>
-                        </div>
-                        <a href="#" class="rpt-link" onclick="loadPage('analytics');return false">View detailed analytics &rarr;</a>
                     </div>
                 </div><!-- /rpt-right-col -->
 
@@ -183,63 +130,6 @@ window._pageContent['reports'] = `
                         </table>
                     </div>
                 </div>
-
-                <!-- Bottom Grid Row -->
-                <div class="rpt-bottom-grid">
-                    <!-- Financial Health Score -->
-                    <div class="rpt-health-card">
-                        <div class="rpt-card-title-row"><h3 class="rpt-card-title">Financial Health Score</h3></div>
-                        <div class="rpt-health-body">
-                            <div class="rpt-health-ring-wrap">
-                                <svg viewBox="0 0 160 160" class="rpt-health-ring">
-                                    <circle cx="80" cy="80" r="65" fill="none" stroke="var(--border)" stroke-width="12"/>
-                                    <circle cx="80" cy="80" r="65" fill="none" stroke="var(--green)" stroke-width="12" stroke-dasharray="408.4" stroke-dashoffset="408.4" stroke-linecap="round" transform="rotate(-90 80 80)" id="rpt-health-ring-fill"/>
-                                </svg>
-                                <div class="rpt-health-center"><span class="rpt-health-val" id="rpt-health-val">0%</span><span class="rpt-health-label" id="rpt-health-label">No data</span></div>
-                            </div>
-                            <ul class="rpt-health-legend" id="rpt-health-legend">
-                                <li style="color:var(--text-light)">Generate a report to see your health score.</li>
-                            </ul>
-                        </div>
-                        <a href="#" class="rpt-link" onclick="return false">View full report &rarr;</a>
-                    </div>
-
-                    <!-- Trends Over Time -->
-                    <div class="rpt-trends-card">
-                        <div class="rpt-card-title-row"><h3 class="rpt-card-title">Trends Over Time</h3></div>
-                        <div class="rpt-trends-legend"><span class="rpt-dot" style="background:var(--orange)"></span>Spending <span class="rpt-dot" style="background:var(--green);margin-left:12px"></span>Savings</div>
-                        <div class="rpt-trends-chart" id="rpt-trends-chart">
-                            <svg viewBox="0 0 400 140" class="rpt-trends-svg" preserveAspectRatio="none" id="rpt-trends-svg">
-                                <line x1="20" y1="130" x2="380" y2="130" stroke="var(--border)" stroke-width="0.5"/>
-                                <text x="200" y="75" text-anchor="middle" fill="var(--text-light)" font-size="12">No trend data yet</text>
-                            </svg>
-                            <div class="rpt-chart-labels" id="rpt-chart-labels"></div>
-                        </div>
-                        <a href="#" class="rpt-link" onclick="loadPage('analytics');return false">View full analytics &rarr;</a>
-                    </div>
-
-                    <!-- Top Categories -->
-                    <div class="rpt-topcats-card">
-                        <div class="rpt-card-title-row"><h3 class="rpt-card-title">Top Categories</h3></div>
-                        <ul class="rpt-topcats-list" id="rpt-topcats-list">
-                            <li style="color:var(--text-light)">No category data yet.</li>
-                        </ul>
-                        <a href="#" class="rpt-link" onclick="return false">View all categories &rarr;</a>
-                    </div>
-
-                    <!-- Recommendations -->
-                    <div class="rpt-recommendations-card">
-                        <h3 class="rpt-card-title">Recommendations</h3>
-                        <ul class="rpt-rec-list" id="rpt-rec-list">
-                            <li class="rpt-rec-item" style="color:var(--text-light)">
-                                <div class="rpt-rec-text">
-                                    <p>Add subscriptions and generate a report to receive personalised recommendations.</p>
-                                </div>
-                            </li>
-                        </ul>
-                        <a href="#" class="rpt-link" onclick="return false">View all recommendations &rarr;</a>
-                    </div>
-                </div><!-- /rpt-bottom-grid -->
 
                 <!-- Full Report Modal -->
                 <div class="rpt-fullreport-modal" id="rpt-fullreport-modal" hidden style="position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.7);align-items:center;justify-content:center;padding:20px;display:none;">

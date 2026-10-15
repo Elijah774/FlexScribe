@@ -14,7 +14,7 @@ window._pageContent['settings'] = `
                         <span class="settings-label">Accent Color</span>
                         <div class="settings-accent-row" id="settings-accent-row">
                             <button class="settings-accent" data-color="#FF7A29" style="background:#FF7A29" aria-label="Orange"></button>
-                            <button class="settings-accent" data-color="#94969D" style="background:#94969D" aria-label="Blue"></button>
+                            <button class="settings-accent" data-color="#9323c3" style="background:#94969D" aria-label="Blue"></button>
                             <button class="settings-accent" data-color="#FF9B6B" style="background:#FF9B6B" aria-label="Purple"></button>
                             <button class="settings-accent" data-color="#6FDB8F" style="background:#6FDB8F" aria-label="Green"></button>
                             <button class="settings-accent" data-color="#FFB65C" style="background:#FFB65C" aria-label="Gold"></button>

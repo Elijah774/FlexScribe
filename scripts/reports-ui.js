@@ -111,11 +111,15 @@ const ReportsUI = (() => {
             var result = await API.BankStatements.upload(file);
             if (result.success) {
                 var data = result.data?.data || result.data;
-                _showToast('Statement uploaded! +100 Scribe Points earned.', 'success');
+                var bonus = (data && data.scribeScoreBonus) || 50;
+                _showToast('Statement uploaded! +' + bonus + ' ScribeScore earned.', 'success');
                 if (uploadZone) uploadZone.innerHTML = '<p style="color:var(--green)">&#10003; Upload complete: ' + file.name + '</p>';
                 var seeBtn = document.getElementById('rpt-see-full-report-btn');
                 if (seeBtn) seeBtn.style.display = 'block';
                 window._lastStatementReport = data;
+
+                // Real-time ScribeScore update.
+                if (window.ScribeScore) window.ScribeScore.refresh({ delta: bonus, toast: 'ScribeScore updated.' });
 
                 // Show detected subscriptions as suggestions
                 if (data.subscriptionsDetected && data.subscriptionsDetected.length > 0) {
@@ -596,24 +600,12 @@ const ReportsUI = (() => {
             }
         } catch(e) {}
 
-        // --- Spending breakdown from subscriptions ---
-        try {
-            if (typeof SubscriptionStore !== 'undefined') {
-                var stats = SubscriptionStore.getStats();
-                if (stats.byCategory && stats.byCategory.length > 0) {
-                    _renderDonut(stats.byCategory, stats.monthly);
-                    _renderTopCategories(stats.byCategory);
-                }
-            }
-        } catch(e) {}
-
         // --- Bank statement analysis ---
         try {
             var stmtResult = await API.BankStatements.getReport();
             if (stmtResult.success && stmtResult.data) {
                 var d = stmtResult.data.data || stmtResult.data;
                 if (d && d.statementID) {
-                    _renderAnalysis(d);
                     _renderRecentUploads(d);
                 }
             }
@@ -642,59 +634,6 @@ const ReportsUI = (() => {
                 '<td class="rpt-actions-cell"><button class="rpt-icon-btn" title="View" onclick="ReportsUI._viewReport(' + r.id + ')"><svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/></svg></button></td>' +
                 '</tr>';
         }).join('');
-    }
-
-    function _renderDonut(categories, totalMonthly) {
-        var donut = document.getElementById('rpt-donut');
-        var valueEl = document.getElementById('rpt-donut-value');
-        var legend = document.getElementById('rpt-breakdown-legend');
-        if (!donut || !legend) return;
-
-        var total = totalMonthly || categories.reduce(function(s, c) { return s + (c.amount || 0); }, 0);
-        if (valueEl) valueEl.textContent = 'R' + total.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-
-        var colors = ['#FF7A29', '#6FDB8F', '#A77CFF', '#FFB65C', '#E36565', '#94969D', '#7C4DFF'];
-        var circumference = 2 * Math.PI * 72; // 452.4
-        var offset = 0;
-        var slicesHtml = '<circle cx="100" cy="100" r="72" fill="none" stroke="var(--border)" stroke-width="28"/>';
-        var legendHtml = '';
-
-        categories.forEach(function(cat, i) {
-            var pct = total > 0 ? (cat.amount / total) : 0;
-            var dash = pct * circumference;
-            var color = colors[i % colors.length];
-            slicesHtml += '<circle cx="100" cy="100" r="72" fill="none" stroke="' + color + '" stroke-width="28" stroke-dasharray="' + dash.toFixed(1) + ' ' + circumference.toFixed(1) + '" stroke-dashoffset="' + (-offset).toFixed(1) + '" transform="rotate(-90 100 100)"/>';
-            offset += dash;
-            legendHtml += '<li><span class="rpt-dot" style="background:' + color + '"></span>' + cat.category + '<span class="rpt-leg-amt">R' + (cat.amount || 0).toFixed(0) + '</span><span class="rpt-leg-pct">' + (pct * 100).toFixed(1) + '%</span></li>';
-        });
-
-        donut.innerHTML = slicesHtml;
-        legend.innerHTML = legendHtml || '<li style="color:var(--text-light)">No spending data yet.</li>';
-    }
-
-    function _renderTopCategories(categories) {
-        var list = document.getElementById('rpt-topcats-list');
-        if (!list) return;
-        var colors = ['#FF7A29', '#6FDB8F', '#A77CFF', '#FFB65C', '#E36565'];
-        var total = categories.reduce(function(s, c) { return s + (c.amount || 0); }, 0);
-        list.innerHTML = categories.slice(0, 5).map(function(cat, i) {
-            var pct = total > 0 ? ((cat.amount / total) * 100).toFixed(1) : '0.0';
-            return '<li><span class="rpt-cat-dot" style="background:' + colors[i % colors.length] + '"></span><span class="rpt-cat-name">' + cat.category + '</span><span class="rpt-cat-amt">R' + (cat.amount || 0).toFixed(0) + '</span><span class="rpt-cat-pct">' + pct + '%</span></li>';
-        }).join('');
-    }
-
-    function _renderAnalysis(data) {
-        var container = document.getElementById('rpt-analysis-result');
-        if (!container) return;
-        var statusIcon = '<svg viewBox="0 0 24 24" fill="none" width="20" height="20"><path d="M22 11.08V12a10 10 0 11-5.93-9.14" stroke="var(--green)" stroke-width="2" stroke-linecap="round"/><path d="M22 4L12 14.01l-3-3" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-        container.innerHTML =
-            '<div class="rpt-analysis-status">' + statusIcon + '<div><strong>Analysis Complete</strong><p class="rpt-analysis-file">Uploaded: ' + (data.fileReference || 'Bank Statement') + '<br>' + (data.uploadDate || '') + ' &middot; ' + (data.transactionCount || 0) + ' Transactions</p></div></div>' +
-            '<div class="rpt-analysis-metrics">' +
-                '<div class="rpt-metric"><span class="rpt-metric-val">R' + ((data.totalIncome || 0).toFixed(0)) + '</span><span class="rpt-metric-label">Total Income</span></div>' +
-                '<div class="rpt-metric"><span class="rpt-metric-val">R' + ((data.totalExpenses || 0).toFixed(0)) + '</span><span class="rpt-metric-label">Total Expenses</span></div>' +
-                '<div class="rpt-metric"><span class="rpt-metric-val">' + (data.transactionCount || 0) + '</span><span class="rpt-metric-label">Transactions</span></div>' +
-                '<div class="rpt-metric"><span class="rpt-metric-val">' + (data.financialStatus || '--') + '</span><span class="rpt-metric-label">Status</span></div>' +
-            '</div>';
     }
 
     function _renderRecentUploads(data) {

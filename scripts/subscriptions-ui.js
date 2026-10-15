@@ -34,6 +34,13 @@ const SubscriptionsUI = (() => {
     let _currentColourTag  = '';  // selected colour hex for modal
     let _advancedOpen      = false; // advanced section state
 
+    // Edit modal flow state
+    let _editOpenedFromDetails = false; // reopen details modal on close?
+    let _editOriginal          = null;  // snapshot of original values (dirty check)
+    let _editReturnFocus       = null;  // element to restore focus to on close
+    let _editTrapHandler       = null;  // keydown focus-trap handler
+    let _editSaving            = false; // save request in flight
+
     /* ----------------------------------------------------------
        DOM REFS  (resolved once on init)
     ---------------------------------------------------------- */
@@ -206,9 +213,11 @@ const SubscriptionsUI = (() => {
         }
 
         list.innerHTML = filtered.map(s => {
-            const days = SubscriptionStore.daysUntil(s.nextPaymentDate);
-            const dateLabel = s.nextPaymentDate ? SubscriptionStore.fmtDate(s.nextPaymentDate) : '—';
-            const urgentClass = (days !== null && days <= 3 && s.active) ? 'sub-date--urgent' : '';
+            // Shared next-payment display: paused -> "Paused" (no date),
+            // active -> rolled-forward future date (Today / in N days / date).
+            const npd = _nextPaymentDisplay(s);
+            const dateLabel = npd.text;
+            const dateClass = `sub-date--${npd.cls}`;
             const cycleLabel = s.billingCycle.charAt(0).toUpperCase() + s.billingCycle.slice(1);
 
             return `
@@ -218,7 +227,7 @@ const SubscriptionsUI = (() => {
                     <p class="sub-title"><a href="#" class="sub-name-link" onclick="event.stopPropagation();SubscriptionsUI.openDetailDrawer('${s.id}');return false">${_esc(s.name)}</a></p>
                     <p class="sub-sub">${SubscriptionStore.fmtCurrency(s.amount)} / ${cycleLabel.toLowerCase()} &bull; ${_esc(s.category)}</p>
                 </div>
-                <p class="sub-date ${urgentClass}">${dateLabel}</p>
+                <p class="sub-date ${dateClass}">${dateLabel}</p>
                 <label class="switch" aria-label="Toggle ${_esc(s.name)}">
                     <input type="checkbox" ${s.active ? 'checked' : ''}
                            onchange="SubscriptionsUI.handleToggle('${s.id}')">
@@ -325,40 +334,21 @@ const SubscriptionsUI = (() => {
             SubscriptionStore.getAll().map(s => s.name.toLowerCase().trim())
         );
 
-        // Render "Recently Added" — last 5 user subscriptions by createdAt
-        if (recentGrid) {
-            const allSubs = SubscriptionStore.getAll();
-            const sorted = [...allSubs].sort((a, b) => {
-                return (b.createdAt || '').localeCompare(a.createdAt || '');
-            });
-            const recent = sorted.slice(0, 5);
+        // The "Recently Added" strip is intentionally not rendered — the
+        // user's own subscriptions should not appear in this section.
+        if (recentGrid) recentGrid.innerHTML = '';
 
-            if (recent.length === 0) {
-                recentGrid.innerHTML = '';
-            } else {
-                recentGrid.innerHTML = recent.map(s => `
-                    <div class="provider-card" role="listitem">
-                        <div class="provider-card-header">
-                            ${_recLogoHtml({ logoClass: s.logoClass, logoText: s.logoText, name: s.name })}
-                            <div class="provider-card-info">
-                                <p class="provider-card-name">${_esc(s.name)}</p>
-                                <p class="provider-card-category">${_esc(s.category)}</p>
-                            </div>
-                        </div>
-                        <p class="provider-card-cost">${SubscriptionStore.fmtCurrency(s.amount)} <span>/${s.billingCycle}</span></p>
-                        <div class="provider-card-actions">
-                            <span class="provider-badge-subscribed">Subscribed</span>
-                        </div>
-                    </div>
-                `).join('');
-            }
-        }
+        // Hide providers the user is already subscribed to — only show
+        // genuinely available ones.
+        const available = allProviders.filter(
+            p => !subscribedNames.has(p.name.toLowerCase().trim())
+        );
 
         // Filter providers by search term
         const term = _providerSearchTerm.toLowerCase().trim();
         let filtered = term
-            ? allProviders.filter(p => p.name.toLowerCase().includes(term))
-            : [...allProviders];
+            ? available.filter(p => p.name.toLowerCase().includes(term))
+            : [...available];
 
         // Apply category filter
         if (_providerFilterCat !== 'all') {
@@ -377,6 +367,7 @@ const SubscriptionsUI = (() => {
                 filtered.sort((a, b) => b.rating - a.rating);
                 break;
             case 'az':
+            case 'name':
                 filtered.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()));
                 break;
         }
@@ -390,10 +381,7 @@ const SubscriptionsUI = (() => {
         }
 
         grid.innerHTML = filtered.map(p => {
-            const isSubscribed = subscribedNames.has(p.name.toLowerCase().trim());
-            const actionHtml = isSubscribed
-                ? `<span class="provider-badge-subscribed">Subscribed</span>`
-                : `<button class="provider-btn-add" onclick="SubscriptionsUI.addProvider('${p.id}')" aria-label="Add ${_esc(p.name)}">Add</button>`;
+            const actionHtml = `<button class="provider-btn-add" onclick="SubscriptionsUI.addProvider('${p.id}')" aria-label="Add ${_esc(p.name)}">Add</button>`;
 
             return `
             <article class="provider-card" role="listitem" aria-label="${_esc(p.name)} provider card">
@@ -606,9 +594,46 @@ const SubscriptionsUI = (() => {
     /* ----------------------------------------------------------
        FULL RE-RENDER  (called by SubscriptionStore.onChange)
     ---------------------------------------------------------- */
+    /* ----------------------------------------------------------
+       NEXT FUTURE BILLING DATE
+       Subscriptions auto-renew: if the stored next-payment date is
+       in the past, roll it forward by its billing cycle until it is
+       today or later. Returns a Date (never in the past).
+    ---------------------------------------------------------- */
+    /* Shared next-payment display helper — single source of truth for how a
+       subscription's next payment is shown everywhere (details modal, list
+       rows, upcoming widget). Delegates the date maths to
+       SubscriptionStore.getNextPaymentDate.
+
+       Returns { text, cls } where cls is one of:
+         'paused'  (muted grey — no date)
+         'today'   (orange — due today)
+         'soon'    (orange — due within 7 days, "date (in N days)")
+         'normal'  (default text — later than 7 days)
+         'none'    (muted "—" — invalid/missing)                             */
+    function _nextPaymentDisplay(sub) {
+        if (!sub) return { text: '—', cls: 'none' };
+
+        const isActive = sub.active;
+        if (!isActive) return { text: 'Paused', cls: 'paused' };
+
+        const next = SubscriptionStore.getNextPaymentDate(sub);
+        if (!next) return { text: '—', cls: 'none' };
+
+        const iso = SubscriptionStore.toISODate(next);
+        const days = SubscriptionStore.daysUntil(iso);
+        const dateStr = SubscriptionStore.fmtDate(iso);
+
+        if (days === 0) return { text: 'Today', cls: 'today', iso: iso };
+        if (days !== null && days <= 7) {
+            return { text: `${dateStr} (in ${days} day${days === 1 ? '' : 's'})`, cls: 'soon', iso: iso };
+        }
+        return { text: dateStr, cls: 'normal', iso: iso };
+    }
     function render(stats) {
         _renderList(stats);
         _renderRecommendations();
+        _renderProviderLibrary();
         _updateSortUI();
         _updateFilterUI();
     }
@@ -640,18 +665,106 @@ const SubscriptionsUI = (() => {
     /* ----------------------------------------------------------
        TOGGLE — with pause confirmation popup
     ---------------------------------------------------------- */
+    /* ----------------------------------------------------------
+       PAY SUBSCRIPTIONS FOR THE MONTH
+       Pays all active subs from the wallet (server-side), which
+       adjusts the ScribeScore (+10 all paid / -10 any unpaid).
+    ---------------------------------------------------------- */
+    let _payingMonth = false;
+    function handlePayMonth() {
+        if (_payingMonth) return;
+        const btn = _q('#sub-pay-month-btn');
+        const active = SubscriptionStore.getActive ? SubscriptionStore.getActive() : [];
+        if (!active.length) {
+            toast('You have no active subscriptions to pay.', 'info');
+            return;
+        }
+
+        _payingMonth = true;
+        if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
+
+        API.Subscriptions.payMonth().then(function (result) {
+            if (result.success) {
+                const d = result.data || {};
+                if (d.outcome === 'no_subscriptions') {
+                    toast('You have no active subscriptions to pay.', 'info');
+                } else {
+                    toast(d.message || 'Subscriptions processed.', d.allPaid ? 'success' : 'warning');
+                }
+
+                // Refresh wallet (debited) + subscriptions list.
+                if (typeof WalletStore !== 'undefined' && WalletStore.loadFromAPI) WalletStore.loadFromAPI();
+                SubscriptionStore.loadFromAPI().then(function () {
+                    render(SubscriptionStore.getStats());
+                }).catch(function () {});
+
+                // Real-time ScribeScore update.
+                if (window.ScribeScore && typeof d.delta === 'number' && d.delta !== 0) {
+                    window.ScribeScore.refresh({ delta: d.delta, toast: 'ScribeScore updated.' });
+                } else if (window.ScribeScore) {
+                    window.ScribeScore.refresh();
+                }
+            } else {
+                toast(result.error || 'Could not process subscription payments.', 'error');
+            }
+        }).catch(function () {
+            toast('Network error. Please try again.', 'error');
+        }).finally(function () {
+            _payingMonth = false;
+            if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+        });
+    }
+
     function handleToggle(id) {
         const sub = SubscriptionStore.getById(id);
         if (!sub) return;
 
-        // If currently active → pausing → show confirmation
         if (sub.active) {
+            // Pausing → confirmation popup (keeps anchor, just hidden).
             _openPauseConfirmModal(id);
         } else {
-            // Reactivating — no confirmation needed
-            SubscriptionStore.toggle(id);
-            toast(`${sub.name} reactivated.`);
+            // Reactivating → ask when the next payment is due, prefilled with
+            // the next date computed FROM TODAY (never an old/past date).
+            _openReactivatePrompt(id);
         }
+    }
+
+    function _openReactivatePrompt(id) {
+        const sub = SubscriptionStore.getById(id);
+        if (!sub) return;
+
+        // Compute a sensible default: roll the stored anchor forward from
+        // today using the billing cycle (treat as active for the calc).
+        const computed = SubscriptionStore.getNextPaymentDate(
+            Object.assign({}, sub, { active: true })
+        );
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const defaultIso = SubscriptionStore.toISODate(computed || today);
+
+        openDatePromptDialog({
+            title: 'When is the next payment due?',
+            label: 'Next payment date',
+            defaultDate: defaultIso,
+            confirmLabel: 'Reactivate',
+            onCancel: () => {
+                // The row checkbox may have flipped on; re-render to restore it.
+                render(SubscriptionStore.getStats());
+            },
+            onConfirm: async (dateIso) => {
+                try {
+                    await SubscriptionStore.toggle(id);               // -> active
+                    await SubscriptionStore.edit(id, { nextPaymentDate: dateIso }); // new anchor
+                    toast('Subscription reactivated');
+                    render(SubscriptionStore.getStats());
+                    // Refresh an open details modal for this sub.
+                    if (_detailId === id && !_q('#sub-detail-modal')?.hidden) {
+                        _renderDrawer(SubscriptionStore.getById(id));
+                    }
+                } catch (err) {
+                    toast(err.message || 'Could not reactivate.', 'error');
+                }
+            },
+        });
     }
 
     let _pauseTargetId = null;
@@ -693,21 +806,29 @@ const SubscriptionsUI = (() => {
         _pauseTargetId = null;
     }
 
-    function _handlePauseConfirm() {
+    async function _handlePauseConfirm() {
         if (!_pauseTargetId) return;
-        const sub = SubscriptionStore.getById(_pauseTargetId);
+        const id = _pauseTargetId;
+        const sub = SubscriptionStore.getById(id);
         const reason = _q('#pause-modal-reason')?.value || '';
 
-        SubscriptionStore.toggle(_pauseTargetId);
-        // Store the pause reason in notes (appended)
-        if (reason && sub) {
-            const existingNotes = sub.notes || '';
-            const pauseNote = `[Paused: ${reason}]`;
-            SubscriptionStore.edit(_pauseTargetId, { notes: existingNotes ? existingNotes + ' ' + pauseNote : pauseNote });
-        }
-
-        toast(`${sub?.name || 'Subscription'} paused.`);
         closePauseModal();
+        try {
+            // Pause keeps the stored anchor date — it's just not displayed.
+            await SubscriptionStore.toggle(id);
+            if (reason && sub) {
+                const existingNotes = sub.notes || '';
+                const pauseNote = `[Paused: ${reason}]`;
+                await SubscriptionStore.edit(id, { notes: existingNotes ? existingNotes + ' ' + pauseNote : pauseNote });
+            }
+            toast('Subscription paused');
+            render(SubscriptionStore.getStats());
+            if (_detailId === id && !_q('#sub-detail-modal')?.hidden) {
+                _renderDrawer(SubscriptionStore.getById(id));
+            }
+        } catch (err) {
+            toast(err.message || 'Could not pause.', 'error');
+        }
     }
 
     /* ----------------------------------------------------------
@@ -721,15 +842,18 @@ const SubscriptionsUI = (() => {
         const menu = _q(`#sub-menu-${id}`);
         if (menu) menu.hidden = true;
 
-        // Confirm dialog using the custom confirm modal
-        openConfirmModal(
-            `Delete "${sub.name}"?`,
-            'This will permanently remove it from your subscriptions.',
-            () => {
+        // Reusable orange-bordered confirm dialog.
+        openConfirmDialog({
+            title: 'Delete this subscription?',
+            text: `This will permanently remove "${sub.name}" from your subscriptions.`,
+            cancelLabel: 'Cancel',
+            confirmLabel: 'Delete',
+            danger: true,
+            onConfirm: () => {
                 SubscriptionStore.remove(id);
                 toast(`"${sub.name}" deleted.`);
-            }
-        );
+            },
+        });
     }
 
     /* ----------------------------------------------------------
@@ -775,7 +899,7 @@ const SubscriptionsUI = (() => {
         });
         // Provider library category chips
         _qa('.filter-cat-chip').forEach(btn => {
-            btn.classList.toggle('filter-btn--active', btn.dataset.providerCat === _providerFilterCat);
+            btn.classList.toggle('filter-btn--active', (btn.dataset.cat || 'all') === _providerFilterCat);
         });
     }
 
@@ -788,36 +912,128 @@ const SubscriptionsUI = (() => {
         _openModal();
     }
 
-    function openEditModal(id) {
+    function openEditModal(id, opts) {
         // Close row menu
         const menu = _q(`#sub-menu-${id}`);
         if (menu) menu.hidden = true;
 
+        _editOpenedFromDetails = !!(opts && opts.fromDetails);
+        _editReturnFocus = document.activeElement;
         _editingId = id;
         _populateModal(SubscriptionStore.getById(id));
+        _editOriginal = _snapshotForm();   // baseline for dirty detection
         _openModal();
+    }
+
+    /* Capture the current form values so we can detect "dirty" edits. */
+    function _snapshotForm() {
+        return JSON.stringify({
+            name:   _q('#sub-modal-name').value.trim(),
+            amount: _q('#sub-modal-amount').value,
+            cat:    _q('#sub-modal-category').value,
+            cycle:  _q('#sub-modal-cycle').value,
+            date:   _q('#sub-modal-date').value,
+            notes:  _q('#sub-modal-notes').value,
+            logo:   _q('#sub-modal-logoclass').value,
+            colour: _currentColourTag,
+            custom: _currentCustomLogo,
+            remind: _q('#sub-modal-reminder').value,
+            url:    _q('#sub-modal-provider-url').value,
+        });
+    }
+
+    function _isDirty() {
+        return _editOriginal !== null && _snapshotForm() !== _editOriginal;
     }
 
     function _openModal() {
         const modal = _q('#sub-modal');
         if (!modal) return;
+
+        // Advanced section always starts collapsed on open.
+        _setAdvancedOpen(false);
+        _hideBanner();
+
         modal.hidden = false;
         modal.removeAttribute('aria-hidden');
         document.body.classList.add('modal-open');
         requestAnimationFrame(() => modal.classList.add('sub-modal--visible'));
-        _q('#sub-modal-name')?.focus();
+
+        // Autofocus the Service name field with the cursor at the end.
+        const nameEl = _q('#sub-modal-name');
+        if (nameEl) {
+            nameEl.focus();
+            const len = nameEl.value.length;
+            try { nameEl.setSelectionRange(len, len); } catch (_) { /* non-text input */ }
+        }
+
+        // Focus trap.
+        _editTrapHandler = (e) => {
+            if (e.key !== 'Tab') return;
+            const list = Array.from(modal.querySelectorAll(
+                'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+            )).filter(el => !el.disabled && el.offsetParent !== null);
+            if (!list.length) return;
+            const first = list[0];
+            const last = list[list.length - 1];
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault(); last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault(); first.focus();
+            }
+        };
+        modal.addEventListener('keydown', _editTrapHandler);
     }
 
-    function closeModal() {
+    /* Hard close — no dirty check. Used internally after Save or Discard. */
+    function _forceCloseModal() {
         const modal = _q('#sub-modal');
         if (!modal) return;
+        if (_editTrapHandler) {
+            modal.removeEventListener('keydown', _editTrapHandler);
+            _editTrapHandler = null;
+        }
         modal.classList.remove('sub-modal--visible');
-        modal.addEventListener('transitionend', () => {
+        modal.addEventListener('transitionend', function _done() {
             modal.hidden = true;
             modal.setAttribute('aria-hidden', 'true');
             document.body.classList.remove('modal-open');
+            modal.removeEventListener('transitionend', _done);
         }, { once: true });
         _clearModalErrors();
+        _hideBanner();
+    }
+
+    /* Public close — behaves like Cancel: confirm if dirty, else close and
+       (optionally) reopen the details modal with the original data. */
+    function closeModal() {
+        if (_editSaving) return; // ignore while a save is running
+        // If the discard-confirm dialog is already showing, don't stack another.
+        const confirm2 = _q('#sub-confirm2');
+        if (confirm2 && !confirm2.hidden) return;
+
+        const reopenDetails = _editOpenedFromDetails;
+        const originalId = _editingId;
+
+        const finish = () => {
+            _forceCloseModal();
+            const ret = _editReturnFocus;
+            _editReturnFocus = null;
+            _editOriginal = null;
+            _editOpenedFromDetails = false;
+            if (reopenDetails && originalId) {
+                // Reopen details with (unchanged) data.
+                openDetailDrawer(originalId);
+            } else if (ret && typeof ret.focus === 'function') {
+                ret.focus();
+            }
+        };
+
+        if (_isDirty()) {
+            _openDiscardConfirm(finish);
+        } else {
+            finish();
+        }
     }
 
     function _populateModal(sub) {
@@ -828,7 +1044,29 @@ const SubscriptionsUI = (() => {
         _q('#sub-modal-amount').value         = sub?.amount          || '';
         _q('#sub-modal-category').value       = sub?.category        || 'Entertainment';
         _q('#sub-modal-cycle').value          = sub?.billingCycle    || 'monthly';
-        _q('#sub-modal-date').value           = sub?.nextPaymentDate || '';
+
+        // Next payment date field.
+        //  - Paused: disabled, "Paused" placeholder + helper text.
+        //  - Active/new: prefilled with the computed next date (never past).
+        const dateInput = _q('#sub-modal-date');
+        const dateHelp  = _q('#sub-modal-date-help');
+        const dateField = dateInput?.closest('.sub-modal-field');
+        if (dateInput) {
+            if (sub && sub.active === false) {
+                dateInput.value = '';
+                dateInput.disabled = true;
+                dateInput.placeholder = 'Paused';
+                dateField?.classList.add('sub-modal-field--paused');
+                if (dateHelp) { dateHelp.textContent = 'Reactivate to set a payment date.'; dateHelp.hidden = false; }
+            } else {
+                dateInput.disabled = false;
+                dateInput.placeholder = '';
+                dateField?.classList.remove('sub-modal-field--paused');
+                if (dateHelp) { dateHelp.textContent = ''; dateHelp.hidden = true; }
+                const next = sub ? SubscriptionStore.getNextPaymentDate(sub) : null;
+                dateInput.value = next ? SubscriptionStore.toISODate(next) : (sub?.nextPaymentDate || '');
+            }
+        }
         _q('#sub-modal-notes').value          = sub?.notes           || '';
         _q('#sub-modal-logoclass').value      = sub?.logoClass       || 'default';
 
@@ -856,12 +1094,153 @@ const SubscriptionsUI = (() => {
             sw.classList.toggle('sub-swatch--selected', sw.dataset.colour === _currentColourTag);
         });
 
-        // Collapse advanced section if nothing is filled (for new subs)
-        const hasAdvanced = _currentCustomLogo || _currentColourTag ||
-                            sub?.reminderDays || sub?.providerUrl;
-        _setAdvancedOpen(!!hasAdvanced);
+        // Advanced section always starts collapsed (reset on every open).
+        _setAdvancedOpen(false);
 
         _clearModalErrors();
+    }
+
+    /* ----------------------------------------------------------
+       ERROR BANNER (save failure)
+    ---------------------------------------------------------- */
+    function _showBanner(msg) {
+        const b = _q('#sub-modal-banner');
+        if (!b) return;
+        b.textContent = msg;
+        b.hidden = false;
+    }
+    function _hideBanner() {
+        const b = _q('#sub-modal-banner');
+        if (!b) return;
+        b.hidden = true;
+        b.textContent = '';
+    }
+
+    /* ----------------------------------------------------------
+       DISCARD-CHANGES CONFIRM DIALOG (reusable)
+       opts: { title, text, confirmLabel, onConfirm, onCancel, danger }
+    ---------------------------------------------------------- */
+    function openConfirmDialog(opts) {
+        const o = opts || {};
+        // Build (or reuse) the backdrop element.
+        let backdrop = _q('#sub-confirm2');
+        if (!backdrop) {
+            backdrop = document.createElement('div');
+            backdrop.id = 'sub-confirm2';
+            backdrop.className = 'sub-confirm2-backdrop';
+            backdrop.setAttribute('role', 'dialog');
+            backdrop.setAttribute('aria-modal', 'true');
+            document.body.appendChild(backdrop);
+        }
+        const confirmClass = o.danger ? 'sub-detail-btn--delete' : 'sub-detail-btn--toggle';
+        backdrop.innerHTML = `
+            <div class="sub-confirm2-box" role="document">
+                <h3 class="sub-confirm2-title">${_esc(o.title || 'Are you sure?')}</h3>
+                <p class="sub-confirm2-text">${_esc(o.text || '')}</p>
+                <div class="sub-confirm2-actions">
+                    <button type="button" class="sub-detail-btn sub-detail-btn--edit" data-act="cancel">${_esc(o.cancelLabel || 'Keep editing')}</button>
+                    <button type="button" class="sub-detail-btn ${confirmClass}" data-act="confirm">${_esc(o.confirmLabel || 'Discard')}</button>
+                </div>
+            </div>`;
+
+        const close = () => {
+            backdrop.classList.remove('is-visible');
+            backdrop.addEventListener('transitionend', function _d() {
+                backdrop.hidden = true;
+                backdrop.removeEventListener('transitionend', _d);
+            }, { once: true });
+            document.removeEventListener('keydown', onKey);
+        };
+
+        const onKey = (e) => {
+            if (e.key === 'Escape') { e.stopPropagation(); close(); o.onCancel && o.onCancel(); }
+        };
+
+        backdrop.querySelector('[data-act="cancel"]').onclick = () => { close(); o.onCancel && o.onCancel(); };
+        backdrop.querySelector('[data-act="confirm"]').onclick = () => { close(); o.onConfirm && o.onConfirm(); };
+        backdrop.onclick = (e) => { if (e.target === backdrop) { close(); o.onCancel && o.onCancel(); } };
+
+        backdrop.hidden = false;
+        requestAnimationFrame(() => {
+            backdrop.classList.add('is-visible');
+            backdrop.querySelector('[data-act="confirm"]')?.focus();
+        });
+        document.addEventListener('keydown', onKey);
+    }
+
+    function _openDiscardConfirm(onConfirm) {
+        openConfirmDialog({
+            title: 'Discard changes?',
+            text: "Your edits won't be saved.",
+            cancelLabel: 'Keep editing',
+            confirmLabel: 'Discard',
+            danger: true,
+            onConfirm: onConfirm,
+        });
+    }
+
+    /* Reusable date-prompt dialog (orange-bordered). Used by Reactivate to
+       ask when the next payment is due. opts: { title, label, defaultDate,
+       confirmLabel, onConfirm(dateIso), onCancel }. */
+    function openDatePromptDialog(opts) {
+        const o = opts || {};
+        let backdrop = _q('#sub-dateprompt');
+        if (!backdrop) {
+            backdrop = document.createElement('div');
+            backdrop.id = 'sub-dateprompt';
+            backdrop.className = 'sub-confirm2-backdrop';
+            backdrop.setAttribute('role', 'dialog');
+            backdrop.setAttribute('aria-modal', 'true');
+            document.body.appendChild(backdrop);
+        }
+        const minDate = SubscriptionStore.toISODate((function () { const t = new Date(); t.setHours(0, 0, 0, 0); return t; })());
+        backdrop.innerHTML = `
+            <div class="sub-confirm2-box" role="document">
+                <h3 class="sub-confirm2-title">${_esc(o.title || 'When is the next payment due?')}</h3>
+                <div class="sub-modal-field" style="margin-bottom:18px;">
+                    <label for="sub-dateprompt-input">${_esc(o.label || 'Next payment date')}</label>
+                    <input type="date" id="sub-dateprompt-input" value="${_esc(o.defaultDate || '')}" min="${minDate}">
+                    <span class="sub-modal-field-error" id="sub-dateprompt-error"></span>
+                </div>
+                <div class="sub-confirm2-actions">
+                    <button type="button" class="sub-detail-btn sub-detail-btn--edit" data-act="cancel">Cancel</button>
+                    <button type="button" class="sub-detail-btn sub-detail-btn--toggle" data-act="confirm">${_esc(o.confirmLabel || 'Reactivate')}</button>
+                </div>
+            </div>`;
+
+        const input = backdrop.querySelector('#sub-dateprompt-input');
+        const errEl = backdrop.querySelector('#sub-dateprompt-error');
+
+        const close = () => {
+            backdrop.classList.remove('is-visible');
+            backdrop.addEventListener('transitionend', function _d() {
+                backdrop.hidden = true;
+                backdrop.removeEventListener('transitionend', _d);
+            }, { once: true });
+            document.removeEventListener('keydown', onKey);
+        };
+        const onKey = (e) => {
+            if (e.key === 'Escape') { e.stopPropagation(); close(); o.onCancel && o.onCancel(); }
+        };
+
+        backdrop.querySelector('[data-act="cancel"]').onclick = () => { close(); o.onCancel && o.onCancel(); };
+        backdrop.querySelector('[data-act="confirm"]').onclick = () => {
+            const val = input.value;
+            const parsed = SubscriptionStore.parseLocalDate(val);
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            if (!parsed) { errEl.textContent = 'Choose a valid date.'; return; }
+            if (parsed < today) { errEl.textContent = 'Date cannot be in the past.'; return; }
+            close();
+            o.onConfirm && o.onConfirm(val);
+        };
+        backdrop.onclick = (e) => { if (e.target === backdrop) { close(); o.onCancel && o.onCancel(); } };
+
+        backdrop.hidden = false;
+        requestAnimationFrame(() => {
+            backdrop.classList.add('is-visible');
+            input?.focus();
+        });
+        document.addEventListener('keydown', onKey);
     }
 
     function _clearModalErrors() {
@@ -937,12 +1316,15 @@ const SubscriptionsUI = (() => {
         e.preventDefault();
         _clearModalErrors();
 
+        const dateInput = _q('#sub-modal-date');
+        const dateDisabled = !!(dateInput && dateInput.disabled); // paused sub
+
         const fields = {
             name:            _q('#sub-modal-name').value.trim(),
             amount:          _q('#sub-modal-amount').value,
             category:        _q('#sub-modal-category').value,
             billingCycle:    _q('#sub-modal-cycle').value,
-            nextPaymentDate: _q('#sub-modal-date').value,
+            nextPaymentDate: dateInput.value,
             notes:           _q('#sub-modal-notes').value,
             logoClass:       _q('#sub-modal-logoclass').value,
             customLogo:      _currentCustomLogo,
@@ -951,138 +1333,283 @@ const SubscriptionsUI = (() => {
             providerUrl:     _q('#sub-modal-provider-url').value,
         };
 
+        // Paused subscription: don't touch the stored anchor date on save.
+        if (dateDisabled) delete fields.nextPaymentDate;
+
         // Auto-derive logoText from first letter
         fields.logoText = fields.name.charAt(0).toUpperCase();
 
         let valid = true;
         if (!fields.name) {
-            _setFieldError('sub-modal-name', 'Name is required.');
+            _setFieldError('sub-modal-name', 'Enter a service name.');
             valid = false;
         }
-        if (!fields.amount || parseFloat(fields.amount) <= 0) {
-            _setFieldError('sub-modal-amount', 'Enter a valid amount greater than 0.');
+        if (!fields.amount || isNaN(parseFloat(fields.amount)) || parseFloat(fields.amount) <= 0) {
+            _setFieldError('sub-modal-amount', 'Enter an amount greater than 0.');
             valid = false;
         }
-        if (!fields.nextPaymentDate) {
-            _setFieldError('sub-modal-date', 'Billing date is required.');
-            valid = false;
-        } else {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const selected = new Date(fields.nextPaymentDate + 'T00:00:00');
-            if (selected < today) {
-                _setFieldError('sub-modal-date', 'Billing date cannot be in the past.');
+        // Date validation only applies when the field is active (not paused).
+        if (!dateDisabled) {
+            if (!fields.nextPaymentDate) {
+                _setFieldError('sub-modal-date', 'Choose a valid date.');
                 valid = false;
+            } else {
+                const selected = SubscriptionStore.parseLocalDate(fields.nextPaymentDate);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                if (!selected) {
+                    _setFieldError('sub-modal-date', 'Choose a valid date.');
+                    valid = false;
+                } else if (selected < today) {
+                    _setFieldError('sub-modal-date', 'Billing date cannot be in the past.');
+                    valid = false;
+                }
             }
         }
-        if (!valid) return;
+        if (!valid) {
+            // Focus the first invalid field.
+            _q('.sub-modal-field--error input, .sub-modal-field--error select')?.focus();
+            return;
+        }
+
+        _hideBanner();
+
+        const wasEditing = !!_editingId;
+        const editedId   = _editingId;
+        const reopenDetails = _editOpenedFromDetails;
 
         (async function() {
+            _setSaving(true);
             try {
-                if (_editingId) {
-                    await SubscriptionStore.edit(_editingId, fields);
-                    toast('Subscription updated.');
+                if (wasEditing) {
+                    await SubscriptionStore.edit(editedId, fields);
                 } else {
                     await SubscriptionStore.add(fields);
-                    toast('Subscription added.');
                 }
-                closeModal();
+
+                _setSaving(false);
+                _forceCloseModal();
+                _editOriginal = null;
+                _editOpenedFromDetails = false;
+
+                toast(wasEditing ? 'Subscription updated' : 'Subscription added');
+
+                // Refresh the list so the row shows new values immediately.
+                render(SubscriptionStore.getStats());
+
+                // Reopen the details modal (with updated data) if we came from it.
+                if (wasEditing && reopenDetails && editedId) {
+                    openDetailDrawer(editedId);
+                }
             } catch (err) {
-                toast(err.message, 'error');
+                // Keep the modal open with the user's input; re-enable + banner.
+                _setSaving(false);
+                _showBanner("Couldn't save your changes. Try again.");
             }
         })();
+    }
+
+    /* Toggle the saving/loading state: spinner + disabled fields & buttons. */
+    function _setSaving(on) {
+        _editSaving = on;
+        const saveBtn = _q('#sub-modal-save');
+        const cancelBtn = _q('#sub-modal-cancel');
+        const closeBtn = _q('#sub-modal-close');
+        const form = _q('#sub-modal-form');
+
+        if (saveBtn) {
+            saveBtn.disabled = on;
+            saveBtn.classList.toggle('is-saving', on);
+            const label = saveBtn.querySelector('.sub-save-label');
+            let spinner = saveBtn.querySelector('.sub-save-spinner');
+            if (on) {
+                if (!spinner) {
+                    spinner = document.createElement('span');
+                    spinner.className = 'sub-save-spinner';
+                    saveBtn.insertBefore(spinner, label);
+                }
+                if (label) label.textContent = 'Saving…';
+            } else {
+                if (spinner) spinner.remove();
+                if (label) label.textContent = 'Save changes';
+            }
+        }
+        if (cancelBtn) cancelBtn.disabled = on;
+        if (closeBtn) closeBtn.disabled = on;
+
+        // Disable all form fields while saving.
+        if (form) {
+            form.querySelectorAll('input, select, textarea').forEach(el => { el.disabled = on; });
+        }
     }
 
     /* ----------------------------------------------------------
        DETAIL DRAWER
     ---------------------------------------------------------- */
+    /* Element that had focus before the modal opened — focus returns here
+       on close (accessibility requirement). */
+    let _detailReturnFocus = null;
+    let _detailTrapHandler = null;
+
+    /* Robustly format a stored created/added date. Handles ISO date strings
+       ("2026-09-25"), full ISO timestamps ("2026-09-25T10:30:00.000Z"), and
+       epoch-millisecond values. Returns "—" for missing/invalid dates — this
+       fixes the "Sep NaN, 2026" bug that came from splitting a timestamp on
+       "-" and reading "25T10:30:00..." as the day number. */
+    function _fmtDateSafe(raw) {
+        if (raw === null || raw === undefined || raw === '') return '—';
+
+        let d;
+        if (raw instanceof Date) {
+            d = raw;
+        } else if (typeof raw === 'number') {
+            d = new Date(raw);
+        } else {
+            const str = String(raw).trim();
+            if (!str) return '—';
+            // Pure "YYYY-MM-DD" — parse the date part explicitly to avoid TZ
+            // shifts; anything with time/offset goes through Date().
+            const dateOnly = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (dateOnly) {
+                d = new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]));
+            } else {
+                d = new Date(str);
+            }
+        }
+
+        if (!d || isNaN(d.getTime())) return '—';
+
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+    }
+
     function openDetailDrawer(id) {
         // Close row menu
         const menu = _q(`#sub-menu-${id}`);
         if (menu) menu.hidden = true;
 
         _detailId = id;
+        // Remember the element to return focus to (the clicked row/link).
+        _detailReturnFocus = document.activeElement;
+
         _renderDrawer(SubscriptionStore.getById(id));
 
-        const drawer = _q('#sub-drawer');
-        const overlay = _q('#sub-drawer-overlay');
-        if (!drawer) return;
-        drawer.hidden = false;
-        overlay && (overlay.hidden = false);
-        requestAnimationFrame(() => {
-            drawer.classList.add('sub-drawer--open');
-            overlay?.classList.add('sub-drawer-overlay--visible');
-        });
+        const modal = _q('#sub-detail-modal');
+        if (!modal) return;
+        modal.hidden = false;
+        document.body.classList.add('sub-modal-open');
+        requestAnimationFrame(() => modal.classList.add('sub-detail--visible'));
+
+        // Focus the close button first, then set up a focus trap.
+        const closeBtn = _q('#sub-detail-close');
+        closeBtn && closeBtn.focus();
+        _detailTrapHandler = (e) => {
+            if (e.key !== 'Tab') return;
+            const focusables = modal.querySelectorAll(
+                'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+            );
+            const list = Array.from(focusables).filter(el => !el.hasAttribute('hidden') && el.offsetParent !== null);
+            if (!list.length) return;
+            const first = list[0];
+            const last = list[list.length - 1];
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault(); last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault(); first.focus();
+            }
+        };
+        modal.addEventListener('keydown', _detailTrapHandler);
     }
 
     function closeDrawer() {
-        const drawer  = _q('#sub-drawer');
-        const overlay = _q('#sub-drawer-overlay');
-        if (!drawer) return;
-        drawer.classList.remove('sub-drawer--open');
-        overlay?.classList.remove('sub-drawer-overlay--visible');
-        drawer.addEventListener('transitionend', () => {
-            drawer.hidden = true;
-            overlay && (overlay.hidden = true);
+        const modal = _q('#sub-detail-modal');
+        if (!modal || modal.hidden) return;
+
+        if (_detailTrapHandler) {
+            modal.removeEventListener('keydown', _detailTrapHandler);
+            _detailTrapHandler = null;
+        }
+
+        modal.classList.remove('sub-detail--visible');
+        document.body.classList.remove('sub-modal-open');
+        modal.addEventListener('transitionend', function _done() {
+            modal.hidden = true;
+            modal.removeEventListener('transitionend', _done);
         }, { once: true });
+
+        // Return focus to the row that opened the modal.
+        if (_detailReturnFocus && typeof _detailReturnFocus.focus === 'function') {
+            _detailReturnFocus.focus();
+        }
+        _detailReturnFocus = null;
         _detailId = null;
     }
 
     function _renderDrawer(sub) {
         if (!sub) return;
-        const days  = SubscriptionStore.daysUntil(sub.nextPaymentDate);
-        const urgent = days !== null && days <= 3 && sub.active;
 
-        _q('#drawer-logo').innerHTML    = _logoHtml(sub);
-        _q('#drawer-name').textContent  = sub.name;
-        _q('#drawer-cat').textContent   = sub.category;
-        _q('#drawer-amount').textContent = SubscriptionStore.fmtCurrency(sub.amount);
-        _q('#drawer-cycle').textContent  = sub.billingCycle.charAt(0).toUpperCase() + sub.billingCycle.slice(1);
-        _q('#drawer-date').textContent   = SubscriptionStore.fmtDate(sub.nextPaymentDate);
-        _q('#drawer-date').className     = urgent ? 'drawer-value drawer-value--urgent' : 'drawer-value';
-        _q('#drawer-status').textContent = sub.active ? 'Active' : 'Paused';
-        _q('#drawer-status').className   = `drawer-badge drawer-badge--${sub.active ? 'active' : 'paused'}`;
-        _q('#drawer-notes').textContent  = sub.notes || 'No notes added.';
-        _q('#drawer-created').textContent = SubscriptionStore.fmtDate(sub.createdAt);
+        // Avatar — first letter of the name.
+        const avatar = _q('#sub-detail-avatar');
+        if (avatar) avatar.textContent = (sub.name || '?').charAt(0).toUpperCase();
 
-        // Monthly equivalent if not already monthly
-        const monthly = sub.billingCycle !== 'monthly'
-            ? ` (≈ ${SubscriptionStore.fmtCurrency(sub.amount / (sub.billingCycle === 'yearly' ? 12 : sub.billingCycle === 'quarterly' ? 3 : 0.25))} / mo)`
-            : '';
-        _q('#drawer-monthly-equiv').textContent = monthly;
+        // Full name (wraps via CSS — no truncation).
+        _q('#sub-detail-name').textContent = sub.name;
 
-        // Reminder days
-        const reminderRow = _q('#drawer-reminder-row');
-        const reminderVal = _q('#drawer-reminder');
-        if (reminderRow && reminderVal) {
-            if (sub.reminderDays) {
-                reminderRow.hidden = false;
-                reminderVal.textContent = `${sub.reminderDays} day${sub.reminderDays > 1 ? 's' : ''} before`;
-            } else {
-                reminderRow.hidden = true;
-            }
+        // Status badge.
+        const badge = _q('#sub-detail-status');
+        badge.textContent = sub.active ? 'Active' : 'Paused';
+        badge.className = `sub-detail-badge sub-detail-badge--${sub.active ? 'active' : 'paused'}`;
+
+        // Detail rows.
+        _q('#sub-detail-amount').textContent = SubscriptionStore.fmtCurrency(sub.amount);
+        _q('#sub-detail-cycle').textContent  = sub.billingCycle.charAt(0).toUpperCase() + sub.billingCycle.slice(1);
+
+        const perMonth = sub.billingCycle === 'monthly'
+            ? sub.amount
+            : sub.amount / (sub.billingCycle === 'yearly' ? 12 : sub.billingCycle === 'quarterly' ? 3 : sub.billingCycle === 'weekly' ? (52 / 12) : 1);
+        _q('#sub-detail-monthly').textContent = `${SubscriptionStore.fmtCurrency(perMonth)} / mo`;
+
+        _q('#sub-detail-cat').textContent = sub.category;
+
+        // Next payment — shared display rules (Paused / Today / in N days /
+        // date). Active subs always roll forward, so never red/overdue.
+        const npd = _nextPaymentDisplay(sub);
+        const dateEl = _q('#sub-detail-date');
+        dateEl.textContent = npd.text;
+        dateEl.className = `sub-detail-value sub-detail-np sub-detail-np--${npd.cls}`;
+
+        _q('#sub-detail-created').textContent = _fmtDateSafe(sub.createdAt);
+
+        // Notes — hide the whole section when there are none.
+        const notesWrap = _q('#sub-detail-notes-wrap');
+        const notesText = _q('#sub-detail-notes');
+        const notes = (sub.notes || '').trim();
+        if (notes) {
+            notesWrap.hidden = false;
+            notesText.textContent = notes;
+        } else {
+            notesWrap.hidden = true;
+            notesText.textContent = '';
         }
 
-        // Provider URL
-        const urlRow = _q('#drawer-provider-url-row');
-        const urlVal = _q('#drawer-provider-url');
-        if (urlRow && urlVal) {
-            if (sub.providerUrl) {
-                urlRow.hidden = false;
-                urlVal.innerHTML = `<a href="${_esc(sub.providerUrl)}" target="_blank" rel="noopener noreferrer" class="drawer-link">${_esc(sub.providerUrl)}</a>`;
-            } else {
-                urlRow.hidden = true;
-            }
+        // Toggle button — label + icon. Active shows "Pause" with a pause
+        // (two-bar) icon; paused shows "Reactivate" with a play icon.
+        const toggleBtn = _q('#sub-detail-toggle-btn');
+        toggleBtn.querySelector('span').textContent = sub.active ? 'Pause' : 'Reactivate';
+        const toggleIcon = toggleBtn.querySelector('svg');
+        if (toggleIcon) {
+            toggleIcon.innerHTML = sub.active
+                ? '<rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor"/>'
+                : '<path d="M5 3l14 9-14 9V3z" fill="currentColor"/>';
         }
+        // The pause/reactivate dialogs render on top and refresh this modal
+        // themselves, so we don't close the details modal here.
+        toggleBtn.onclick = () => { handleToggle(sub.id); };
 
-        // Wire drawer action buttons
-        _q('#drawer-edit-btn').onclick   = () => { closeDrawer(); openEditModal(sub.id); };
-        _q('#drawer-delete-btn').onclick = () => { closeDrawer(); handleDelete(sub.id); };
-        _q('#drawer-toggle-btn').textContent = sub.active ? 'Pause Subscription' : 'Reactivate';
-        _q('#drawer-toggle-btn').onclick = () => {
-            handleToggle(sub.id);
-            closeDrawer();
-        };
+        // Edit opens the edit modal from the details context (so we can
+        // reopen details afterward). Delete reuses the confirm flow.
+        _q('#sub-detail-edit-btn').onclick   = () => { closeDrawer(); openEditModal(sub.id, { fromDetails: true }); };
+        _q('#sub-detail-delete-btn').onclick = () => { closeDrawer(); handleDelete(sub.id); };
     }
 
     /* ----------------------------------------------------------
@@ -1130,14 +1657,22 @@ const SubscriptionsUI = (() => {
     ---------------------------------------------------------- */
     function _bindKeyboard() {
         document.addEventListener('keydown', e => {
-            if (e.key === 'Escape') {
-                if (!_q('#rec-quickview-modal')?.hidden) closeRecQuickViewModal();
-                else if (!_q('#rec-add-modal')?.hidden)      closeRecAddModal();
-                else if (!_q('#sub-modal')?.hidden)     closeModal();
-                else if (!_q('#sub-drawer')?.hidden)    closeDrawer();
-                else if (!_q('#sub-pause-modal')?.hidden)   closePauseModal();
-                else if (!_q('#sub-confirm-modal')?.hidden) closeConfirmModal();
-            }
+            if (e.key !== 'Escape') return;
+
+            // Dynamically-built dialogs (#sub-confirm2, #sub-dateprompt) carry
+            // their own Escape handlers — let those handle it and bail so we
+            // don't also close the modal underneath them.
+            const confirm2 = _q('#sub-confirm2');
+            const dateprompt = _q('#sub-dateprompt');
+            if ((confirm2 && !confirm2.hidden) || (dateprompt && !dateprompt.hidden)) return;
+
+            // Top-most first.
+            if (!_q('#rec-quickview-modal')?.hidden) closeRecQuickViewModal();
+            else if (!_q('#rec-add-modal')?.hidden)     closeRecAddModal();
+            else if (!_q('#sub-pause-modal')?.hidden)   closePauseModal();
+            else if (!_q('#sub-confirm-modal')?.hidden) closeConfirmModal();
+            else if (!_q('#sub-modal')?.hidden)         closeModal();
+            else if (!_q('#sub-detail-modal')?.hidden)  closeDrawer();
         });
     }
 
@@ -1166,8 +1701,8 @@ const SubscriptionsUI = (() => {
         const moreBtn = _q('#sub-more-btn');
         const form    = _q('#sub-modal-form');
         const modalClose     = _q('#sub-modal-close');
-        const drawerClose    = _q('#sub-drawer-close');
-        const drawerOverlay  = _q('#sub-drawer-overlay');
+        const drawerClose    = _q('#sub-detail-close');
+        const drawerOverlay  = _q('#sub-detail-modal');
         const confirmCancel  = _q('#sub-confirm-cancel');
         const exportBtn      = _q('#sub-export-btn');
         const recAddClose    = _q('#rec-add-modal-close');
@@ -1177,10 +1712,23 @@ const SubscriptionsUI = (() => {
         addBtn?.addEventListener('click', openAddModal);
         addFab?.addEventListener('click', openAddModal);
         moreBtn?.addEventListener('click', toggleMoreMenu);
+        _q('#sub-pay-month-btn')?.addEventListener('click', handlePayMonth);
         form?.addEventListener('submit', handleModalSubmit);
         modalClose?.addEventListener('click', closeModal);
+        _q('#sub-modal-cancel')?.addEventListener('click', closeModal);
+        // Enter in any text/number/date/select input (not the Notes textarea)
+        // triggers Save.
+        form?.addEventListener('keydown', e => {
+            if (e.key !== 'Enter') return;
+            if (e.target && e.target.tagName === 'TEXTAREA') return;
+            e.preventDefault();
+            handleModalSubmit(e);
+        });
         drawerClose?.addEventListener('click', closeDrawer);
-        drawerOverlay?.addEventListener('click', closeDrawer);
+        // Backdrop click (only when the overlay itself is the target, not the box).
+        drawerOverlay?.addEventListener('click', e => {
+            if (e.target === drawerOverlay) closeDrawer();
+        });
         confirmCancel?.addEventListener('click', closeConfirmModal);
 
         // Pause confirmation modal
@@ -1259,7 +1807,7 @@ const SubscriptionsUI = (() => {
         // Provider Library category chips
         _qa('.filter-cat-chip').forEach(btn => {
             btn.addEventListener('click', () => {
-                _providerFilterCat = btn.dataset.providerCat;
+                _providerFilterCat = btn.dataset.cat || 'all';
                 _qa('.filter-cat-chip').forEach(b => b.classList.remove('filter-btn--active'));
                 btn.classList.add('filter-btn--active');
                 _renderProviderLibrary();
@@ -1272,6 +1820,29 @@ const SubscriptionsUI = (() => {
             providerSortSelect.addEventListener('change', (e) => {
                 _providerSortKey = e.target.value;
                 _renderProviderLibrary();
+            });
+        }
+
+        // Available Subscriptions collapse / expand toggle
+        const libToggle = _q('#provider-library-toggle');
+        const libBody = _q('#provider-library-body');
+        const libControls = _q('.sub-library-panel .sub-library-controls');
+        if (libToggle && libBody) {
+            libToggle.addEventListener('click', () => {
+                const collapsed = libBody.hasAttribute('hidden');
+                if (collapsed) {
+                    libBody.removeAttribute('hidden');
+                    if (libControls) libControls.style.display = '';
+                    libToggle.setAttribute('aria-expanded', 'true');
+                    libToggle.setAttribute('aria-label', 'Hide available subscriptions');
+                    libToggle.classList.remove('is-collapsed');
+                } else {
+                    libBody.setAttribute('hidden', '');
+                    if (libControls) libControls.style.display = 'none';
+                    libToggle.setAttribute('aria-expanded', 'false');
+                    libToggle.setAttribute('aria-label', 'Show available subscriptions');
+                    libToggle.classList.add('is-collapsed');
+                }
             });
         }
 
@@ -1312,6 +1883,9 @@ const SubscriptionsUI = (() => {
         toggleMoreMenu,
         quickViewProvider,
         addProvider,
+        openConfirmDialog,
+        openDatePromptDialog,
+        handlePayMonth,
     });
 
 })();

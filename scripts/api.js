@@ -14,7 +14,23 @@ const API = (() => {
     ---------------------------------------------------------- */
 
     const USE_MOCK = false;  // Using real local SQL Server backend
-    const BASE_URL = 'http://localhost:3000/api';
+
+    /* API base URL.
+       - Served over the network (http://<host>:3000/pages/MASTER.html):
+         use a same-origin relative base ("/api") so requests hit the same
+         host that served the page (zero CORS, works on any device).
+       - Loaded from bundled files inside an app WebView
+         (file:///android_asset/...): there is NO server origin to borrow,
+         so point directly at the dev PC on the LAN.
+
+       DEV_HOST is the PC running the backend. On a phone-hotspot network the
+       PC's IP changes each session — update DEV_HOST when it does (check with
+       `ipconfig` on the PC). */
+    const DEV_HOST = 'http://172.20.10.3:3000';   // <-- PC's LAN IP:port
+
+    const BASE_URL = (location.protocol === 'file:' || !location.host)
+        ? DEV_HOST + '/api'
+        : '/api';
 
 
     /* ----------------------------------------------------------
@@ -71,23 +87,27 @@ const API = (() => {
         });
     }
 
+    const REQUEST_TIMEOUT_MS = 10000; // 10s — a hang becomes a clear error
+
     async function _fetch(method, path, body = null) {
+
+        const url = `${BASE_URL}${path}`;
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
         try {
 
             const options = {
                 method: method,
-                headers: _headers()
+                headers: _headers(),
+                signal: controller.signal
             };
 
             if (body !== null) {
                 options.body = JSON.stringify(body);
             }
 
-            const response = await fetch(
-                `${BASE_URL}${path}`,
-                options
-            );
+            const response = await fetch(url, options);
 
             let json;
 
@@ -101,11 +121,12 @@ const API = (() => {
             }
 
             if (!response.ok) {
-
+                // Log the real reason so cases can be told apart.
+                console.error(`API ${method} ${url} -> HTTP ${response.status}`, json);
                 return _err(
                     json.message ||
                     json.error ||
-                    `HTTP ${response.status}`,
+                    `Server responded with an error (HTTP ${response.status})`,
                     response.status
                 );
             }
@@ -114,14 +135,20 @@ const API = (() => {
 
         } catch (error) {
 
-            console.error(
-                `API ${method} ${path} failed:`,
-                error
-            );
+            // Classify the failure for a clearer message + console log.
+            let message;
+            if (error.name === 'AbortError') {
+                message = 'Server timed out. Check that the backend is running.';
+            } else {
+                // A TypeError from fetch means the request never completed:
+                // server unreachable, wrong host, or blocked by browser (CORS).
+                message = 'Can\'t reach the server. Check that the backend is running and you opened the app over the network URL (not a file:// path).';
+            }
+            console.error(`API ${method} ${url} failed [${error.name}]:`, error.message, '| base:', BASE_URL);
 
-            return _err(
-                error.message || 'Network error'
-            );
+            return _err(message);
+        } finally {
+            clearTimeout(timer);
         }
     }
 
@@ -454,6 +481,15 @@ const API = (() => {
                 'GET',
                 `/subscriptions/providers${query ? '?' + query : ''}`
             );
+        },
+
+
+        // Pay this month's active subscriptions from the wallet. The server
+        // computes paid-vs-unpaid and adjusts the ScribeScore (+10 all paid,
+        // -10 if any unpaid). Returns the real result.
+        async payMonth() {
+            if (USE_MOCK) return _mock({ scribeScore: 0, delta: 0, allPaid: true });
+            return _fetch('POST', '/subscriptions/pay-month', {});
         }
     };
 

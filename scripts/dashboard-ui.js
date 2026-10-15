@@ -9,6 +9,34 @@ const DashboardUI = (function () {
     let _initialized = false;
 
     function init() {
+        // First paint with whatever is cached (may be empty on a fresh load).
+        _renderAll();
+        if (!_initialized) {
+            _bindEvents();
+            _initialized = true;
+        }
+
+        // The dashboard reads balances/subscriptions/goals from the client
+        // stores. On a fresh page load those stores are empty (balance 0)
+        // until they fetch from the API — so load them, then re-render.
+        // This fixes the FlexCard showing R0.00 while the Wallet page shows
+        // the real balance.
+        var loaders = [];
+        if (typeof WalletStore !== 'undefined' && WalletStore.loadFromAPI) {
+            loaders.push(WalletStore.loadFromAPI().catch(function () {}));
+        }
+        if (typeof SubscriptionStore !== 'undefined' && SubscriptionStore.loadFromAPI) {
+            loaders.push(SubscriptionStore.loadFromAPI().catch(function () {}));
+        }
+        if (typeof GoalsStore !== 'undefined' && GoalsStore.loadFromAPI) {
+            loaders.push(GoalsStore.loadFromAPI().catch(function () {}));
+        }
+        if (loaders.length) {
+            Promise.all(loaders).then(function () { _renderAll(); });
+        }
+    }
+
+    function _renderAll() {
         _renderFlexCard();
         _renderTimeline('week');
         _renderUpcoming();
@@ -16,10 +44,6 @@ const DashboardUI = (function () {
         _renderGoals();
         _renderTransactions();
         _renderScribeScore();
-        if (!_initialized) {
-            _bindEvents();
-            _initialized = true;
-        }
     }
 
     function _bindEvents() {
@@ -386,5 +410,5 @@ const DashboardUI = (function () {
         }).join('');
     }
 
-    return { init: init };
+    return { init: init, refreshScore: _renderScribeScore };
 })();

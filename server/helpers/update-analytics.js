@@ -99,28 +99,34 @@ async function updateUserAnalytics(subscriberID) {
             SELECT scoreID FROM ScribeScore WHERE subscriberID = @sid
         `, { sid });
 
+        // NOTE: scoreValue (the ScribeScore) is now a conduct-based, event
+        // driven points total owned by helpers/scribe-score.js and stored on
+        // Subscriber.scribeScore. This routine must NOT overwrite it — it only
+        // refreshes the breakdown percentages used for the detailed view.
         let scoreID;
         if (existingScore.recordset.length > 0) {
             scoreID = existingScore.recordset[0].scoreID;
         } else {
+            // Seed a row with the user's current authoritative score (not 0).
+            const curRes = await query('SELECT scribeScore FROM Subscriber WHERE subscriberID = @sid', { sid });
+            const seed = curRes.recordset.length ? (parseInt(curRes.recordset[0].scribeScore) || 0) : 0;
             const insertResult = await query(`
                 INSERT INTO ScribeScore (subscriberID, scoreValue)
                 OUTPUT INSERTED.scoreID
-                VALUES (@sid, 0)
-            `, { sid });
+                VALUES (@sid, @seed)
+            `, { sid, seed });
             scoreID = insertResult.recordset[0].scoreID;
         }
 
-        // Always update all fields
+        // Update only the breakdown percentages — leave scoreValue untouched.
         await query(`
             UPDATE ScribeScore SET
-                scoreValue = @score,
                 subscriptionPct = @subPct,
                 budgetPct = @budPct,
                 savingsPct = @savPct,
                 generatedAt = GETDATE()
             WHERE scoreID = @scoreID
-        `, { scoreID, score: scoreValue, subPct: parseFloat(subscriptionPct.toFixed(2)), budPct: parseFloat(budgetPct.toFixed(2)), savPct: parseFloat(savingsPct.toFixed(2)) });
+        `, { scoreID, subPct: parseFloat(subscriptionPct.toFixed(2)), budPct: parseFloat(budgetPct.toFixed(2)), savPct: parseFloat(savingsPct.toFixed(2)) });
 
         // 7. Upsert UserAnalytics
         const existingAnalytics = await query(`

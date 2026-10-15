@@ -373,23 +373,53 @@ const GoalsUI = (() => {
     ---------------------------------------------------------- */
     function _handleAddFunds() {
         const $input = document.getElementById('goals-drawer-fund-amount');
+        const $hint = document.getElementById('goals-drawer-wallet-hint');
         const amount = parseFloat($input.value);
-        if (!amount || amount <= 0) { $input.focus(); return; }
+
+        // 1. Must be a positive amount.
+        if (!amount || amount <= 0) {
+            if ($hint) $hint.textContent = 'Enter an amount greater than R0.00.';
+            $input.focus();
+            return;
+        }
+
+        // 2. Must not exceed the current wallet balance (fast client check;
+        //    the server enforces this authoritatively too).
+        if (typeof WalletStore !== 'undefined') {
+            const bal = WalletStore.getSnapshot().balance || 0;
+            if (amount > bal) {
+                if ($hint) $hint.textContent = `That's more than your wallet balance (${WalletStore.fmtCurrency(bal)}).`;
+                $input.focus();
+                return;
+            }
+        }
 
         try {
             API.Goals.contribute(_drawerGoalId, amount).then(function(result) {
                 if (result.success) {
-                    _loadGoalsFromAPI().then(function() {
-                        openDrawer(_drawerGoalId);
+                    // If this contribution completed the goal, the server
+                    // awarded +5 ScribeScore — reflect it in real time.
+                    var data = result.data || {};
+                    if (data.completed && window.ScribeScore) {
+                        window.ScribeScore.refresh({ delta: 5, toast: 'Goal completed — ScribeScore +5' });
+                    }
+                    // Refresh the wallet balance (it was debited) then re-render.
+                    var after = (typeof WalletStore !== 'undefined' && WalletStore.loadFromAPI)
+                        ? WalletStore.loadFromAPI()
+                        : Promise.resolve();
+                    Promise.resolve(after).finally(function() {
+                        _loadGoalsFromAPI().then(function() {
+                            openDrawer(_drawerGoalId);
+                        });
                     });
                 } else {
-                    alert(result.error || 'Failed to add funds.');
+                    if ($hint) $hint.textContent = result.error || 'Failed to add funds.';
                 }
             }).catch(function() {
-                alert('Network error. Please try again.');
+                if ($hint) $hint.textContent = 'Network error. Please try again.';
             });
         } catch (err) {
-            alert(err.message);
+            if ($hint) $hint.textContent = err.message;
         }
     }
 

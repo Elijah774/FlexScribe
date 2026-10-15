@@ -760,3 +760,106 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* =============================================================
+   FULL REPORT MODAL — readable layout
+   The modal body (#rpt-fullreport-body) is built from these
+   classes in reports-ui.js. Without styling the content
+   collapsed into a run-on blob; these rules give it structure.
+============================================================= */
+
+#rpt-fullreport-body { color: var(--text); font-size: 14px; line-height: 1.5; }
+
+/* Status pill */
+.rpt-fr-status {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+.rpt-fr-status.safe    { background: rgba(111, 219, 143, 0.15); color: var(--green); }
+.rpt-fr-status.warning { background: rgba(245, 184, 61, 0.15);  color: #F5B83D; }
+.rpt-fr-status.danger  { background: rgba(227, 101, 101, 0.15); color: var(--danger); }
+
+/* Summary stat cards */
+.rpt-fr-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 16px 0 20px;
+}
+.rpt-fr-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px;
+    background: var(--raised, var(--hover));
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    text-align: center;
+}
+.rpt-fr-stat-val   { font-size: 18px; font-weight: 700; color: var(--text); }
+.rpt-fr-stat-label { font-size: 12px; color: var(--text-light); }
+
+/* Impact / highlight lines */
+.rpt-fr-impact {
+    padding: 12px 14px;
+    background: var(--raised, var(--hover));
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 14px;
+    font-size: 13px;
+}
+.rpt-fr-impact p { margin: 0; color: var(--text-light); }
+.rpt-fr-impact strong { color: var(--text); }
+
+/* Sections */
+.rpt-fr-section { margin: 22px 0; }
+.rpt-fr-section h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+}
+
+/* Month-by-month table */
+.rpt-fr-monthly-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+.rpt-fr-monthly-table th,
+.rpt-fr-monthly-table td {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+}
+.rpt-fr-monthly-table th {
+    color: var(--text-light);
+    font-weight: 600;
+}
+.rpt-fr-monthly-table td { color: var(--text); }
+
+/* Transaction list */
+.rpt-fr-tx-list {
+    display: flex;
+    flex-direction: column;
+}
+.rpt-fr-tx-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+}
+.rpt-fr-tx-item:last-child { border-bottom: none; }
+.rpt-fr-tx-desc { font-size: 13.5px; color: var(--text); font-weight: 500; }
+.rpt-fr-tx-date { font-size: 12px; color: var(--text-light); }
+.rpt-fr-tx-amount { font-size: 14px; font-weight: 700; white-space: nowrap; }
+.rpt-fr-tx-amount.credit { color: var(--green); }
+.rpt-fr-tx-amount.debit  { color: var(--danger); }

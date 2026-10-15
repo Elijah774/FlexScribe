@@ -8,6 +8,7 @@ const express = require('express');
 const multer = require('multer');
 const { query } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
+const scribeScore = require('../helpers/scribe-score');
 
 const router = express.Router();
 router.use(authenticateToken);
@@ -409,6 +410,15 @@ router.post('/upload', upload.single('statement'), async (req, res) => {
             return res.status(400).json({ success: false, message: 'Only PDF, CSV, and Excel (.xlsx) files are accepted' });
         }
 
+        // Enforce the yearly upload cap BEFORE doing any work.
+        const uploadsThisYear = await scribeScore.bankUploadsThisYear(req.user.subscriberID);
+        if (uploadsThisYear >= scribeScore.BANK_UPLOADS_PER_YEAR) {
+            return res.status(429).json({
+                success: false,
+                message: `You can only upload ${scribeScore.BANK_UPLOADS_PER_YEAR} bank statements per year. You've used both for ${new Date().getFullYear()}.`
+            });
+        }
+
         // Parse file
         let transactions = [];
         if (ext === 'csv') transactions = _parseCSV(req.file.buffer.toString('utf-8'));
@@ -438,13 +448,10 @@ router.post('/upload', upload.single('statement'), async (req, res) => {
             status: report.financialStatus
         });
 
-        // Increment ScribeScore by 100
-        const existing = await query('SELECT TOP 1 scoreID, scoreValue FROM ScribeScore WHERE subscriberID = @id ORDER BY generatedAt DESC', { id: req.user.subscriberID });
-        if (existing.recordset.length > 0) {
-            await query('UPDATE ScribeScore SET scoreValue = scoreValue + 100 WHERE scoreID = @sid', { sid: existing.recordset[0].scoreID });
-        } else {
-            await query('INSERT INTO ScribeScore (subscriberID, scoreValue) VALUES (@id, 100)', { id: req.user.subscriberID });
-        }
+        // Award +50 ScribeScore for this upload (idempotent per allowed slot
+        // this year). uploadsThisYear was the count BEFORE this insert, so
+        // this upload is slot (uploadsThisYear + 1): 1 or 2.
+        const award = await scribeScore.awardBankUpload(req.user.subscriberID, uploadsThisYear + 1);
 
         res.status(201).json({
             success: true,
@@ -459,7 +466,9 @@ router.post('/upload', upload.single('statement'), async (req, res) => {
                 subscriptionsDetected: report.subscriptionsDetected,
                 subscriptionCount: report.subscriptionCount,
                 subscriptionMonthlyTotal: report.subscriptionMonthlyTotal,
-                scribeScoreBonus: 100
+                scribeScoreBonus: scribeScore.POINTS.BANK_UPLOAD,
+                scribeScore: award.score,
+                uploadsRemaining: Math.max(0, scribeScore.BANK_UPLOADS_PER_YEAR - (uploadsThisYear + 1))
             }
         });
     } catch (error) {

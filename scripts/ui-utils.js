@@ -387,3 +387,55 @@ const UIUtils = (() => {
     });
 
 })();
+
+/* =============================================================
+   ScribeScore — real-time score refresh
+   A tiny global so any flow (bank upload, subscription payment,
+   etc.) can push the latest ScribeScore to the UI immediately
+   without a full page reload.
+
+   window.ScribeScore.refresh(opts?)
+     opts.toast  : optional toast message to show
+     opts.delta  : optional +/- number (prefixes toast)
+   Updates:
+     • the dashboard score ring (DashboardUI.refreshScore)
+     • the reports "Scribe Score" stat (#rpt-stat-accuracy)
+============================================================= */
+(function () {
+    'use strict';
+
+    function _applyToStat(score) {
+        var accEl = document.getElementById('rpt-stat-accuracy');
+        if (accEl) accEl.textContent = score;
+        var accSub = document.getElementById('rpt-stat-accuracy-sub');
+        if (accSub) {
+            if (score >= 800) accSub.textContent = 'Excellent';
+            else if (score >= 500) accSub.textContent = 'Good';
+            else if (score > 0) accSub.textContent = 'Building';
+            else accSub.textContent = '--';
+        }
+    }
+
+    function refresh(opts) {
+        opts = opts || {};
+        // Re-render the dashboard ring if that module is present/mounted.
+        try { if (window.DashboardUI && DashboardUI.refreshScore) DashboardUI.refreshScore(); } catch (e) {}
+
+        // Pull the authoritative score and update any visible stat + toast.
+        if (typeof API !== 'undefined' && API.Auth && API.Auth.getUser) {
+            API.Auth.getUser().then(function (res) {
+                if (!res || !res.success || !res.data) return;
+                var score = parseInt(res.data.scribeScore) || 0;
+                _applyToStat(score);
+                if (opts.toast && window.UIUtils) {
+                    var prefix = (typeof opts.delta === 'number' && opts.delta !== 0)
+                        ? (opts.delta > 0 ? '+' + opts.delta + ' · ' : opts.delta + ' · ')
+                        : '';
+                    UIUtils.toast(prefix + opts.toast, opts.delta < 0 ? 'warning' : 'success');
+                }
+            }).catch(function () {});
+        }
+    }
+
+    window.ScribeScore = { refresh: refresh };
+})();

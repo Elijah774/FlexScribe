@@ -53,6 +53,8 @@ const TimelineUI = (() => {
         var dayMap = {};
         subs.forEach(function(sub) {
             if (!sub.nextPaymentDate) return;
+            // Paused subscriptions won't be charged — no timeline dot.
+            if (sub.active === false) return;
             var d = new Date(sub.nextPaymentDate);
             // Payment due this month
             if (d.getMonth() === _currentMonth && d.getFullYear() === _currentYear) {

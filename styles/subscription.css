@@ -31,6 +31,19 @@
     white-space: nowrap;
 }
 
+/* "Pay this month" — rounded rectangle, matches the Add Subscription shape. */
+.sub-pay-month-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
 .sub-more-wrap { position: relative; }
 .sub-more-menu { min-width: 190px; right: 0; }
 
@@ -296,8 +309,16 @@
 .sub-title { font-weight: 600; font-size: 14px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sub-sub   { font-size: 12px; color: var(--text-light); margin-top: 2px; }
 
-.sub-date { font-size: 12.5px; color: var(--text-light); white-space: nowrap; flex-shrink: 0; width: 100px; text-align: right; }
+.sub-date { font-size: 12.5px; color: var(--text-light); white-space: nowrap; flex-shrink: 0; width: 130px; text-align: right; }
 .sub-date--urgent { color: var(--danger); font-weight: 600; }
+.sub-date--upcoming { color: var(--green); font-weight: 600; }
+
+/* Next-payment display states (shared by list rows). */
+.sub-date--paused { color: var(--text-light); font-weight: 500; }
+.sub-date--today  { color: var(--orange); font-weight: 600; }
+.sub-date--soon   { color: var(--orange); font-weight: 600; }
+.sub-date--normal { color: var(--text); font-weight: 500; }
+.sub-date--none   { color: var(--text-light); }
 
 /* Toggle switch */
 .switch {
@@ -473,6 +494,17 @@ body.modal-open { overflow: hidden; }
 .sub-modal-field textarea::placeholder { color: var(--text-light); }
 .sub-modal-field textarea { resize: vertical; min-height: 64px; }
 
+/* Notes field — white background with black text for readability.
+   !important + focus override so no base textarea/input rule can win. */
+.sub-modal-field textarea#sub-modal-notes,
+#sub-modal-notes,
+#sub-modal-notes:focus {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+}
+#sub-modal-notes::placeholder { color: #6B7280 !important; }
+
 /* Validation error state */
 .sub-modal-field--error input,
 .sub-modal-field--error select,
@@ -527,146 +559,249 @@ body.modal-open { overflow: hidden; }
 .danger-btn:hover { background: rgba(217, 45, 45, 0.1); }
 
 /* ── Detail drawer ───────────────────────────────────────── */
-.sub-drawer-overlay {
+/* ── Subscription details modal (centered pop-up) ────────────
+   Replaces the old right-hand sidebar. Reuses the app's orange token
+   (var(--orange)); orange-tinted helpers are expressed with rgba on the
+   same hue so no new colour is hardcoded. */
+
+body.sub-modal-open { overflow: hidden; }
+
+.sub-detail-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.4);
-    backdrop-filter: blur(2px);
-    z-index: 150;
-    opacity: 0;
-    transition: opacity 0.25s ease;
-}
-.sub-drawer-overlay[hidden] { display: none !important; }
-.sub-drawer-overlay--visible { opacity: 1; }
-
-.sub-drawer {
-    position: fixed;
-    top: 0;
-    right: 0;
-    height: 100%;
-    width: 360px;
-    max-width: 100vw;
-    background: var(--section);
-    border-left: 1px solid var(--border);
-    box-shadow: -8px 0 32px rgba(0,0,0,0.3);
-    z-index: 160;
-    display: flex;
-    flex-direction: column;
-    transform: translateX(100%);
-    transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
-    overflow: hidden;
-}
-.sub-drawer[hidden] { display: none !important; }
-.sub-drawer--open   { transform: translateX(0) !important; }
-
-.sub-drawer-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    padding: 20px 20px 16px;
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-}
-.sub-drawer-title-row {
+    z-index: 2600;
     display: flex;
     align-items: center;
-    gap: 12px;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(3px);
+    opacity: 0;
+    transition: opacity 0.18s ease;
 }
-.sub-drawer-name { font-size: 16px; font-weight: 700; color: var(--text); }
-.sub-drawer-cat  { font-size: 12.5px; color: var(--text-light); margin-top: 2px; }
+.sub-detail-backdrop[hidden] { display: none !important; }
+.sub-detail--visible { opacity: 1; }
 
-.drawer-badge {
-    padding: 3px 10px;
+.sub-detail-box {
+    width: 100%;
+    max-width: 440px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--card);
+    border: 1.5px solid var(--orange);
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    transform: scale(0.96);
+    opacity: 0;
+    transition: transform 0.18s ease, opacity 0.18s ease;
+    overflow: hidden;
+}
+.sub-detail--visible .sub-detail-box {
+    transform: scale(1);
+    opacity: 1;
+}
+
+/* Header */
+.sub-detail-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid rgba(255, 122, 41, 0.35);
+    flex-shrink: 0;
+}
+.sub-detail-header h2 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0;
+}
+.sub-detail-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;   /* full circle */
+    border: 1px solid rgba(255, 122, 41, 0.5);
+    background: transparent;
+    color: var(--orange);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.sub-detail-close:hover { background: var(--orange-tint); }
+.sub-detail-close:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+.sub-detail-close:active { transform: scale(0.94); }
+
+/* Body (scrolls if content overflows) */
+.sub-detail-body {
+    padding: 18px 20px;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Top block: avatar + name + status badge */
+.sub-detail-top {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+.sub-detail-avatar {
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--orange);
+    background: var(--orange-tint);
+    border: 1px solid rgba(255, 122, 41, 0.4);
+    border-radius: 12px;
+}
+.sub-detail-top-text {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+.sub-detail-name {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+.sub-detail-badge {
+    align-self: flex-start;
+    padding: 3px 11px;
     border-radius: 999px;
     font-size: 11.5px;
     font-weight: 600;
     white-space: nowrap;
 }
-.drawer-badge--active { background: rgba(95,161,11,0.15); color: var(--green); }
-.drawer-badge--paused { background: var(--hover);          color: var(--text-light); }
+.sub-detail-badge--active { background: rgba(111, 219, 143, 0.16); color: var(--green); }
+.sub-detail-badge--paused { background: rgba(245, 184, 61, 0.18); color: #F5B83D; }
 
-.sub-drawer-body {
-    padding: 20px;
-    overflow-y: auto;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 0;
+/* Details card */
+.sub-detail-card {
+    border: 1px solid rgba(255, 122, 41, 0.35);
+    border-radius: 12px;
+    padding: 4px 14px;
 }
-
-.drawer-row {
+.sub-detail-row {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 12px 0;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 11px 0;
     border-bottom: 1px solid var(--border);
 }
-.drawer-row:last-of-type { border-bottom: none; }
-
-.drawer-label { font-size: 13px; color: var(--text-light); }
-.drawer-value { font-size: 13.5px; font-weight: 600; color: var(--text); }
-.drawer-value--urgent { color: var(--danger); }
-
-.drawer-notes { padding-top: 16px; display: flex; flex-direction: column; gap: 6px; }
-.drawer-notes-text { font-size: 13.5px; color: var(--text-light); line-height: 1.5; }
-
-.sub-drawer-footer {
-    display: flex;
-    gap: 10px;
-    padding: 16px 20px;
-    border-top: 1px solid var(--border);
+.sub-detail-row:last-child { border-bottom: none; }
+.sub-detail-label {
+    font-size: 13px;
+    color: var(--text-light);
     flex-shrink: 0;
 }
+.sub-detail-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    text-align: right;
+    overflow-wrap: anywhere;
+}
+.sub-detail-value--urgent { color: var(--danger); }
 
-.sub-drawer-btn {
-    flex: 1;
-    padding: 11px 0;
+/* Next-payment display states in the details modal. Active never red. */
+.sub-detail-np--paused { color: var(--text-light); font-weight: 500; }
+.sub-detail-np--today  { color: var(--orange); font-weight: 700; }
+.sub-detail-np--soon   { color: var(--orange); font-weight: 600; }
+.sub-detail-np--normal { color: var(--text); }
+.sub-detail-np--none   { color: var(--text-light); }
+
+/* Notes */
+.sub-detail-notes {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.sub-detail-notes[hidden] { display: none !important; }
+.sub-detail-notes-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-light);
+}
+.sub-detail-notes-text {
+    margin: 0;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--text);
+    background: var(--raised);
+    border: 1px solid var(--border);
     border-radius: 10px;
+    padding: 10px 12px;
+}
+
+/* Footer + action buttons */
+.sub-detail-footer {
+    display: flex;
+    gap: 10px;
+    padding: 14px 20px;
+    border-top: 1px solid rgba(255, 122, 41, 0.35);
+    flex-shrink: 0;
+}
+.sub-detail-btn {
+    flex: 1 1 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    height: 40px;
+    padding: 0 18px;
+    border-radius: var(--radius-pill);   /* pill — details + edit modals */
+    font-family: inherit;
     font-size: 13.5px;
     font-weight: 600;
     cursor: pointer;
-    text-align: center;
-    border: none;
-    font-family: inherit;
-    transition: background-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+    border: 1px solid transparent;
+    transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
 }
+.sub-detail-btn svg { flex-shrink: 0; }
+.sub-detail-btn:active { transform: scale(0.97); }
+.sub-detail-btn:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
 
-.sub-drawer-btn:active {
-    transform: scale(0.97);
+/* Reactivate / Pause — solid orange, dark text */
+.sub-detail-btn--toggle {
+    background: var(--orange);
+    color: #1a0e04;
+    border-color: var(--orange);
 }
+.sub-detail-btn--toggle:hover { background: var(--orange-hover); border-color: var(--orange-hover); }
 
-/* Pause/Toggle button — orange/accent themed */
-.sub-drawer-btn--toggle {
-    background: var(--orange-tint);
+/* Edit — transparent, orange border + text */
+.sub-detail-btn--edit {
+    background: transparent;
     color: var(--orange);
-    border: 1px solid rgba(255, 122, 41, 0.2);
+    border-color: var(--orange);
 }
-.sub-drawer-btn--toggle:hover {
-    background: rgba(255, 122, 41, 0.2);
-    box-shadow: 0 2px 8px var(--orange-glow);
-}
+.sub-detail-btn--edit:hover { background: var(--orange-tint); }
 
-/* Edit button — blue themed */
-.sub-drawer-btn--edit {
-    background: rgba(167, 124, 255, 0.12);
-    color: var(--blue);
-    border: 1px solid rgba(167, 124, 255, 0.2);
-}
-.sub-drawer-btn--edit:hover {
-    background: rgba(148, 150, 157, 0.18);
-    box-shadow: 0 2px 8px rgba(148, 150, 157, 0.15);
-}
-
-/* Delete button — red/danger themed */
-.sub-drawer-btn--delete {
-    background: rgba(227, 101, 101, 0.08);
+/* Delete — transparent, red border + text */
+.sub-detail-btn--delete {
+    background: transparent;
     color: var(--danger);
-    border: 1px solid rgba(227, 101, 101, 0.2);
+    border-color: var(--danger);
 }
-.sub-drawer-btn--delete:hover {
-    background: rgba(227, 101, 101, 0.16);
-    box-shadow: 0 2px 8px rgba(227, 101, 101, 0.15);
-}
+.sub-detail-btn--delete:hover { background: rgba(227, 101, 101, 0.12); }
 
 /* ── Toast notifications ─────────────────────────────────── */
 .sub-toast {
@@ -707,40 +842,50 @@ body.modal-open { overflow: hidden; }
 .sub-advanced-toggle {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;   /* chevron + label together on the left */
+    gap: 8px;
     width: 100%;
-    padding: 10px 0;
+    padding: 11px 14px;
     background: transparent;
-    border: none;
-    color: var(--text);
+    border: 1px solid rgba(255, 122, 41, 0.35);
+    border-radius: 10px;
+    color: var(--orange);
     font-size: 13.5px;
     font-weight: 600;
+    font-family: inherit;
     cursor: pointer;
-    transition: color 0.15s ease;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 .sub-advanced-toggle:hover {
-    color: var(--orange);
+    background: var(--orange-tint);
+}
+.sub-advanced-toggle:focus-visible {
+    outline: 2px solid var(--orange);
+    outline-offset: 2px;
 }
 
 .sub-advanced-chevron {
+    flex-shrink: 0;
     transition: transform 0.25s ease;
-    color: var(--text-light);
+    color: var(--orange);
 }
 .sub-advanced-toggle[aria-expanded="true"] .sub-advanced-chevron {
-    transform: rotate(180deg);
-    color: var(--orange);
+    transform: rotate(90deg);   /* chevron-right rotates to point down */
 }
 
 .sub-advanced-body {
     max-height: 0;
     overflow: hidden;
-    transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 0;
+    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, margin-top 0.3s ease;
     display: flex;
     flex-direction: column;
     gap: 14px;
 }
 .sub-advanced-body--open {
-    max-height: 500px;
+    max-height: 600px;
+    opacity: 1;
+    margin-top: 14px;
 }
 
 /* Logo upload */
@@ -868,35 +1013,72 @@ body.modal-open { overflow: hidden; }
     padding-left: 11px;
 }
 
-/* Subscription row menu items — themed */
-.sub-menu .dropdown-menu-item {
+/* Subscription menus (row kebab + toolbar "⋮").
+   The dropdown PANEL is transparent — no orange fill, border, or shadow.
+   Each individual button carries the orange background instead. Applies to
+   the row menu (.sub-menu) and the Add-Subscription toolbar menu
+   (.sub-more-menu). */
+.sub-menu,
+.sub-more-menu {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+.sub-menu .dropdown-menu-header,
+.sub-more-menu .dropdown-menu-header {
+    color: var(--text);
+    border-bottom-color: var(--border);
+}
+
+/* Individual menu buttons — solid orange (#FF8A34), white text/icons. */
+.sub-menu .dropdown-menu-item,
+.sub-more-menu .dropdown-menu-item {
     gap: 10px;
     padding: 10px 14px;
+    margin-bottom: 6px;
     border-radius: 8px;
     font-size: 13.5px;
-    color: var(--text);
-    transition: background-color 0.15s ease, color 0.15s ease;
+    background: #FF8A34;
+    color: #ffffff;
+    transition: background-color 175ms ease;
 }
 
-.sub-menu .dropdown-menu-item svg {
-    color: var(--text-light);
-    transition: color 0.15s ease;
+.sub-menu .dropdown-menu-item:last-child,
+.sub-more-menu .dropdown-menu-item:last-child {
+    margin-bottom: 0;
 }
 
-.sub-menu .dropdown-menu-item:hover svg {
-    color: var(--orange);
+.sub-menu .dropdown-menu-item svg,
+.sub-more-menu .dropdown-menu-item svg {
+    color: #ffffff;
+    transition: none;
 }
 
-.sub-menu .dropdown-menu-item.danger {
-    color: var(--danger);
+/* Hover — lighter orange (#FF9B54). */
+.sub-menu .dropdown-menu-item:hover,
+.sub-more-menu .dropdown-menu-item:hover {
+    background: #FF9B54;
+    color: #ffffff;
 }
 
-.sub-menu .dropdown-menu-item.danger svg {
-    color: var(--danger);
+/* Keep the danger (Delete) item on the same orange scheme so every button
+   in the menu reads consistently. */
+.sub-menu .dropdown-menu-item.danger,
+.sub-more-menu .dropdown-menu-item.danger {
+    background: #FF8A34;
+    color: #ffffff;
 }
 
-.sub-menu .dropdown-menu-item.danger:hover {
-    background: rgba(227, 101, 101, 0.08);
+.sub-menu .dropdown-menu-item.danger:hover,
+.sub-more-menu .dropdown-menu-item.danger:hover {
+    background: #FF9B54;
+    color: #ffffff;
+}
+
+.sub-menu .dropdown-menu-item.danger svg,
+.sub-more-menu .dropdown-menu-item.danger svg {
+    color: #ffffff;
 }
 
 /* Clickable subscription name */
@@ -949,7 +1131,6 @@ body.modal-open { overflow: hidden; }
     .sub-fab     { display: flex; }          /* show FAB on mobile */
     .add-sub-btn { display: none; }          /* hide header button, use FAB */
     .sub-modal-row { grid-template-columns: 1fr; }
-    .sub-drawer  { width: 100%; }
 }
 
 @media (max-width: 540px) {
@@ -1728,4 +1909,352 @@ body.modal-open { overflow: hidden; }
         max-width: 100%;
         padding-bottom: 4px;
     }
+}
+
+/* =============================================================
+   AVAILABLE SUBSCRIPTIONS — collapse / expand toggle
+============================================================= */
+.sub-library-head {
+    flex-wrap: wrap;
+    gap: 12px;
+}
+.sub-library-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.sub-library-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--hover);
+    color: var(--text-light);
+    cursor: pointer;
+    transition: color var(--t-fast), border-color var(--t-fast), transform var(--t-fast);
+    flex-shrink: 0;
+}
+.sub-library-toggle:hover {
+    color: var(--orange);
+    border-color: var(--orange);
+}
+.sub-library-toggle svg {
+    transition: transform var(--t-fast);
+}
+/* Chevron points up when the section is collapsed */
+.sub-library-toggle.is-collapsed svg {
+    transform: rotate(-180deg);
+}
+
+/* Collapsible body */
+.sub-library-body[hidden] {
+    display: none !important;
+}
+
+/* When collapsed, hide the search/sort controls too (they're part of the head) */
+.sub-library-toggle.is-collapsed ~ .sub-library-controls,
+.sub-library-head:has(.sub-library-toggle.is-collapsed) .sub-library-controls {
+    display: none;
+}
+
+/* Divider between "Your Subscriptions" and "Available Subscriptions" */
+.sub-section-divider {
+    border: none;
+    height: 1px;
+    background: var(--border);
+    margin: 28px 0;
+}
+
+/* =============================================================
+   SUBSCRIPTION MODAL BUTTONS (.sub-btn)
+   Cancel = orange + more rounded, per request.
+============================================================= */
+.sub-modal-footer {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+}
+.sub-btn {
+    padding: 11px 22px;
+    border-radius: var(--radius-pill);   /* fully rounded pill */
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    transition: background var(--t-fast), border-color var(--t-fast), transform var(--t-fast), color var(--t-fast);
+}
+.sub-btn:active { transform: scale(0.97); }
+
+/* Secondary action (Cancel) — outline orange pill. */
+.sub-btn--secondary {
+    background: transparent;
+    color: var(--orange);
+    border: 1px solid var(--orange);
+}
+.sub-btn--secondary:hover {
+    background: var(--orange-tint);
+    color: var(--orange-hover);
+    border-color: var(--orange-hover);
+}
+
+/* Primary action (Save / Add) — solid orange pill, dark text. */
+.sub-btn--primary {
+    background: var(--orange);
+    color: #1a0e04;
+    border: 1px solid var(--orange);
+}
+.sub-btn--primary:hover {
+    background: var(--orange-hover);
+    border-color: var(--orange-hover);
+}
+
+/* Destructive action (Delete) */
+.sub-btn--danger {
+    background: var(--danger);
+    color: #fff;
+}
+.sub-btn--danger:hover { background: #c94f4f; }
+
+/* ── Subscription details modal — small screens ─────────────── */
+@media (max-width: 480px) {
+    .sub-detail-backdrop { padding: 16px; }
+    .sub-detail-box { max-width: 100%; }
+    /* Footer buttons shrink gracefully; labels can hide if very tight. */
+    .sub-detail-footer { gap: 8px; }
+    .sub-detail-btn { padding: 0 10px; font-size: 12.5px; }
+}
+@media (max-width: 360px) {
+    .sub-detail-footer { flex-wrap: wrap; }
+    .sub-detail-btn { flex: 1 1 40%; }
+}
+
+/* =============================================================
+   EDIT / ADD SUBSCRIPTION MODAL — dark surface + orange border,
+   matching the Subscription details modal. Scoped to #sub-modal
+   (.sub-edit-modal) so other modals that reuse .sub-modal-box
+   are untouched. Reuses var(--orange) — no hardcoded new colour.
+============================================================= */
+
+.sub-edit-modal.sub-modal-backdrop {
+    z-index: 2600;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(3px);
+}
+
+/* Container: dark card surface, 1.5px orange border, 16px radius */
+.sub-edit-modal .sub-modal-box {
+    background: var(--card);
+    border: 1.5px solid var(--orange);
+    border-radius: 16px;
+    max-width: 480px;
+    max-height: 90vh;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    transform: scale(0.96);
+    opacity: 0;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+}
+.sub-edit-modal.sub-modal--visible .sub-modal-box {
+    transform: scale(1);
+    opacity: 1;
+}
+
+/* Header + footer dividers in orange */
+.sub-edit-modal .sub-modal-header {
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid rgba(255, 122, 41, 0.35);
+}
+.sub-edit-modal .sub-modal-header h2 { font-size: 16px; }
+
+.sub-edit-modal .sub-modal-body {
+    padding: 18px 20px;
+    gap: 14px;
+}
+.sub-edit-modal .sub-modal-footer {
+    padding: 14px 20px;
+    border-top: 1px solid rgba(255, 122, 41, 0.35);
+}
+
+/* 2-column grid body */
+.sub-modal-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+.sub-modal-grid .sub-modal-field--full { grid-column: 1 / -1; }
+
+/* Labels — muted grey 13px, orange required asterisk */
+.sub-edit-modal .sub-modal-field label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-light);
+}
+.sub-edit-modal .sub-modal-field .required {
+    color: var(--orange);
+    margin-left: 1px;
+}
+
+/* Inputs / selects / textarea — dark fill, subtle border, 10px radius */
+.sub-edit-modal .sub-modal-field input,
+.sub-edit-modal .sub-modal-field select,
+.sub-edit-modal .sub-modal-field textarea {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    min-height: 40px;
+    padding: 0 12px;
+    color: var(--text);
+    font-size: 13.5px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.sub-edit-modal .sub-modal-field textarea {
+    min-height: 72px;
+    padding: 10px 12px;
+    resize: vertical;
+}
+.sub-edit-modal .sub-modal-field input:focus,
+.sub-edit-modal .sub-modal-field select:focus,
+.sub-edit-modal .sub-modal-field textarea:focus {
+    border-color: var(--orange);
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2);
+    outline: none;
+}
+
+/* Dark-themed native date picker with a light calendar icon */
+.sub-edit-modal #sub-modal-date {
+    color-scheme: dark;
+}
+.sub-edit-modal #sub-modal-date::-webkit-calendar-picker-indicator {
+    filter: invert(0.8);
+    cursor: pointer;
+}
+
+/* Notes stays dark here (overrides the earlier white-notes rule only
+   inside the edit modal so it matches the dark theme). */
+.sub-edit-modal #sub-modal-notes,
+.sub-edit-modal #sub-modal-notes:focus {
+    background: var(--input-bg) !important;
+    background-color: var(--input-bg) !important;
+    color: var(--text) !important;
+}
+.sub-edit-modal #sub-modal-notes::placeholder { color: var(--text-light) !important; }
+
+/* Per-field inline error */
+.sub-modal-field-error {
+    font-size: 12px;
+    color: var(--danger);
+    min-height: 0;
+}
+.sub-modal-field-error:empty { display: none; }
+
+/* Pause-confirm modal can be launched from the details modal (z 2600),
+   so it must sit above it. */
+#sub-pause-modal.sub-modal-backdrop { z-index: 2700; }
+
+/* Helper text (e.g. paused date field hint) */
+.sub-modal-field-help {
+    font-size: 12px;
+    color: var(--text-light);
+}
+.sub-modal-field-help[hidden] { display: none !important; }
+.sub-modal-field--paused input {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+.sub-modal-field--error input,
+.sub-modal-field--error select,
+.sub-modal-field--error textarea {
+    border-color: var(--danger) !important;
+}
+
+/* Top error banner (save failure) */
+.sub-modal-banner {
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    color: var(--danger);
+    background: rgba(227, 101, 101, 0.12);
+    border: 1px solid rgba(227, 101, 101, 0.35);
+}
+.sub-modal-banner[hidden] { display: none !important; }
+
+/* Footer buttons full width on narrow screens handled below.
+   Save button loading state. */
+.sub-edit-modal .sub-detail-btn[disabled],
+.sub-edit-modal .sub-modal-field input[disabled],
+.sub-edit-modal .sub-modal-field select[disabled],
+.sub-edit-modal .sub-modal-field textarea[disabled] {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+#sub-modal-save.is-saving .sub-save-check { display: none; }
+.sub-save-spinner {
+    width: 15px;
+    height: 15px;
+    border: 2px solid rgba(26, 14, 4, 0.35);
+    border-top-color: #1a0e04;
+    border-radius: 50%;
+    animation: sub-save-spin 0.7s linear infinite;
+    flex-shrink: 0;
+}
+@keyframes sub-save-spin { to { transform: rotate(360deg); } }
+
+/* ── Discard-changes confirm dialog (reusable orange-bordered) ─── */
+.sub-confirm2-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 2700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+.sub-confirm2-backdrop[hidden] { display: none !important; }
+.sub-confirm2-backdrop.is-visible { opacity: 1; }
+.sub-confirm2-box {
+    width: 100%;
+    max-width: 360px;
+    background: var(--card);
+    border: 1.5px solid var(--orange);
+    border-radius: 16px;
+    padding: 20px;
+    transform: scale(0.96);
+    transition: transform 0.15s ease;
+}
+.sub-confirm2-backdrop.is-visible .sub-confirm2-box { transform: scale(1); }
+.sub-confirm2-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 6px;
+}
+.sub-confirm2-text {
+    font-size: 13.5px;
+    color: var(--text-light);
+    margin: 0 0 18px;
+    line-height: 1.5;
+}
+.sub-confirm2-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+.sub-confirm2-actions .sub-detail-btn { flex: 0 0 auto; }
+
+/* ── Edit modal — responsive (single column, full-width buttons) ── */
+@media (max-width: 480px) {
+    .sub-modal-grid { grid-template-columns: 1fr; }
+    .sub-modal-grid .sub-modal-field--full { grid-column: auto; }
+    .sub-edit-modal .sub-modal-box { max-width: 100%; }
+    .sub-edit-modal .sub-modal-footer { flex-direction: column-reverse; }
+    .sub-edit-modal .sub-modal-footer .sub-detail-btn { width: 100%; flex: 1 1 auto; }
 }

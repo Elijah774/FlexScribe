@@ -45,8 +45,19 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'landing.html'));
 });
 
-// Start
-app.listen(PORT, async () => {
+/** Find this machine's first non-internal IPv4 address (for the LAN URL). */
+function _lanIP() {
+    const nets = require('os').networkInterfaces();
+    for (const name of Object.keys(nets)) {
+        for (const net of nets[name] || []) {
+            if (net.family === 'IPv4' && !net.internal) return net.address;
+        }
+    }
+    return 'localhost';
+}
+
+// Start — bind 0.0.0.0 explicitly so other devices on the LAN can connect.
+app.listen(PORT, '0.0.0.0', async () => {
     try {
         await getPool();
 
@@ -56,9 +67,11 @@ app.listen(PORT, async () => {
             await query("IF COL_LENGTH('Subscriber', 'avatarUrl') IS NOT NULL ALTER TABLE Subscriber ALTER COLUMN avatarUrl VARCHAR(MAX) NULL");
         } catch (e) { /* ignore if already done */ }
 
-        console.log(`\nFlexScribe API running on http://localhost:${PORT}`);
-        console.log(`Frontend: http://localhost:${PORT}/landing.html`);
-        console.log(`App:      http://localhost:${PORT}/pages/MASTER.html\n`);
+        const lan = _lanIP();
+        console.log(`\nFlexScribe API running on port ${PORT} (all interfaces)`);
+        console.log(`  On this PC:        http://localhost:${PORT}/pages/MASTER.html`);
+        console.log(`  On other devices:  http://${lan}:${PORT}/pages/MASTER.html`);
+        console.log(`  API health check:  http://${lan}:${PORT}/api/health\n`);
 
         // Start the notification scheduler (billing + reminders + summaries).
         // Guarded by DISABLE_SCHEDULER so tests / tooling can run the API
