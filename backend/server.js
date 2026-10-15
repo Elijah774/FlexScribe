@@ -211,7 +211,8 @@ app.post("/auth/check-email", async (req, res) => {
 app.post("/auth/logout", (req, res) => { res.json({ success: true, data: null }); });
 app.post("/auth/forgot-password", (req, res) => { res.json({ success: true, data: { sent: true } }); });
 
-app.get("/auth/me", authenticate, async (req, res) => {
+// Alias /auth/profile → /auth/me handler for frontend compatibility
+async function _getAuthProfile(req, res) {
     try {
         const p = await getPool();
         const r = await p.request().input("id", sql.Int, req.user.subscriberID)
@@ -223,7 +224,10 @@ app.get("/auth/me", authenticate, async (req, res) => {
         console.error("Get user error:", error);
         res.status(500).json({ success: false, message: "Could not fetch user" });
     }
-});
+}
+
+app.get("/auth/me", authenticate, _getAuthProfile);
+app.get("/auth/profile", authenticate, _getAuthProfile);
 
 /* ===========================================================
    SUBSCRIPTIONS

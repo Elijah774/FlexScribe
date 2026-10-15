@@ -33,15 +33,13 @@ router.post('/register', async (req, res) => {
             OUTPUT INSERTED.subscriberID
             VALUES (@firstName, @lastName, @email, @passwordHash, @phone, @marketingOptIn, @dateOfBirth, GETDATE(), @accentColor, @avatarUrl, 500)
         `, { firstName, lastName, email, passwordHash, phone: phone || null, marketingOptIn: marketingOptIn ? 1 : 0, dateOfBirth: dob || null, accentColor: '#FF8A34', avatarUrl: null });
-
         const subscriberID = result.recordset[0].subscriberID;
 
         // Create MainMember record
         await query('INSERT INTO MainMember (mainMemberID) VALUES (@id)', { id: subscriberID });
 
-        // Create wallet with unique card number
-        const cardNumber = '4' + Array.from({length: 15}, () => Math.floor(Math.random() * 10)).join('');
-        await query('INSERT INTO VirtualWallet (subscriberID, cardNumber) VALUES (@id, @card)', { id: subscriberID, card: cardNumber });
+        // Create wallet (no cardNumber column in this schema)
+        await query('INSERT INTO VirtualWallet (subscriberID) VALUES (@id)', { id: subscriberID });
 
         // Create initial ScribeScore entry
         await query('INSERT INTO ScribeScore (subscriberID, scoreValue) VALUES (@id, 500)', { id: subscriberID });
@@ -52,6 +50,7 @@ router.post('/register', async (req, res) => {
         res.status(201).json({
             message: 'Account created successfully',
             token,
+            scribeScore: 500,
             user: { subscriberID, firstName, lastName, email, userType: 'MainMember' }
         });
         updateUserAnalytics(subscriberID);

@@ -193,7 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let result;
             if (typeof API !== 'undefined') { result = await API.Auth.login(email, pw); }
             else { await new Promise(r => setTimeout(r, 1000)); sessionStorage.setItem('flexscribe_token', 'mock-token'); result = { success: true }; }
-            if (result.success) { setBtnSuccess(loginSubmit); setTimeout(() => { window.location.href = result.data?.isAdmin ? 'admin.html' : 'loading.html'; }, 1200); }
+            if (result.success) { setBtnSuccess(loginSubmit); setTimeout(() => { if (result.data?.user) { sessionStorage.setItem('flexscribe_user', JSON.stringify(result.data.user)); } const isAdmin = result.data?.user?.userType === 'Admin'; window.location.href = isAdmin ? 'admin.html' : 'loading.html'; }, 1200); }
             else { resetBtn(loginSubmit); showAuthError(result.error || 'Invalid credentials.'); }
         });
     }

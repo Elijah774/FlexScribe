@@ -3,11 +3,11 @@
    backend/goals.js
 
    Responsibilities:
-   • In-memory data store seeded from localStorage
+   • In-memory data store loaded from SQL Server API
    • CRUD: add, edit, remove goals
    • Contribute funds to a goal
    • onChange pub/sub for UI re-renders
-   • All mutations persist to localStorage automatically
+   • All mutations call the API then reload
    • Exposes a single global `GoalsStore` object consumed
      by the UI layer (scripts/goals-ui.js)
 ============================================================= */
@@ -19,75 +19,19 @@ const GoalsStore = (() => {
     /* ----------------------------------------------------------
        CONSTANTS
     ---------------------------------------------------------- */
-    const STORAGE_KEY = 'flexscribe_goals';
-
     const CATEGORIES = ['Travel', 'Tech', 'Education', 'Emergency', 'Home', 'Vehicle', 'Other'];
-
-    /* ----------------------------------------------------------
-       SEED DATA (used only when localStorage is empty)
-    ---------------------------------------------------------- */
-    const SEED = {
-        goals: [
-            {
-                id: 'goal_001',
-                name: 'Vacation Fund',
-                targetAmount: 25000,
-                savedAmount: 15800,
-                targetDate: '2025-12-01',
-                category: 'Travel',
-                imageUrl: '',
-                status: 'in_progress',
-                createdAt: '2024-06-01',
-                contributions: [
-                    { id: 'gc_001', amount: 5000, date: '2024-06-15', note: 'Initial deposit' },
-                    { id: 'gc_002', amount: 3000, date: '2024-08-01', note: 'Monthly savings' },
-                    { id: 'gc_003', amount: 5000, date: '2024-10-01', note: 'Bonus contribution' },
-                    { id: 'gc_004', amount: 2800, date: '2025-01-15', note: 'Monthly savings' }
-                ]
-            },
-            {
-                id: 'goal_002',
-                name: 'New Laptop',
-                targetAmount: 18000,
-                savedAmount: 12500,
-                targetDate: '2025-08-15',
-                category: 'Tech',
-                imageUrl: '',
-                status: 'in_progress',
-                createdAt: '2024-09-01',
-                contributions: [
-                    { id: 'gc_005', amount: 5000, date: '2024-09-15', note: 'Starting fund' },
-                    { id: 'gc_006', amount: 4000, date: '2024-11-01', note: 'Freelance income' },
-                    { id: 'gc_007', amount: 3500, date: '2025-02-01', note: 'Monthly savings' }
-                ]
-            }
-        ]
-    };
 
     /* ----------------------------------------------------------
        PRIVATE STATE
     ---------------------------------------------------------- */
-    let _data = null;
+    let _data = { goals: [] };
     let _listeners = [];
 
     /* ----------------------------------------------------------
-       PERSISTENCE
+       PERSISTENCE — no-op (API is source of truth)
     ---------------------------------------------------------- */
-    function _load() {
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            _data = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(SEED));
-        } catch {
-            _data = JSON.parse(JSON.stringify(SEED));
-        }
-    }
-
     function _save() {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(_data));
-        } catch (e) {
-            console.warn('FlexScribe: could not persist goals data', e);
-        }
+        // No-op. We do not persist to localStorage.
     }
 
     /* ----------------------------------------------------------
@@ -109,13 +53,6 @@ const GoalsStore = (() => {
     /* ----------------------------------------------------------
        HELPERS
     ---------------------------------------------------------- */
-    function _uid() {
-        return 'goal_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    }
-
-    function _cid() {
-        return 'gc_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    }
 
     /** Format currency as "R12,450.00" */
     function fmtCurrency(val) {
@@ -129,6 +66,31 @@ const GoalsStore = (() => {
         const months = ['Jan','Feb','Mar','Apr','May','Jun',
                         'Jul','Aug','Sep','Oct','Nov','Dec'];
         return `${months[m - 1]} ${d}, ${y}`;
+    }
+
+    /* ----------------------------------------------------------
+       LOAD FROM API
+    ---------------------------------------------------------- */
+    async function loadFromAPI() {
+        if (typeof API === 'undefined') {
+            throw new Error('API not available');
+        }
+
+        const result = await API.Goals.getAll();
+
+        if (!result.success) {
+            throw new Error(result.error || 'Failed to load goals');
+        }
+
+        // After api.js normalizer, result.data is already mapped to the
+        // correct shape (id, name, targetAmount, savedAmount, etc.)
+        _data.goals = Array.isArray(result.data)
+            ? result.data.map(g => ({ ...g, contributions: [] }))
+            : [];
+
+        _listeners.forEach(fn => fn(getAll()));
+
+        return _data.goals;
     }
 
     /* ----------------------------------------------------------
@@ -154,92 +116,63 @@ const GoalsStore = (() => {
     /* ----------------------------------------------------------
        WRITE — Add Goal
     ---------------------------------------------------------- */
-    function add({ name, targetAmount, targetDate, category, imageUrl }) {
-        targetAmount = parseFloat(targetAmount);
-        if (!name || !name.trim()) throw new Error('Goal name is required.');
-        if (!targetAmount || targetAmount <= 0) throw new Error('Target amount must be greater than zero.');
+    async function add({ name, targetAmount, targetDate, category, imageUrl }) {
+        if (typeof API === 'undefined') throw new Error('API not available');
 
-        const goal = {
-            id: _uid(),
-            name: name.trim(),
-            targetAmount,
-            savedAmount: 0,
-            targetDate: targetDate || '',
-            category: category || 'Other',
-            imageUrl: imageUrl || '',
-            status: 'in_progress',
-            createdAt: new Date().toISOString().slice(0, 10),
-            contributions: []
-        };
+        const result = await API.Goals.add({ name, targetAmount, targetDate, category, imageUrl });
 
-        _data.goals.push(goal);
-        _notify();
-        return goal;
+        if (!result.success) {
+            throw new Error(result.error || 'Failed to add goal.');
+        }
+
+        await loadFromAPI();
+
+        return result.data;
     }
 
     /* ----------------------------------------------------------
        WRITE — Edit Goal
     ---------------------------------------------------------- */
-    function edit(id, updates) {
-        const idx = _data.goals.findIndex(g => g.id === id);
-        if (idx === -1) throw new Error('Goal not found.');
+    async function edit(id, updates) {
+        if (typeof API === 'undefined') throw new Error('API not available');
 
-        const goal = _data.goals[idx];
-        if (updates.name !== undefined) goal.name = updates.name.trim();
-        if (updates.targetAmount !== undefined) goal.targetAmount = parseFloat(updates.targetAmount);
-        if (updates.targetDate !== undefined) goal.targetDate = updates.targetDate;
-        if (updates.category !== undefined) goal.category = updates.category;
-        if (updates.imageUrl !== undefined) goal.imageUrl = updates.imageUrl;
+        const result = await API.Goals.edit(id, updates);
 
-        // Auto-mark completed if saved >= target
-        if (goal.savedAmount >= goal.targetAmount) {
-            goal.status = 'completed';
-        } else {
-            goal.status = 'in_progress';
+        if (!result.success) {
+            throw new Error(result.error || 'Failed to edit goal.');
         }
 
-        _notify();
-        return { ...goal, contributions: [...goal.contributions] };
+        await loadFromAPI();
     }
 
     /* ----------------------------------------------------------
        WRITE — Remove Goal
     ---------------------------------------------------------- */
-    function remove(id) {
-        const idx = _data.goals.findIndex(g => g.id === id);
-        if (idx === -1) throw new Error('Goal not found.');
-        _data.goals.splice(idx, 1);
-        _notify();
+    async function remove(id) {
+        if (typeof API === 'undefined') throw new Error('API not available');
+
+        const result = await API.Goals.remove(id);
+
+        if (!result.success) {
+            throw new Error(result.error || 'Failed to remove goal.');
+        }
+
+        await loadFromAPI();
     }
 
     /* ----------------------------------------------------------
        WRITE — Contribute to Goal
     ---------------------------------------------------------- */
-    function contribute(id, amount, note) {
-        amount = parseFloat(amount);
-        if (!amount || amount <= 0) throw new Error('Amount must be greater than zero.');
+    async function contribute(id, amount) {
+        if (typeof API === 'undefined') throw new Error('API not available');
 
-        const idx = _data.goals.findIndex(g => g.id === id);
-        if (idx === -1) throw new Error('Goal not found.');
+        const result = await API.Goals.contribute(id, amount);
 
-        const goal = _data.goals[idx];
-        goal.savedAmount += amount;
-
-        const contribution = {
-            id: _cid(),
-            amount,
-            date: new Date().toISOString().slice(0, 10),
-            note: note || ''
-        };
-        goal.contributions.push(contribution);
-
-        // Auto-mark completed if saved >= target
-        if (goal.savedAmount >= goal.targetAmount) {
-            goal.status = 'completed';
+        if (!result.success) {
+            throw new Error(result.error || 'Failed to contribute to goal.');
         }
 
-        _notify();
-        return contribution;
+        await loadFromAPI();
     }
 
     /* ----------------------------------------------------------
@@ -274,7 +207,6 @@ const GoalsStore = (() => {
     /* ----------------------------------------------------------
        PUBLIC API
     ---------------------------------------------------------- */
-    _load();
 
     return Object.freeze({
         // Data access
@@ -287,6 +219,8 @@ const GoalsStore = (() => {
         edit,
         remove,
         contribute,
+        // API loading
+        loadFromAPI,
         // Events
         onChange,
         offChange,
