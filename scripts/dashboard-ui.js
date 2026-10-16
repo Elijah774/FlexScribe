@@ -69,6 +69,13 @@ const DashboardUI = (function () {
         });
         if (popupClose) popupClose.addEventListener('click', _closeAIPopup);
         if (popupOverlay) popupOverlay.addEventListener('click', _closeAIPopup);
+
+        // Scribe Score — "View breakdown" opens the analytics page where the
+        // full score breakdown lives.
+        var bdBtn = document.getElementById('dash-score-breakdown-btn');
+        if (bdBtn) bdBtn.addEventListener('click', function () {
+            if (typeof loadPage === 'function') loadPage('analytics');
+        });
     }
 
     function _closeAIPopup() {
@@ -121,49 +128,100 @@ const DashboardUI = (function () {
         }
     }
 
-    // ═══ Scribe Score Ring (dynamic from API) ═══
+    // ═══ Scribe Score — rule-based 1000-point breakdown (from /api/score) ═══
+    function _esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+    }
+
+    function _relTime(iso) {
+        if (!iso) return '';
+        var then = new Date(iso).getTime();
+        if (isNaN(then)) return '';
+        var mins = Math.round((Date.now() - then) / 60000);
+        if (mins < 1) return 'just now';
+        if (mins < 60) return mins + 'm ago';
+        var hrs = Math.round(mins / 60);
+        if (hrs < 24) return hrs + 'h ago';
+        var days = Math.round(hrs / 24);
+        return days + 'd ago';
+    }
+
+    function _applyRings(pct) {
+        var outer = document.querySelector('.dash-ring-outer');
+        if (outer) { outer.style.strokeDashoffset = 440 - (pct * 440); outer.style.transition = 'stroke-dashoffset 1s ease-out'; }
+        var inner = document.querySelector('.dash-ring-inner');
+        if (inner) { inner.style.strokeDashoffset = 327 - (pct * 327); inner.style.transition = 'stroke-dashoffset 1s ease-out'; }
+    }
+
     function _renderScribeScore() {
-        if (typeof API === 'undefined') return;
+        if (typeof API === 'undefined' || !API.Score) return;
 
-        API.Auth.getUser().then(function(result) {
+        API.Score.get().then(function (result) {
             if (!result.success || !result.data) return;
-            var score = parseInt(result.data.scribeScore) || 0;
+            var d = result.data;
+            var score = parseInt(d.score) || 0;
+            var maxScore = parseInt(d.maxScore) || 1000;
+            var pct = Math.min(score / maxScore, 1);
 
-            // Max score is 1000 for ring purposes
-            var maxScore = 1000;
-            var pct = Math.min(score / maxScore, 1); // 0 to 1
-
-            // Update the score value text
+            // Centre value + rings
             var valueEl = document.getElementById('dash-score-value');
             if (valueEl) valueEl.textContent = score;
+            _applyRings(pct);
 
-            // Update the outer ring (Financial Health) — r=70, circumference=440
-            var outerRing = document.querySelector('.dash-ring-outer');
-            if (outerRing) {
-                var outerCircumference = 440;
-                var outerOffset = outerCircumference - (pct * outerCircumference);
-                outerRing.style.strokeDashoffset = outerOffset;
-                outerRing.style.transition = 'stroke-dashoffset 1s ease-out';
+            // Overall progress bar
+            var fill = document.getElementById('dash-score-progress-fill');
+            if (fill) { fill.style.width = Math.round(pct * 100) + '%'; }
+
+            // Five category bars
+            var catsEl = document.getElementById('dash-score-cats');
+            if (catsEl && Array.isArray(d.categories)) {
+                catsEl.innerHTML = d.categories.map(function (c) {
+                    var cpct = c.max > 0 ? Math.min(100, Math.round((c.points / c.max) * 100)) : 0;
+                    return '' +
+                        '<div class="dash-score-cat">' +
+                            '<div class="dash-score-cat-head">' +
+                                '<span class="dash-score-cat-label">' + _esc(c.label) + '</span>' +
+                                '<span class="dash-score-cat-val">' + c.points + '<span class="dash-score-cat-max">/' + c.max + '</span></span>' +
+                            '</div>' +
+                            '<div class="dash-score-cat-bar"><div class="dash-score-cat-bar-fill" style="width:' + cpct + '%"></div></div>' +
+                        '</div>';
+                }).join('');
             }
 
-            // Update the inner ring (Scribe Score) — r=52, circumference=327
-            var innerRing = document.querySelector('.dash-ring-inner');
-            if (innerRing) {
-                var innerCircumference = 327;
-                var innerOffset = innerCircumference - (pct * innerCircumference);
-                innerRing.style.strokeDashoffset = innerOffset;
-                innerRing.style.transition = 'stroke-dashoffset 1s ease-out';
+            // Recommended next action
+            var nextEl = document.getElementById('dash-score-next');
+            var nextText = document.getElementById('dash-score-next-text');
+            if (nextEl && nextText) {
+                if (d.recommendation && d.recommendation.label) {
+                    nextText.textContent = d.recommendation.label + ' (+' + d.recommendation.points + ')';
+                    nextEl.hidden = false;
+                } else {
+                    nextEl.hidden = true;
+                }
             }
 
-            // Update legend text
-            var healthPct = Math.round(pct * 100);
-            var scorePct = Math.round(pct * 100);
-            var legends = document.querySelectorAll('.dash-score-leg');
-            if (legends.length >= 2) {
-                legends[0].innerHTML = '<span class="dash-dot green"></span>Financial Health ' + healthPct + '%';
-                legends[1].innerHTML = '<span class="dash-dot orange"></span>Scribe Score ' + scorePct + '%';
+            // Recent score activity
+            var actEl = document.getElementById('dash-score-activity');
+            if (actEl) {
+                if (Array.isArray(d.activity) && d.activity.length) {
+                    actEl.innerHTML = '<div class="dash-score-activity-title">Recent activity</div>' +
+                        d.activity.slice(0, 4).map(function (a) {
+                            var pts = parseInt(a.points) || 0;
+                            var neg = pts < 0;
+                            var ptsText = (neg ? '' : '+') + pts; // negatives already carry '-'
+                            return '<div class="dash-score-act-row">' +
+                                '<span class="dash-score-act-label">' + _esc(a.label) + '</span>' +
+                                '<span class="dash-score-act-pts' + (neg ? ' dash-score-act-pts--neg' : '') + '">' + ptsText + '</span>' +
+                                '<span class="dash-score-act-time">' + _esc(_relTime(a.at)) + '</span>' +
+                            '</div>';
+                        }).join('');
+                } else {
+                    actEl.innerHTML = '';
+                }
             }
-        }).catch(function() {});
+        }).catch(function () {});
     }
 
     // ═══ Timeline Chart (SVG Line Graph) ═══

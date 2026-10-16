@@ -29,14 +29,29 @@ window._pageContent['dashboard'] = `    <div class="dash-new-grid">
                 </svg>
                 <div class="dash-score-center">
                     <span class="dash-score-value" id="dash-score-value">0</span>
+                    <span class="dash-score-max">/ 1000</span>
                     <span class="dash-score-label">Scribe Score</span>
                 </div>
             </div>
-            <div class="dash-score-legend">
-                <span class="dash-score-leg"><span class="dash-dot green"></span>Financial Health 0%</span>
-                <span class="dash-score-leg"><span class="dash-dot orange"></span>Scribe Score 0%</span>
+
+            <!-- Overall progress bar -->
+            <div class="dash-score-progress" aria-label="Scribe Score progress">
+                <div class="dash-score-progress-fill" id="dash-score-progress-fill"></div>
             </div>
-            <button class="dash-link-btn" onclick="loadPage('analytics')">View Breakdown →</button>
+
+            <!-- Five category breakdown -->
+            <div class="dash-score-cats" id="dash-score-cats"></div>
+
+            <!-- Recommended next action -->
+            <div class="dash-score-next" id="dash-score-next" hidden>
+                <span class="dash-score-next-label">Recommended next</span>
+                <span class="dash-score-next-text" id="dash-score-next-text"></span>
+            </div>
+
+            <!-- Recent score activity -->
+            <div class="dash-score-activity" id="dash-score-activity"></div>
+
+            <button class="dash-link-btn" id="dash-score-breakdown-btn">View breakdown →</button>
         </div>
 
         <div class="dash-cell dash-timeline-cell">

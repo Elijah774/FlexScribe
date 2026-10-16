@@ -4,7 +4,10 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const { query, getPool, sql } = require('../db');
+const { sql, getPool, query } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
+const notificationService = require('../services/notificationService');
+const { NOTIFICATION_TYPES, ENTITY_TYPES } = require('../constants/notificationTypes');
 const notificationService = require('../services/notificationService');
 const { NOTIFICATION_TYPES, ENTITY_TYPES } = require('../constants/notificationTypes');
 
@@ -163,8 +166,14 @@ function validateDateOfBirth(value) {
 // GET /api/dependants
 router.get('/', async (req, res) => {
     try {
+        // totalReceived = sum of every wallet transfer tagged to this dependant.
         const result = await query(`
-            SELECT d.*, s.firstName, s.lastName, s.email, s.avatarUrl, s.dateOfBirth
+            SELECT d.*, s.firstName, s.lastName, s.email, s.avatarUrl, s.dateOfBirth,
+                   ISNULL((
+                       SELECT SUM(t.transactionAmount)
+                       FROM WalletTransaction t
+                       WHERE t.dependantID = d.dependantID AND t.category = 'dependant'
+                   ), 0) AS totalReceived
             FROM Dependant d
             JOIN Subscriber s ON d.dependantID = s.subscriberID
             WHERE d.mainMemberID = @id
@@ -333,6 +342,11 @@ router.delete('/:id', async (req, res) => {
 });
 
 // POST /api/dependants/:id/send-allowance
+// POST /api/dependants/:id/send-allowance
+//   Transfers funds FROM the main member's wallet TO a dependant, atomically:
+//     • amount must be > 0 and not exceed the wallet balance
+//     • debits the wallet and records a negative 'transfer_out' transaction
+//       tagged with the dependantID (so the dependant's totalReceived grows)
 router.post('/:id/send-allowance', async (req, res) => {
     try {
         const amtResult = validateAmount(req.body.amount, { required: true });
@@ -445,6 +459,128 @@ router.get('/:id/activity', async (req, res) => {
         res.json(result.recordset);
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /api/dependants/:id/activity
+// Returns wallet transactions tied to this dependant (e.g. allowances sent),
+// scoped to the signed-in main member's own wallet.
+router.get('/:id/activity', async (req, res) => {
+    try {
+        // Activity is the dependant's OWN wallet transaction history, so the
+        // signs reflect the dependant's perspective:
+        //   • Allowance received / task reward earned  → credit (+)
+        //   • Task reward reversed (un-marked)          → debit  (-)
+        // Reading the dependant's wallet (not the parent's) means the UI shows
+        // money as it moves for the dependant. Scoped to this main member's
+        // dependant so a parent only sees their own dependants' activity.
+        const depID = parseInt(req.params.id);
+        const mid = req.user.subscriberID;
+
+        const owns = await query(
+            'SELECT 1 FROM Dependant WHERE dependantID = @did AND mainMemberID = @mid',
+            { did: depID, mid }
+        );
+        if (owns.recordset.length === 0) return res.status(404).json({ error: 'Dependant not found' });
+
+        const result = await query(`
+            SELECT wt.transactionID, wt.transactionType, wt.transactionAmount,
+                   wt.description, wt.category, wt.transactionDate
+            FROM WalletTransaction wt
+            JOIN VirtualWallet vw ON wt.walletID = vw.walletID
+            WHERE vw.subscriberID = @did
+            ORDER BY wt.transactionDate ASC
+        `, { did: depID });
+        res.json(result.recordset);
+        const pool = await getPool();
+        transaction = new sql.Transaction(pool);
+        await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
+        const rq = () => new sql.Request(transaction);
+
+        // Confirm the dependant belongs to this member + get a display name.
+        const depRes = await rq()
+            .input('did', dependantID).input('mid', req.user.subscriberID)
+            .query(`SELECT d.dependantID, s.firstName, s.lastName
+                    FROM Dependant d JOIN Subscriber s ON d.dependantID = s.subscriberID
+                    WHERE d.dependantID = @did AND d.mainMemberID = @mid`);
+        if (depRes.recordset.length === 0) {
+            await transaction.rollback();
+            return res.status(404).json({ error: 'Dependant not found' });
+        }
+        const depName = [depRes.recordset[0].firstName, depRes.recordset[0].lastName].filter(Boolean).join(' ').trim() || 'Dependant';
+
+        // Lock + read the wallet.
+        const wRes = await rq()
+            .input('sid', req.user.subscriberID)
+            .query('SELECT walletID, balance FROM VirtualWallet WITH (UPDLOCK, HOLDLOCK) WHERE subscriberID = @sid');
+        if (wRes.recordset.length === 0) { await transaction.rollback(); return res.status(404).json({ error: 'Wallet not found' }); }
+
+        const w = wRes.recordset[0];
+        const before = parseFloat(w.balance) || 0;
+        if (before < amount) {
+            await transaction.rollback();
+            return res.status(400).json({ error: 'Insufficient balance' });
+        }
+        const after = Math.round((before - amount + Number.EPSILON) * 100) / 100;
+
+        // Debit the wallet.
+        await rq().input('bal', after).input('wid', w.walletID)
+            .query('UPDATE VirtualWallet SET balance = @bal WHERE walletID = @wid');
+
+        // Record the outgoing transfer (negative/'transfer_out'), tagged to the dependant.
+        const txIns = await rq()
+            .input('wid', w.walletID)
+            .input('did', dependantID)
+            .input('amt', amount)
+            .input('after', after)
+            .input('before', before)
+            .input('desc', 'Sent to ' + depName)
+            .input('rname', depName)
+            .query(`INSERT INTO WalletTransaction
+                (walletID, dependantID, transactionType, transactionAmount, runningBalance,
+                 balanceBefore, balanceAfter, status, description, category, recipientName, completedAt)
+                OUTPUT INSERTED.transactionID
+                VALUES (@wid, @did, 'transfer_out', @amt, @after, @before, @after, 'completed', @desc, 'dependant', @rname, GETDATE())`);
+        const txID = txIns.recordset[0].transactionID;
+        await rq().input('ref', makeReference('DEP', txID)).input('id', txID)
+            .query('UPDATE WalletTransaction SET reference = @ref WHERE transactionID = @id');
+
+        await transaction.commit();
+
+        res.json({ message: 'Transfer sent', balance: after, amount, dependant: depName });
+
+        // ── Notifications (post-commit; failures here don't undo the transfer) ──
+        try {
+            const ref = makeReference('DEP', txID);
+            // Notify the sender (main member) that the transfer went out.
+            await notificationService.createNotification({
+                subscriberID: req.user.subscriberID,
+                type: NOTIFICATION_TYPES.PAYMENT_SUCCESS,
+                title: 'Transfer sent',
+                message: `You sent R${amount.toFixed(2)} to ${depName}.`,
+                relatedEntityType: ENTITY_TYPES.DEPENDANT,
+                relatedEntityID: dependantID,
+                eventToken: ref,
+                metadata: { reference: ref, amount, dependant: depName }
+            });
+            // Notify the dependant that they received funds.
+            await notificationService.createNotification({
+                subscriberID: dependantID,
+                type: NOTIFICATION_TYPES.PAYMENT_SUCCESS,
+                title: 'Money received',
+                message: `You received R${amount.toFixed(2)}.`,
+                relatedEntityType: ENTITY_TYPES.DEPENDANT,
+                relatedEntityID: dependantID,
+                eventToken: ref,
+                metadata: { reference: ref, amount }
+            });
+        } catch (nErr) {
+            console.warn('Dependant transfer notification failed:', nErr.message);
+        }
+    } catch (err) {
+        if (transaction) { try { await transaction.rollback(); } catch (_) { /* already rolled back */ } }
+        console.error('POST /dependants/:id/send-allowance error:', err.message);
+        res.status(500).json({ error: 'Could not send transfer. No funds were moved.' });
     }
 });
 

@@ -6,6 +6,8 @@ const { sql, query, getPool } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
 const { updateUserAnalytics } = require('../helpers/update-analytics');
 const notificationEvents = require('../services/notificationEvents');
+const notificationService = require('../services/notificationService');
+const { NOTIFICATION_TYPES, ENTITY_TYPES } = require('../constants/notificationTypes');
 const scribeScore = require('../helpers/scribe-score');
 
 const router = express.Router();
@@ -121,6 +123,9 @@ router.post('/', async (req, res) => {
         updateUserAnalytics(req.user.subscriberID);
         // Fire-and-forget notification (never blocks the response)
         notificationEvents.subscriptionAdded(req.user.subscriberID, created);
+        // Scribe Score: +10 once for adding a valid subscription (Subscription Management).
+        scribeScore.awardSubAdded(req.user.subscriberID, created.subscriptionID)
+            .catch(e => console.error('[score] sub_added:', e.message));
     } catch (err) {
         // Unique-index violation (duplicate subscription) → friendly 409.
         if (err && (err.number === 2601 || err.number === 2627)) {
@@ -165,6 +170,19 @@ router.put('/:id', async (req, res) => {
         res.json({ message: 'Subscription updated' });
         updateUserAnalytics(req.user.subscriberID);
 
+        // Scribe Score (Subscription Management):
+        //   • A meaningful change to core details -> +5 (max once/sub/month).
+        //   • A genuine cancellation (status -> cancelled) -> +10 (once/sub).
+        const meaningful = [serviceName, categoryID, billingAmount, billingCycle, billingDate]
+            .some(v => v !== undefined && v !== null && v !== '');
+        if (subStatus === 'cancelled') {
+            scribeScore.awardSubCancelled(req.user.subscriberID, params.subID)
+                .catch(e => console.error('[score] sub_cancelled:', e.message));
+        } else if (meaningful) {
+            scribeScore.awardSubUpdated(req.user.subscriberID, params.subID)
+                .catch(e => console.error('[score] sub_updated:', e.message));
+        }
+
         // Resolve the service name for the notification (from body or DB)
         (async () => {
             let name = serviceName;
@@ -205,6 +223,9 @@ router.delete('/:id', async (req, res) => {
             const row = existing.recordset[0];
             const finalDate = row.billingDate ? new Date(row.billingDate).toISOString().slice(0, 10) : null;
             notificationEvents.subscriptionCancelled(req.user.subscriberID, subID, row.serviceName, finalDate);
+            // Scribe Score: +10 once for recording a genuine cancellation.
+            scribeScore.awardSubCancelled(req.user.subscriberID, subID)
+                .catch(e => console.error('[score] sub_cancelled:', e.message));
         }
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -289,6 +310,8 @@ router.post('/pay-month', async (req, res) => {
 
         let paidCount = 0;
         let unpaidCount = 0;
+        const paidSubIds = [];   // subs that completed a verified payment this run
+        const unpaidSubIds = []; // subs whose payment was missed this run
 
         for (const s of subs) {
             // Already paid this month?
@@ -334,8 +357,10 @@ router.post('/pay-month', async (req, res) => {
                     .query(`INSERT INTO PaymentSchedule (subscriptionID, nextPaymentDate, amountDue, scheduleStatus)
                             VALUES (@subid, CAST(GETDATE() AS DATE), @amt, 'paid')`);
                 paidCount++;
+                paidSubIds.push(s.subscriptionID);
             } else {
                 unpaidCount++;
+                unpaidSubIds.push(s.subscriptionID);
             }
         }
 
@@ -345,19 +370,66 @@ router.post('/pay-month', async (req, res) => {
         const allPaid = unpaidCount === 0;
         const scoreRes = await scribeScore.evaluateSubscriptionPayment(subscriberID, allPaid);
 
+        // Payment Readiness (300): each subscription that had funds ready and
+        // completed a verified payment this cycle earns +10 ready and +10
+        // success (idempotent per sub per month, capped at the category max).
+        const period = scribeScore.monthKey();
+        for (const subId of paidSubIds) {
+            try {
+                await scribeScore.awardPaymentReady(subscriberID, subId, period);
+                await scribeScore.awardPaymentSuccess(subscriberID, subId, period);
+            } catch (e) { console.error('[score] payment award:', e.message); }
+        }
+
+        // Conduct-based DECREASE: each subscription whose payment was missed
+        // this cycle deducts points (idempotent per sub per month). This is a
+        // genuine missed-commitment penalty — the score moves down for poor
+        // conduct, not merely for having a low balance.
+        let missedDelta = 0;
+        for (const subId of unpaidSubIds) {
+            try {
+                const r = await scribeScore.awardPaymentMissed(subscriberID, subId, period);
+                if (r.applied) missedDelta += r.delta;
+            } catch (e) { console.error('[score] payment missed:', e.message); }
+        }
+
+        // Notify the user when their Scribe Score drops from missed payments
+        // (post-award; fire-and-forget so a notification hiccup never fails
+        // the payment run). Deduped per month via the eventToken.
+        if (missedDelta < 0) {
+            try {
+                const scoreNow = await scribeScore.getScore(subscriberID);
+                await notificationService.createNotification({
+                    subscriberID,
+                    type: NOTIFICATION_TYPES.SYSTEM,
+                    title: 'Scribe Score dropped',
+                    message: `${unpaidCount} subscription payment${unpaidCount === 1 ? '' : 's'} missed — your Scribe Score dropped ${missedDelta} to ${scoreNow}. Top up your wallet to stay payment-ready.`,
+                    relatedEntityType: ENTITY_TYPES.NONE,
+                    eventToken: `score_drop#${period}`,
+                    metadata: { delta: missedDelta, score: scoreNow, unpaidCount }
+                });
+            } catch (nErr) {
+                console.warn('[score] drop notification failed:', nErr.message);
+            }
+        }
+
         updateUserAnalytics(subscriberID);
 
         let message;
-        if (!scoreRes.applied) {
-            message = allPaid
-                ? `All subscriptions paid. (ScribeScore already updated this month.)`
-                : `${unpaidCount} subscription(s) unpaid. (ScribeScore already updated this month.)`;
-        } else {
-            message = allPaid
+        if (allPaid) {
+            message = scoreRes.applied
                 ? 'All subscriptions paid for the month — ScribeScore +10.'
-                : `${unpaidCount} subscription(s) couldn't be paid — ScribeScore 10 deducted.`;
+                : 'All subscriptions paid. (ScribeScore already updated this month.)';
+        } else if (missedDelta < 0) {
+            message = `${unpaidCount} subscription(s) couldn't be paid — ScribeScore ${missedDelta}.`;
+        } else {
+            message = `${unpaidCount} subscription(s) unpaid. (ScribeScore already updated this month.)`;
         }
 
+        // Authoritative post-award score + net delta for the client toast
+        // (+10 all-paid bonus if applied, plus any missed-payment penalty).
+        const finalScore = await scribeScore.getScore(subscriberID);
+        const netDelta = (allPaid && scoreRes.applied ? scoreRes.delta : 0) + missedDelta;
         res.json({
             success: true,
             outcome: allPaid ? 'all_paid' : 'unpaid',
@@ -366,9 +438,9 @@ router.post('/pay-month', async (req, res) => {
             paidCount,
             unpaidCount,
             walletBalance: balance,
-            scribeScore: scoreRes.score,
-            delta: scoreRes.delta,
-            applied: scoreRes.applied
+            scribeScore: finalScore,
+            delta: netDelta,
+            applied: (allPaid && scoreRes.applied) || missedDelta < 0
         });
     } catch (err) {
         if (transaction) { try { await transaction.rollback(); } catch (_) { /* already rolled back */ } }

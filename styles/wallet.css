@@ -259,8 +259,9 @@
 .wal2-txn-status.failed  { background: rgba(227,101,101,0.14); color: #E36565; }
 .wal2-txn-amt { font-size: 14px; font-weight: 600; white-space: nowrap; }
 .wal2-txn-amt.credit { color: var(--w-green); }
-.wal2-txn-amt.debit  { color: var(--w-text); }
+.wal2-txn-amt.debit  { color: var(--w-red); }
 .wal2-txn-amt.withdrawal { color: var(--w-red); }
+.wal2-txn-icon.debit { background: rgba(227,101,101,0.12); color: var(--w-red); }
 .wal2-txn-icon.withdrawal { background: rgba(227,101,101,0.12); color: var(--w-red); }
 .wal2-txn-empty { font-size: 13px; color: var(--w-text-3); padding: 10px; }
 
@@ -1156,6 +1157,9 @@
     text-align: center;
     letter-spacing: -0.5px;
 }
+/* Money in = green, money out = red (matches the history list). */
+.wallet-detail-amount.credit { color: var(--w-green, var(--green)); }
+.wallet-detail-amount.debit  { color: var(--w-red, var(--danger)); }
 
 .wallet-detail-status {
     text-align: center;
@@ -1261,9 +1265,11 @@ body.light-mode .wal2-up-item:hover { background: rgba(17, 18, 22, 0.035); }
 /* Blue stat chip → purple on light */
 body.light-mode .wal2-stat-chip.blue { background: rgba(124, 77, 255, 0.12); color: #7C4DFF; }
 
-/* Withdrawal red uses the darker light-mode red */
-body.light-mode .wal2-txn-amt.withdrawal { color: var(--w-red); }
-body.light-mode .wal2-txn-icon.withdrawal { background: rgba(214, 69, 69, 0.12); color: var(--w-red); }
+/* Money-out (debit/withdrawal) red uses the darker light-mode red */
+body.light-mode .wal2-txn-amt.withdrawal,
+body.light-mode .wal2-txn-amt.debit { color: var(--w-red); }
+body.light-mode .wal2-txn-icon.withdrawal,
+body.light-mode .wal2-txn-icon.debit { background: rgba(214, 69, 69, 0.12); color: var(--w-red); }
 body.light-mode .wal2-txn-amt.credit { color: var(--w-green); }
 body.light-mode .wal2-txn-icon.credit { background: rgba(30, 168, 90, 0.12); color: var(--w-green); }
 

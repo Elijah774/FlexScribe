@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="../styles/dependants.css">
     <link rel="stylesheet" href="../styles/reports.css">
     <link rel="stylesheet" href="../styles/profile-panel.css">
+    <link rel="stylesheet" href="../styles/scribe-tips.css">
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 </head>
 <body>
@@ -646,14 +647,22 @@
         <!-- Forecast -->
         <div class="goals-forecast" id="goals-drawer-forecast" hidden></div>
 
-        <!-- Add Funds Quick Action -->
-        <div>
+        <!-- Add Funds Quick Action (active goals only) -->
+        <div id="goals-drawer-addfunds-section">
             <p class="goals-drawer-section-title">Add Funds</p>
             <div class="goals-add-funds-row">
                 <input type="number" id="goals-drawer-fund-amount" placeholder="Amount (R)" min="1" step="0.01">
                 <button type="button" class="goals-add-funds-btn" id="goals-drawer-addfunds-btn">Add</button>
             </div>
             <p class="goals-wallet-balance-hint" id="goals-drawer-wallet-hint"></p>
+        </div>
+
+        <!-- Accept Funds (completed goal still holding funds) -->
+        <div id="goals-drawer-accept-section" hidden>
+            <p class="goals-drawer-section-title">Goal complete</p>
+            <p class="goals-wallet-balance-hint" id="goals-drawer-accept-hint">Accept your saved funds back into your wallet.</p>
+            <button type="button" class="goals-accept-funds-btn" id="goals-drawer-accept-btn">Accept Funds</button>
+            <p class="goals-accepted-note" id="goals-drawer-accepted-note" hidden>Funds accepted ✓</p>
         </div>
 
         <!-- Contribution History -->
@@ -886,18 +895,21 @@
         <form id="wallet-send-form" novalidate>
             <div class="wallet-modal-body">
                 <div class="wallet-modal-field">
-                    <label for="wallet-send-amount">Amount (R)</label>
-                    <input type="number" id="wallet-send-amount" placeholder="0.00" min="0.01" step="0.01">
+                    <label for="wallet-send-dependant">Dependant</label>
+                    <select id="wallet-send-dependant">
+                        <option value="">Loading dependants…</option>
+                    </select>
                 </div>
                 <div class="wallet-modal-field">
-                    <label for="wallet-send-name">Dependant Name</label>
-                    <input type="text" id="wallet-send-name" placeholder="e.g. James M." autocomplete="off">
+                    <label for="wallet-send-amount">Amount (R)</label>
+                    <input type="number" id="wallet-send-amount" placeholder="0.00" min="0.01" step="0.01">
+                    <span class="wallet-field-hint" id="wallet-send-balance-hint"></span>
                 </div>
                 <span class="field-error" id="wallet-send-error"></span>
             </div>
             <div class="wallet-modal-footer">
                 <button type="button" class="wallet-btn wallet-btn--secondary wallet-modal-cancel-btn">Cancel</button>
-                <button type="submit" class="wallet-btn wallet-btn--primary">Confirm</button>
+                <button type="submit" class="wallet-btn wallet-btn--primary">Send transfer</button>
             </div>
         </form>
     </div>
@@ -1480,6 +1492,10 @@
                 <span class="dep-info-label">Spending Limit</span>
                 <span class="dep-info-value" id="dep-info-spending-limit">—</span>
             </div>
+            <div class="dep-info-row">
+                <span class="dep-info-label">Total Received</span>
+                <span class="dep-info-value" id="dep-info-received">—</span>
+            </div>
         </div>
 
         <hr class="dep-drawer-divider">
@@ -1741,6 +1757,7 @@
 <script src="../scripts/analytics.page.js"></script>
 <script src="../scripts/reports.page.js"></script>
 <script src="../scripts/settings.page.js"></script>
+<script src="../scripts/scribe-tips.js"></script>
 <script src="../scripts/layout.js"></script>
 
 <!-- ═══════════════ SIGN OUT CONFIRMATION MODAL ═══════════════ -->

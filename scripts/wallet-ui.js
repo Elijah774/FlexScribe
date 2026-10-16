@@ -78,8 +78,12 @@ const WalletUI = (() => {
         adjustment: 'Adjustment'
     };
 
+    // Money IN (shown green with a "+"): deposits, money received, refunds.
+    // Everything else (payments, withdrawals, goal transfers, sends) is money
+    // OUT and shown red with a "-". NOTE: 'payment' is a SUBSCRIPTION payment
+    // leaving the wallet, so it is a debit — not a credit.
     function _isCredit(type) {
-        return type === 'credit' || type === 'transfer_in' || type === 'payment' || type === 'refund';
+        return type === 'credit' || type === 'transfer_in' || type === 'refund';
     }
 
     /* ----------------------------------------------------------
@@ -223,8 +227,8 @@ const WalletUI = (() => {
                 const credit = _isCredit(tx.type);
                 const icon = credit ? '\u2193' : '\u2191';
                 const sign = credit ? '+' : '-';
-                // Withdrawals render in red; other debits stay neutral white.
-                const cls = credit ? 'credit' : (tx.type === 'withdrawal' ? 'withdrawal' : 'debit');
+                // Money in = green ('credit'); money out = red ('debit').
+                const cls = credit ? 'credit' : 'debit';
                 const statusBadge = (tx.status && tx.status !== 'completed')
                     ? `<span class="wal2-txn-status ${tx.status}">${tx.status}</span>` : '';
                 return `
@@ -282,7 +286,12 @@ const WalletUI = (() => {
             }
             const tx = result.data;
             const credit = _isCredit(tx.type);
-            if (amtEl) amtEl.textContent = (credit ? '+' : '-') + _fmt(tx.amount);
+            if (amtEl) {
+                amtEl.textContent = (credit ? '+' : '-') + _fmt(tx.amount);
+                // Green for money in, red for money out.
+                amtEl.classList.remove('credit', 'debit');
+                amtEl.classList.add(credit ? 'credit' : 'debit');
+            }
             if (statusEl) {
                 statusEl.textContent = tx.status || 'completed';
                 statusEl.className = 'wallet-detail-status ' + (tx.status || 'completed');
@@ -460,24 +469,83 @@ const WalletUI = (() => {
             WalletStore.transferToGoal(amount, goal);
             _closeModal('wallet-transfer-modal');
             _refresh();
-        } catch (err) { if (errorEl) errorEl.textContent = err.message; }
+            if (typeof UIUtils !== 'undefined') UIUtils.toast('R' + amount.toFixed(2) + ' moved to your goal.', 'success');
+        } catch (err) {
+            if (errorEl) errorEl.textContent = err.message;
+            if (typeof UIUtils !== 'undefined') UIUtils.toast((err && err.message) || 'Could not transfer to goal.', 'error');
+        }
     }
 
     /* ----------------------------------------------------------
        SEND TO DEPENDANT (existing)
     ---------------------------------------------------------- */
+    /* Open the "Transfer to dependant" modal and populate the dependant
+       dropdown from the API. */
+    function _openDependantTransfer() {
+        const errorEl = _el('wallet-send-error');
+        const select = _el('wallet-send-dependant');
+        const amountEl = _el('wallet-send-amount');
+        const hint = _el('wallet-send-balance-hint');
+        if (errorEl) errorEl.textContent = '';
+        if (amountEl) amountEl.value = '';
+        if (hint) hint.textContent = 'Available: ' + _fmt(_available);
+        if (select) select.innerHTML = '<option value="">Loading dependants…</option>';
+
+        _openModal('wallet-send-modal');
+
+        if (typeof API !== 'undefined' && API.Dependants && API.Dependants.getAll) {
+            API.Dependants.getAll().then(function (r) {
+                const list = (r && r.success && Array.isArray(r.data)) ? r.data : [];
+                if (!select) return;
+                if (!list.length) {
+                    select.innerHTML = '<option value="">No dependants yet — add one first</option>';
+                    if (errorEl) errorEl.textContent = 'You have no dependants to transfer to.';
+                    return;
+                }
+                select.innerHTML = list.map(function (d) {
+                    const id = d.dependantID || d.id;
+                    const name = d.name || [d.firstName, d.lastName].filter(Boolean).join(' ').trim() || ('Dependant #' + id);
+                    return '<option value="' + id + '">' + _escape(name) + '</option>';
+                }).join('');
+            }).catch(function () {
+                if (select) select.innerHTML = '<option value="">Could not load dependants</option>';
+                if (errorEl) errorEl.textContent = 'Could not load dependants. Try again.';
+            });
+        }
+    }
+
+    /* Submit the dependant transfer: validate, debit via the API, refresh. */
     function _handleSendToDependant(e) {
         e.preventDefault();
-        const amount = parseFloat(_el('wallet-send-amount').value);
-        const name = _el('wallet-send-name').value.trim();
         const errorEl = _el('wallet-send-error');
+        const depId = _el('wallet-send-dependant') ? _el('wallet-send-dependant').value : '';
+        const amount = parseFloat(_el('wallet-send-amount').value);
+
+        if (errorEl) errorEl.textContent = '';
+        if (!depId) { if (errorEl) errorEl.textContent = 'Choose a dependant.'; return; }
         if (!amount || amount <= 0) { if (errorEl) errorEl.textContent = 'Enter a valid amount greater than 0.'; return; }
-        if (!name) { if (errorEl) errorEl.textContent = 'Enter a dependant name.'; return; }
-        try {
-            WalletStore.sendToDependant(amount, name);
-            _closeModal('wallet-send-modal');
-            _refresh();
-        } catch (err) { if (errorEl) errorEl.textContent = err.message; }
+        if (amount > _available) { if (errorEl) errorEl.textContent = 'Amount exceeds your available balance (' + _fmt(_available) + ').'; return; }
+
+        const submitBtn = _el('wallet-send-form') ? _el('wallet-send-form').querySelector('button[type="submit"]') : null;
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Sending…'; }
+
+        API.Dependants.sendAllowance(depId, amount).then(function (r) {
+            if (r && r.success) {
+                _closeModal('wallet-send-modal');
+                if (window.UIUtils) UIUtils.toast('Transfer sent to ' + (r.data && r.data.dependant ? r.data.dependant : 'dependant') + '.', 'success');
+                // Refresh wallet balance + history (shows the negative transfer).
+                if (typeof WalletStore !== 'undefined' && WalletStore.loadFromAPI) WalletStore.loadFromAPI();
+                _refresh();
+            } else {
+                if (errorEl) errorEl.textContent = (r && r.error) || 'Transfer failed.';
+                if (window.UIUtils) UIUtils.toast((r && r.error) || 'Transfer failed.', 'error');
+            }
+        }).catch(function () {
+            if (errorEl) errorEl.textContent = 'Network error. Please try again.';
+            if (window.UIUtils) UIUtils.toast('Network error. Please try again.', 'error');
+        }).finally(function () {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Send transfer'; }
+        });
     }
 
     /* ==========================================================
@@ -881,7 +949,8 @@ const WalletUI = (() => {
         if (withdrawBtn) withdrawBtn.addEventListener('click', () => loadPage('wallet-withdraw'));
         if (goalBtn) goalBtn.addEventListener('click', () => _openModal('wallet-transfer-modal'));
         if (depBtn) depBtn.addEventListener('click', () => _openModal('wallet-send-modal'));
-        if (userXferBtn) userXferBtn.addEventListener('click', _openUserTransfer);
+        // "Transfer" now sends funds to a dependant (pick from a list).
+        if (userXferBtn) userXferBtn.addEventListener('click', _openDependantTransfer);
 
         const warnAddBtn = _el('wallet-warning-add-btn');
         if (warnAddBtn) warnAddBtn.addEventListener('click', () => {

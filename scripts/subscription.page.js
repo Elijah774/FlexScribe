@@ -8,10 +8,6 @@ window._pageContent['subscription'] = `
                         <button class="filter-status-btn" data-status="paused">Paused</button>
                     </div>
                     <div class="sub-actions-right">
-                        <button class="secondary-btn sub-pay-month-btn" id="sub-pay-month-btn" aria-label="Pay subscriptions for this month">
-                            <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/><path d="M2 10h20" stroke="currentColor" stroke-width="2"/></svg>
-                            Pay this month
-                        </button>
                         <button class="primary-btn add-sub-btn" id="add-sub-btn" aria-label="Add subscription">
                             <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
                             Add Subscription
@@ -140,6 +136,7 @@ window._pageContent['subscription'] = `
                                     <div class="sub-modal-field">
                                         <label for="sub-modal-amount">Amount (R) <span class="required">*</span></label>
                                         <input type="number" id="sub-modal-amount" placeholder="0.00" min="0" step="0.01">
+                                        <span class="sub-modal-field-help" id="sub-modal-amount-help" hidden></span>
                                         <span class="sub-modal-field-error" id="sub-modal-amount-error"></span>
                                     </div>
                                     <div class="sub-modal-field">
@@ -345,8 +342,8 @@ window._pageContent['subscription'] = `
                 <div id="rec-quickview-modal" class="sub-modal-backdrop" hidden aria-modal="true" role="dialog"></div>
 
                 <!-- ═══════════ ADD-FROM-PROVIDER MODAL ═══════════ -->
-                <div id="rec-add-modal" class="sub-modal-backdrop" hidden aria-modal="true" role="dialog">
-                    <div class="sub-modal-box sub-modal-box--sm">
+                <div id="rec-add-modal" class="sub-modal-backdrop sub-rec-add-modal" hidden aria-modal="true" role="dialog">
+                    <div class="sub-modal-box sub-rec-add-box">
                         <div class="sub-modal-header">
                             <h2>Add Subscription</h2>
                             <button class="icon-btn" id="rec-add-modal-close" aria-label="Close">
@@ -354,11 +351,11 @@ window._pageContent['subscription'] = `
                             </button>
                         </div>
                         <div class="sub-modal-body" id="rec-add-body">
-                            <p>Add this provider to your subscriptions?</p>
+                            <!-- Editable add form rendered by SubscriptionsUI._openRecAddModal -->
                         </div>
                         <div class="sub-modal-footer">
                             <button type="button" class="sub-btn sub-btn--secondary" id="rec-add-cancel-btn">Cancel</button>
-                            <button type="button" class="sub-btn sub-btn--primary" id="rec-add-confirm-btn">Add</button>
+                            <button type="button" class="sub-btn sub-btn--primary" id="rec-add-confirm-btn">Add subscription</button>
                         </div>
                     </div>
                 </div>

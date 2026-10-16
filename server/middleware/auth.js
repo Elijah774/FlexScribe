@@ -32,4 +32,13 @@ function generateToken(user) {
     );
 }
 
-module.exports = { authenticateToken, generateToken };
+/** Gate a route to Admin users only. Must run AFTER authenticateToken.
+    The JWT carries userType; 'Admin' is the only role allowed through. */
+function requireAdmin(req, res, next) {
+    if (!req.user || req.user.userType !== 'Admin') {
+        return res.status(403).json({ error: 'Admin access required.' });
+    }
+    next();
+}
+
+module.exports = { authenticateToken, generateToken, requireAdmin };

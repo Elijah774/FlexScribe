@@ -490,37 +490,98 @@ const SubscriptionsUI = (() => {
     function _openRecAddModal(provider) {
         _recAddProvider = provider;
         const modal = _q('#rec-add-modal');
-        if (!modal) return;
+        const body = _q('#rec-add-body');
+        if (!modal || !body) return;
 
-        // Populate hero
+        // Build the editable form from the provider's preset values. The user
+        // can edit/confirm every required field before the subscription is
+        // actually added.
         const cls = LOGO_CLASSES.includes(provider.logoClass) ? provider.logoClass : 'default';
         const letter = provider.logoText || provider.name.charAt(0).toUpperCase();
-        _q('#rec-add-logo').innerHTML = `<span class="sub-logo ${cls}" style="width:44px;height:44px;font-size:16px;" aria-hidden="true">${letter}</span>`;
-        _q('#rec-add-name').textContent = provider.name;
-        _q('#rec-add-category').textContent = provider.category;
-        _q('#rec-add-cost').textContent = SubscriptionStore.fmtCurrency(provider.monthlyCost);
-        _q('#rec-add-desc').textContent = provider.description || '';
+        const cats = (SubscriptionStore.CATEGORIES || ['Other']);
+        const catOptions = cats.map(c =>
+            `<option value="${_esc(c)}"${c === provider.category ? ' selected' : ''}>${_esc(c)}</option>`
+        ).join('');
+        // Default the billing date to today (editable, must be today or later).
+        const today = new Date();
+        const minDate = today.toISOString().slice(0, 10);
+        const presetPrice = Number(provider.monthlyCost || 0).toFixed(2);
 
-        // Reset options to defaults
-        _q('#rec-add-cycle').value = 'monthly';
-        _q('#rec-add-payment').value = 'wallet';
-        _q('#rec-add-autorenew').checked = true;
-        _q('#rec-add-notify').checked = true;
+        body.innerHTML = `
+            <div class="rec-add-hero">
+                <span class="sub-logo ${cls}" style="width:44px;height:44px;font-size:16px;" aria-hidden="true">${letter}</span>
+                <div class="rec-add-hero-meta">
+                    <p class="rec-add-hero-name">${_esc(provider.name)}</p>
+                    <p class="rec-add-hero-desc">${_esc(provider.description || '')}</p>
+                </div>
+            </div>
+            <p class="rec-add-help">Review and edit the details below, then confirm to add.</p>
 
-        // Reset date field
-        const dateInput = _q('#rec-add-date');
-        if (dateInput) {
-            dateInput.value = '';
-            dateInput.classList.remove('sub-modal-field--error');
+            <div class="sub-modal-field">
+                <label for="rec-add-name">Name <span class="req">*</span></label>
+                <input type="text" id="rec-add-name" value="${_esc(provider.name)}" maxlength="100" autocomplete="off">
+                <span class="sub-modal-field-error" id="rec-add-name-error"></span>
+            </div>
+
+            <div class="rec-add-row">
+                <div class="sub-modal-field">
+                    <label for="rec-add-price">Price</label>
+                    <input type="text" id="rec-add-price" value="${SubscriptionStore.fmtCurrency(provider.monthlyCost)}" readonly aria-readonly="true" tabindex="-1">
+                    <span class="sub-modal-field-help">Set by the provider — can't be changed.</span>
+                </div>
+                <div class="sub-modal-field">
+                    <label for="rec-add-cycle">Billing cycle</label>
+                    <select id="rec-add-cycle">
+                        <option value="monthly" selected>Monthly</option>
+                        <option value="quarterly">Quarterly</option>
+                        <option value="yearly">Yearly</option>
+                        <option value="weekly">Weekly</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="rec-add-row">
+                <div class="sub-modal-field">
+                    <label for="rec-add-category">Category</label>
+                    <select id="rec-add-category">${catOptions}</select>
+                </div>
+                <div class="sub-modal-field">
+                    <label for="rec-add-date">First billing date <span class="req">*</span></label>
+                    <input type="date" id="rec-add-date" min="${minDate}">
+                    <span class="sub-modal-field-error" id="rec-add-date-error"></span>
+                </div>
+            </div>
+
+            <div class="sub-modal-field">
+                <label for="rec-add-payment">Pay from</label>
+                <select id="rec-add-payment">
+                    <option value="wallet" selected>Wallet</option>
+                    <option value="card">Card</option>
+                </select>
+            </div>
+
+            <div class="rec-add-toggles">
+                <label class="rec-add-check"><input type="checkbox" id="rec-add-autorenew" checked> Auto-renew</label>
+                <label class="rec-add-check"><input type="checkbox" id="rec-add-notify" checked> Payment reminders</label>
+            </div>
+        `;
+
+        // Keep the read-only price display in sync with the chosen cycle
+        // (the amount is always derived from the provider's set cost).
+        const cycleSel = _q('#rec-add-cycle');
+        const priceOut = _q('#rec-add-price');
+        if (cycleSel && priceOut) {
+            cycleSel.addEventListener('change', () => {
+                priceOut.value = SubscriptionStore.fmtCurrency(_recCycleAmount(provider, cycleSel.value));
+            });
         }
-        const dateErr = _q('#rec-add-date-error');
-        if (dateErr) dateErr.textContent = '';
 
         // Show modal
         modal.hidden = false;
         modal.removeAttribute('aria-hidden');
         document.body.classList.add('modal-open');
         requestAnimationFrame(() => modal.classList.add('sub-modal--visible'));
+        setTimeout(() => { const n = _q('#rec-add-name'); if (n) n.focus(); }, 60);
     }
 
     function closeRecAddModal() {
@@ -535,60 +596,91 @@ const SubscriptionsUI = (() => {
         _recAddProvider = null;
     }
 
+    // Amount charged per billing cycle, derived from the provider's set
+    // monthly cost (the price is fixed — the user cannot change it).
+    function _recCycleAmount(provider, cycle) {
+        const m = Number(provider.monthlyCost || 0);
+        if (cycle === 'quarterly') return Math.round((m * 3 + Number.EPSILON) * 100) / 100;
+        if (cycle === 'yearly')    return Math.round((m * 12 + Number.EPSILON) * 100) / 100;
+        if (cycle === 'weekly')    return Math.round((m * 12 / 52 + Number.EPSILON) * 100) / 100;
+        return Math.round((m + Number.EPSILON) * 100) / 100; // monthly
+    }
+
+    // Clear any inline errors inside the rec-add modal.
+    function _clearRecAddErrors() {
+        ['name', 'date'].forEach(k => {
+            const input = _q('#rec-add-' + k);
+            const err = _q('#rec-add-' + k + '-error');
+            if (input) input.closest('.sub-modal-field')?.classList.remove('sub-modal-field--error');
+            if (err) err.textContent = '';
+        });
+    }
+    function _recAddError(key, msg) {
+        const input = _q('#rec-add-' + key);
+        const err = _q('#rec-add-' + key + '-error');
+        if (input) input.closest('.sub-modal-field')?.classList.add('sub-modal-field--error');
+        if (err) err.textContent = msg;
+    }
+
     function _handleRecAddConfirm() {
         if (!_recAddProvider) return;
+        _clearRecAddErrors();
 
-        const cycle = _q('#rec-add-cycle').value;
-        // Calculate amount based on selected billing cycle
-        let amount = _recAddProvider.monthlyCost;
-        if (cycle === 'quarterly') amount = _recAddProvider.monthlyCost * 3;
-        if (cycle === 'yearly') amount = _recAddProvider.monthlyCost * 12;
+        // Read the (editable) user input. The price is NOT editable — it is
+        // fixed to the provider's set cost for the chosen billing cycle.
+        const name = (_q('#rec-add-name')?.value || '').trim();
+        const category = _q('#rec-add-category')?.value || _recAddProvider.category;
+        const cycle = _q('#rec-add-cycle')?.value || 'monthly';
+        const dateValue = _q('#rec-add-date')?.value || '';
+        const amount = _recCycleAmount(_recAddProvider, cycle);
 
-        // Require a billing date — prompt via the main Add modal if not provided
-        const dateInput = _q('#rec-add-date');
-        const dateValue = dateInput ? dateInput.value : '';
-
+        // ── Validate required fields; only add on fully valid input ──
+        let firstBad = null;
+        if (!name) { _recAddError('name', 'A subscription name is required.'); firstBad = firstBad || 'name'; }
         if (!dateValue) {
-            // Show error on the rec-add modal
-            const errEl = _q('#rec-add-date-error');
-            if (errEl) errEl.textContent = 'Billing date is required.';
-            if (dateInput) dateInput.classList.add('sub-modal-field--error');
-            return;
+            _recAddError('date', 'A first billing date is required.'); firstBad = firstBad || 'date';
+        } else {
+            const today = new Date(); today.setHours(0, 0, 0, 0);
+            const selected = new Date(dateValue + 'T00:00:00');
+            if (isNaN(selected.getTime())) { _recAddError('date', 'Enter a valid date.'); firstBad = firstBad || 'date'; }
+            else if (selected < today) { _recAddError('date', 'Billing date cannot be in the past.'); firstBad = firstBad || 'date'; }
         }
-
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const selected = new Date(dateValue + 'T00:00:00');
-        if (selected < today) {
-            const errEl = _q('#rec-add-date-error');
-            if (errEl) errEl.textContent = 'Billing date cannot be in the past.';
-            if (dateInput) dateInput.classList.add('sub-modal-field--error');
-            return;
-        }
+        if (firstBad) { _q('#rec-add-' + firstBad)?.focus(); return; }
 
         const fields = {
-            name: _recAddProvider.name,
+            name: name,
             amount: amount,
-            category: _recAddProvider.category,
+            category: category,
             billingCycle: cycle,
             nextPaymentDate: dateValue,
             notes: _recAddProvider.description || '',
             logoClass: _recAddProvider.logoClass || 'default',
-            logoText: _recAddProvider.logoText || _recAddProvider.name.charAt(0).toUpperCase(),
-            autoRenew: _q('#rec-add-autorenew').checked,
-            notifications: _q('#rec-add-notify').checked,
-            paymentSource: _q('#rec-add-payment').value,
+            logoText: _recAddProvider.logoText || name.charAt(0).toUpperCase(),
+            autoRenew: !!_q('#rec-add-autorenew')?.checked,
+            notifications: !!_q('#rec-add-notify')?.checked,
+            paymentSource: _q('#rec-add-payment')?.value || 'wallet',
         };
 
-        try {
-            SubscriptionStore.add(fields);
-            toast(`${_recAddProvider.name} added successfully!`);
+        // Disable the confirm button during the async add to prevent double-submit.
+        const confirmBtn = _q('#rec-add-confirm-btn');
+        if (confirmBtn) { confirmBtn.disabled = true; confirmBtn.style.opacity = '0.6'; }
+
+        Promise.resolve(SubscriptionStore.add(fields)).then(() => {
+            toast(`${name} added successfully!`);
             closeRecAddModal();
-            // Re-render recommendations to exclude newly added provider
             _renderRecommendations();
-        } catch (err) {
-            toast(err.message, 'error');
-        }
+            _renderProviderLibrary();
+        }).catch(err => {
+            // Surface duplicate / server errors inline on the name field.
+            const msg = (err && err.message) ? String(err.message) : '';
+            const friendly = /already have|already exists|duplicate/i.test(msg)
+                ? 'Subscription already exists.'
+                : (msg || 'Could not add subscription.');
+            _recAddError('name', friendly);
+            _q('#rec-add-name')?.focus();
+        }).finally(() => {
+            if (confirmBtn) { confirmBtn.disabled = false; confirmBtn.style.opacity = '1'; }
+        });
     }
 
     /* ----------------------------------------------------------
@@ -733,18 +825,42 @@ const SubscriptionsUI = (() => {
         const sub = SubscriptionStore.getById(id);
         if (!sub) return;
 
-        // Compute a sensible default: roll the stored anchor forward from
-        // today using the billing cycle (treat as active for the calc).
-        const computed = SubscriptionStore.getNextPaymentDate(
-            Object.assign({}, sub, { active: true })
-        );
-        const today = new Date(); today.setHours(0, 0, 0, 0);
-        const defaultIso = SubscriptionStore.toISODate(computed || today);
+        // On reactivation the next payment date must fall in the CURRENT month
+        // the system is in — not the old pre-pause date. Window: today .. end
+        // of this month.
+        const now = new Date();
+        const today = new Date(now); today.setHours(0, 0, 0, 0);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        endOfMonth.setHours(0, 0, 0, 0);
+
+        // Default to the subscription's usual billing day applied to THIS
+        // month; if that day has already passed (or there's no stored day),
+        // default to today. Always clamped inside [today .. end of month].
+        let anchorDay = null;
+        const storedIso = (sub.nextPaymentDate && SubscriptionStore.toISODate)
+            ? sub.nextPaymentDate
+            : null;
+        if (storedIso) {
+            const parsed = SubscriptionStore.parseLocalDate(storedIso);
+            if (parsed) anchorDay = parsed.getDate();
+        }
+        let def = new Date(today);
+        if (anchorDay) {
+            const candidate = new Date(now.getFullYear(), now.getMonth(), Math.min(anchorDay, endOfMonth.getDate()));
+            candidate.setHours(0, 0, 0, 0);
+            def = candidate >= today ? candidate : new Date(today); // not in the past
+        }
+        if (def > endOfMonth) def = new Date(endOfMonth);
+        const defaultIso = SubscriptionStore.toISODate(def);
+        const minIso = SubscriptionStore.toISODate(today);
+        const maxIso = SubscriptionStore.toISODate(endOfMonth);
 
         openDatePromptDialog({
             title: 'When is the next payment due?',
-            label: 'Next payment date',
+            label: 'Next payment date (this month)',
             defaultDate: defaultIso,
+            minDate: minIso,
+            maxDate: maxIso,
             confirmLabel: 'Reactivate',
             onCancel: () => {
                 // The row checkbox may have flipped on; re-render to restore it.
@@ -754,7 +870,12 @@ const SubscriptionsUI = (() => {
                 try {
                     await SubscriptionStore.toggle(id);               // -> active
                     await SubscriptionStore.edit(id, { nextPaymentDate: dateIso }); // new anchor
-                    toast('Subscription reactivated');
+                    // Surface the new (current-month) payment date so it's clear it moved.
+                    const d = SubscriptionStore.parseLocalDate(dateIso);
+                    const nice = d
+                        ? d.toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })
+                        : dateIso;
+                    toast('Reactivated — next payment ' + nice);
                     render(SubscriptionStore.getStats());
                     // Refresh an open details modal for this sub.
                     if (_detailId === id && !_q('#sub-detail-modal')?.hidden) {
@@ -950,6 +1071,10 @@ const SubscriptionsUI = (() => {
         const modal = _q('#sub-modal');
         if (!modal) return;
 
+        // Block past dates on the billing-date calendar.
+        if (typeof window._enforceFutureDates === 'function') window._enforceFutureDates();
+        else { const di = _q('#sub-modal-date'); if (di) { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); di.min = d.toISOString().slice(0, 10); } }
+
         // Advanced section always starts collapsed on open.
         _setAdvancedOpen(false);
         _hideBanner();
@@ -1045,6 +1170,21 @@ const SubscriptionsUI = (() => {
         _q('#sub-modal-category').value       = sub?.category        || 'Entertainment';
         _q('#sub-modal-cycle').value          = sub?.billingCycle    || 'monthly';
 
+        // Price is fixed for an EXISTING subscription (incl. paused ones) —
+        // it can only be set when first creating a brand-new subscription.
+        const amountInput = _q('#sub-modal-amount');
+        const amountHelp  = _q('#sub-modal-amount-help');
+        if (amountInput) {
+            const lockPrice = !!sub; // editing an existing/available subscription
+            amountInput.readOnly = lockPrice;
+            amountInput.setAttribute('aria-readonly', lockPrice ? 'true' : 'false');
+            amountInput.classList.toggle('sub-modal-field--readonly', lockPrice);
+            if (amountHelp) {
+                amountHelp.textContent = lockPrice ? 'The price is set by the provider and can’t be changed.' : '';
+                amountHelp.hidden = !lockPrice;
+            }
+        }
+
         // Next payment date field.
         //  - Paused: disabled, "Paused" placeholder + helper text.
         //  - Active/new: prefilled with the computed next date (never past).
@@ -1062,9 +1202,32 @@ const SubscriptionsUI = (() => {
                 dateInput.disabled = false;
                 dateInput.placeholder = '';
                 dateField?.classList.remove('sub-modal-field--paused');
-                if (dateHelp) { dateHelp.textContent = ''; dateHelp.hidden = true; }
                 const next = sub ? SubscriptionStore.getNextPaymentDate(sub) : null;
-                dateInput.value = next ? SubscriptionStore.toISODate(next) : (sub?.nextPaymentDate || '');
+                let prefill = next ? SubscriptionStore.toISODate(next) : (sub?.nextPaymentDate || '');
+
+                // Date window.
+                //  - EXISTING subscription: lock to the current month only —
+                //    not in the past, and not into next month or later.
+                //  - NEW subscription: just no past dates (future bill is fine).
+                const now = new Date();
+                const todayLocal = new Date(now); todayLocal.setMinutes(todayLocal.getMinutes() - todayLocal.getTimezoneOffset());
+                const todayStr = todayLocal.toISOString().slice(0, 10);
+                dateInput.min = todayStr;
+                if (sub) {
+                    const eom = new Date(now.getFullYear(), now.getMonth() + 1, 0); // last day this month
+                    eom.setMinutes(eom.getMinutes() - eom.getTimezoneOffset());
+                    const eomStr = eom.toISOString().slice(0, 10);
+                    dateInput.max = eomStr;
+                    // Keep the prefilled value inside the allowed window so the
+                    // picker never shows an out-of-range date.
+                    if (prefill && prefill > eomStr) prefill = eomStr;
+                    if (prefill && prefill < todayStr) prefill = todayStr;
+                    if (dateHelp) { dateHelp.textContent = 'You can only move the date within this month.'; dateHelp.hidden = false; }
+                } else {
+                    dateInput.removeAttribute('max');
+                    if (dateHelp) { dateHelp.textContent = ''; dateHelp.hidden = true; }
+                }
+                dateInput.value = prefill;
             }
         }
         _q('#sub-modal-notes').value          = sub?.notes           || '';
@@ -1181,7 +1344,7 @@ const SubscriptionsUI = (() => {
 
     /* Reusable date-prompt dialog (orange-bordered). Used by Reactivate to
        ask when the next payment is due. opts: { title, label, defaultDate,
-       confirmLabel, onConfirm(dateIso), onCancel }. */
+       minDate, maxDate, confirmLabel, onConfirm(dateIso), onCancel }. */
     function openDatePromptDialog(opts) {
         const o = opts || {};
         let backdrop = _q('#sub-dateprompt');
@@ -1193,13 +1356,14 @@ const SubscriptionsUI = (() => {
             backdrop.setAttribute('aria-modal', 'true');
             document.body.appendChild(backdrop);
         }
-        const minDate = SubscriptionStore.toISODate((function () { const t = new Date(); t.setHours(0, 0, 0, 0); return t; })());
+        const minDate = o.minDate || SubscriptionStore.toISODate((function () { const t = new Date(); t.setHours(0, 0, 0, 0); return t; })());
+        const maxAttr = o.maxDate ? ` max="${o.maxDate}"` : '';
         backdrop.innerHTML = `
             <div class="sub-confirm2-box" role="document">
                 <h3 class="sub-confirm2-title">${_esc(o.title || 'When is the next payment due?')}</h3>
                 <div class="sub-modal-field" style="margin-bottom:18px;">
                     <label for="sub-dateprompt-input">${_esc(o.label || 'Next payment date')}</label>
-                    <input type="date" id="sub-dateprompt-input" value="${_esc(o.defaultDate || '')}" min="${minDate}">
+                    <input type="date" id="sub-dateprompt-input" value="${_esc(o.defaultDate || '')}" min="${minDate}"${maxAttr}>
                     <span class="sub-modal-field-error" id="sub-dateprompt-error"></span>
                 </div>
                 <div class="sub-confirm2-actions">
@@ -1230,6 +1394,13 @@ const SubscriptionsUI = (() => {
             const today = new Date(); today.setHours(0, 0, 0, 0);
             if (!parsed) { errEl.textContent = 'Choose a valid date.'; return; }
             if (parsed < today) { errEl.textContent = 'Date cannot be in the past.'; return; }
+            if (o.maxDate) {
+                const maxParsed = SubscriptionStore.parseLocalDate(o.maxDate);
+                if (maxParsed && parsed > maxParsed) {
+                    errEl.textContent = 'The payment date must be within this month.';
+                    return;
+                }
+            }
             close();
             o.onConfirm && o.onConfirm(val);
         };
@@ -1333,6 +1504,13 @@ const SubscriptionsUI = (() => {
             providerUrl:     _q('#sub-modal-provider-url').value,
         };
 
+        // Price is fixed for an existing subscription — always use the stored
+        // amount on edit so it can't be changed (even via a tampered field).
+        if (_editingId) {
+            const original = SubscriptionStore.getById(_editingId);
+            if (original) fields.amount = original.amount;
+        }
+
         // Paused subscription: don't touch the stored anchor date on save.
         if (dateDisabled) delete fields.nextPaymentDate;
 
@@ -1363,6 +1541,15 @@ const SubscriptionsUI = (() => {
                 } else if (selected < today) {
                     _setFieldError('sub-modal-date', 'Billing date cannot be in the past.');
                     valid = false;
+                } else if (_editingId) {
+                    // Existing subscription: the date must stay within the
+                    // current month (can't be pushed into next month or later).
+                    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                    endOfMonth.setHours(23, 59, 59, 999);
+                    if (selected > endOfMonth) {
+                        _setFieldError('sub-modal-date', 'The payment date must stay within this month.');
+                        valid = false;
+                    }
                 }
             }
         }
@@ -1402,9 +1589,18 @@ const SubscriptionsUI = (() => {
                     openDetailDrawer(editedId);
                 }
             } catch (err) {
-                // Keep the modal open with the user's input; re-enable + banner.
+                // Keep the modal open with the user's input; re-enable.
                 _setSaving(false);
-                _showBanner("Couldn't save your changes. Try again.");
+                const msg = (err && err.message) ? String(err.message) : '';
+                // Duplicate subscription → clear, specific message on the name field.
+                if (/already have|already exists|duplicate/i.test(msg)) {
+                    _setFieldError('sub-modal-name', 'Subscription already exists.');
+                    _showBanner('Subscription already exists.');
+                    _q('#sub-modal-name')?.focus();
+                } else {
+                    // Surface the real reason when we have one; otherwise a safe default.
+                    _showBanner(msg || "Couldn't save your changes. Try again.");
+                }
             }
         })();
     }

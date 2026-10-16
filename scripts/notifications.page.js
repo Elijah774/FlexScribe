@@ -59,6 +59,9 @@ window._initNotificationsFromAPI = async function() {
                         <p class="notif-full-time">${timeAgo}</p>
                     </div>
                     ${isUnread ? '<span class="notif-full-dot"></span>' : ''}
+                    <button type="button" class="notif-full-delete" aria-label="Delete notification" title="Delete">
+                        <svg viewBox="0 0 24 24" fill="none" width="15" height="15"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    </button>
                 </li>
             `;
         }).join('');

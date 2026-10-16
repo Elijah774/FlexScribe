@@ -117,6 +117,7 @@ const DependantsStore = (() => {
                     avatar: _initials(fullName || '??'),
                     allowance: parseFloat(d.allowance) || 0,
                     spendingLimit: parseFloat(d.spendingLimit) || 0,
+                    totalReceived: parseFloat(d.totalReceived) || 0,
                     status: d.status || 'active',
                     age: age,
                     dateOfBirth: dob || '',

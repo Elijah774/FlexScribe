@@ -1,69 +1,35 @@
 /* =============================================================
    FlexScribe Admin Panel — scripts/admin.js
-   Handles navigation, renders mock data, search/filter.
+   Live, database-driven admin dashboard. All data is fetched
+   from the admin API (/api/admin/*), which is gated server-side
+   to Admin users only. No mock data.
 ============================================================= */
 'use strict';
 
-/* ── Mock Data ── */
-const ADMIN_DATA = {
-    users: [
-        { id: 1, name: 'Sarah Mitchell', email: 'sarah.m@gmail.com',     plan: 'professional', status: 'active',   joined: '2024-01-15', subs: 6, goals: 3, spent: 2890 },
-        { id: 2, name: 'John Dlamini',   email: 'john.d@outlook.com',    plan: 'family',       status: 'active',   joined: '2024-02-01', subs: 4, goals: 2, spent: 1540 },
-        { id: 3, name: 'Lisa Khumalo',   email: 'lisa.k@gmail.com',      plan: 'professional', status: 'active',   joined: '2024-03-10', subs: 5, goals: 4, spent: 3200 },
-        { id: 4, name: 'Tom Williams',   email: 'tom.w@gmail.com',       plan: 'individual',   status: 'inactive', joined: '2024-04-05', subs: 2, goals: 1, spent: 450 },
-        { id: 5, name: 'Amanda Nkosi',   email: 'amanda.n@hotmail.com',  plan: 'family',       status: 'active',   joined: '2024-05-20', subs: 7, goals: 5, spent: 4100 },
-        { id: 6, name: 'Mike Roberts',   email: 'mike.r@yahoo.com',      plan: 'individual',   status: 'active',   joined: '2024-06-12', subs: 3, goals: 2, spent: 890 },
-        { id: 7, name: 'Zanele Moyo',    email: 'zanele.m@gmail.com',    plan: 'professional', status: 'active',   joined: '2024-07-08', subs: 8, goals: 3, spent: 2670 },
-        { id: 8, name: 'David Chen',     email: 'david.c@gmail.com',     plan: 'individual',   status: 'active',   joined: '2024-08-22', subs: 4, goals: 1, spent: 720 },
-        { id: 9, name: 'Priya Patel',    email: 'priya.p@outlook.com',   plan: 'professional', status: 'active',   joined: '2024-09-14', subs: 6, goals: 4, spent: 3450 },
-        { id: 10, name: 'James Fourie',  email: 'james.f@gmail.com',     plan: 'family',       status: 'inactive', joined: '2024-10-03', subs: 5, goals: 2, spent: 1890 },
-        { id: 11, name: 'Nomsa Sithole', email: 'nomsa.s@gmail.com',     plan: 'individual',   status: 'active',   joined: '2025-01-10', subs: 2, goals: 1, spent: 340 },
-        { id: 12, name: 'Ryan October',  email: 'ryan.o@hotmail.com',    plan: 'professional', status: 'active',   joined: '2025-02-18', subs: 9, goals: 5, spent: 4800 },
-    ],
+/* ── API base + auth ── */
+const ADMIN_API = (location.protocol === 'file:') ? 'http://localhost:3000/api' : '/api';
 
-    subscriptions: [
-        { name: 'Netflix',        users: 89,  revenue: 17711, category: 'Entertainment' },
-        { name: 'Spotify',        users: 72,  revenue: 4319,  category: 'Music' },
-        { name: 'Disney+',        users: 45,  revenue: 4005,  category: 'Entertainment' },
-        { name: 'YouTube Premium',users: 38,  revenue: 3002,  category: 'Entertainment' },
-        { name: 'Amazon Prime',   users: 34,  revenue: 3366,  category: 'Shopping' },
-        { name: 'Microsoft 365',  users: 28,  revenue: 2772,  category: 'Productivity' },
-        { name: 'ChatGPT Plus',   users: 22,  revenue: 6600,  category: 'Productivity' },
-        { name: 'Apple Music',    users: 19,  revenue: 1710,  category: 'Music' },
-    ],
+function _adminToken() {
+    return sessionStorage.getItem('flexscribe_token') || '';
+}
 
-    auditLogs: [
-        { time: 'Today, 10:42',      user: 'Admin',          action: 'login',    detail: 'Admin login from Chrome, Windows' },
-        { time: 'Today, 09:15',      user: 'Sarah Mitchell', action: 'create',   detail: 'Created goal "Holiday Savings"' },
-        { time: 'Today, 08:30',      user: 'John Dlamini',   action: 'update',   detail: 'Added dependant Grace Dlamini' },
-        { time: 'Yesterday, 16:45',  user: 'Lisa Khumalo',   action: 'update',   detail: 'Updated Netflix subscription to R219' },
-        { time: 'Yesterday, 14:20',  user: 'Tom Williams',   action: 'login',    detail: 'Login from Safari, iPhone' },
-        { time: 'Yesterday, 11:05',  user: 'Amanda Nkosi',   action: 'create',   detail: 'Added subscription ChatGPT Plus' },
-        { time: '2 days ago',        user: 'Mike Roberts',   action: 'delete',   detail: 'Deleted subscription Disney+' },
-        { time: '2 days ago',        user: 'Zanele Moyo',    action: 'register', detail: 'New account registered' },
-        { time: '3 days ago',        user: 'David Chen',     action: 'update',   detail: 'Changed plan from Individual to Professional' },
-        { time: '3 days ago',        user: 'Priya Patel',    action: 'create',   detail: 'Created goal "New Car Fund"' },
-    ],
+async function adminFetch(path) {
+    const res = await fetch(ADMIN_API + path, {
+        headers: { 'Authorization': 'Bearer ' + _adminToken() }
+    });
+    if (res.status === 401 || res.status === 403) {
+        // Not an admin / not logged in → bounce to login.
+        _adminError('You are not authorised to view the admin panel. Please sign in as an administrator.');
+        setTimeout(() => { window.location.href = 'login.html'; }, 1800);
+        throw new Error('unauthorised');
+    }
+    if (!res.ok) throw new Error('Request failed: ' + res.status);
+    const json = await res.json();
+    return json && json.data !== undefined ? json.data : json;
+}
 
-    activity: [
-        { day: 'Mon', value: 42 },
-        { day: 'Tue', value: 58 },
-        { day: 'Wed', value: 35 },
-        { day: 'Thu', value: 71 },
-        { day: 'Fri', value: 63 },
-        { day: 'Sat', value: 29 },
-        { day: 'Sun', value: 18 },
-    ],
-
-    categories: [
-        { name: 'Entertainment', amount: 48500, pct: 38, color: '#FF7A29' },
-        { name: 'Music',         amount: 22100, pct: 17, color: '#6FDB8F' },
-        { name: 'Shopping',      amount: 18900, pct: 15, color: '#94969D' },
-        { name: 'Productivity',  amount: 15400, pct: 12, color: '#A77CFF' },
-        { name: 'Utilities',     amount: 12200, pct: 10, color: '#FFB65C' },
-        { name: 'Other',         amount: 10300, pct: 8,  color: '#E36565' },
-    ]
-};
+/* Live cache of fetched data (populated on load). */
+const ADMIN = { dashboard: null, users: [], analytics: null, subscriptions: [], activity: [] };
 
 /* ── Navigation ── */
 function loadAdminPage(pageName) {
@@ -86,7 +52,8 @@ document.querySelectorAll('.admin-nav-item[data-page]').forEach(item => {
     });
 });
 
-document.getElementById('admin-logout').addEventListener('click', function(e) {
+const _logoutBtn = document.getElementById('admin-logout');
+if (_logoutBtn) _logoutBtn.addEventListener('click', function(e) {
     e.preventDefault();
     sessionStorage.removeItem('flexscribe_admin');
     sessionStorage.removeItem('flexscribe_token');
@@ -95,181 +62,247 @@ document.getElementById('admin-logout').addEventListener('click', function(e) {
 
 /* ── Helpers ── */
 function initials(name) {
-    return name.split(' ').map(w => w[0]).join('').toUpperCase();
+    return (name || '?').split(' ').map(w => w[0] || '').join('').toUpperCase().slice(0, 2) || '?';
 }
-
 function formatRand(amount) {
-    return 'R' + amount.toLocaleString('en-ZA');
+    return 'R' + (parseFloat(amount) || 0).toLocaleString('en-ZA');
+}
+function _esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+}
+function statCard(icon, color, value, label, change) {
+    return '<div class="admin-stat-card"><div class="admin-stat-icon ' + color + '"><i data-lucide="' + icon + '"></i></div><div class="admin-stat-info"><span class="admin-stat-label">' + _esc(label) + '</span><span class="admin-stat-value">' + _esc(value) + '</span><span class="admin-stat-change up">' + _esc(change) + '</span></div></div>';
+}
+function _setLoading(id) {
+    var el = document.getElementById(id);
+    if (el) el.innerHTML = '<div style="padding:20px;color:var(--text-light,#94969D);font-size:13px;">Loading…</div>';
+}
+function _adminError(msg) {
+    if (typeof UIUtils !== 'undefined' && UIUtils.toast) UIUtils.toast(msg, 'error');
+    else console.error(msg);
+}
+/* Prettier label for a plan value (Free/Premium/Business, or legacy). */
+function _planLabel(plan) {
+    if (!plan) return 'Free';
+    return plan.charAt(0).toUpperCase() + plan.slice(1);
 }
 
 /* ── Render Dashboard ── */
 function renderDashboard() {
-    var users = ADMIN_DATA.users;
-    var activeUsers = users.filter(u => u.status === 'active').length;
-    var totalRevenue = users.length * 249; // avg plan price
-    var totalSubs = ADMIN_DATA.subscriptions.reduce((sum, s) => sum + s.users, 0);
+    const d = ADMIN.dashboard;
+    if (!d) return;
 
-    // Stats
-    document.getElementById('stats-row').innerHTML =
-        statCard('users', 'orange', users.length, 'Total Users', '+3 this month') +
-        statCard('user-check', 'green', activeUsers, 'Active Users', Math.round(activeUsers/users.length*100) + '% active') +
-        statCard('repeat', 'purple', totalSubs, 'Active Subscriptions', 'Across all users') +
-        statCard('banknote', 'blue', formatRand(totalRevenue), 'Monthly Revenue', 'All plans combined');
+    const statsRow = document.getElementById('stats-row');
+    if (statsRow) {
+        const pctActive = d.totalUsers > 0 ? Math.round(d.activeUsers / d.totalUsers * 100) : 0;
+        statsRow.innerHTML =
+            statCard('users', 'orange', d.totalUsers, 'Total Users', 'Registered members') +
+            statCard('user-check', 'green', d.activeUsers, 'Active Users', pctActive + '% active (30d)') +
+            statCard('repeat', 'purple', d.activeSubscriptions, 'Active Subscriptions', 'Across all users') +
+            statCard('banknote', 'blue', formatRand(d.monthlyRevenue), 'Monthly Revenue', 'Active subscriptions');
+    }
 
-    // Recent users table
-    var recent = users.slice(-5).reverse();
-    var rows = recent.map(u =>
-        '<tr><td><div class="admin-user-cell"><div class="admin-avatar">' + initials(u.name) + '</div><div><div class="admin-user-name">' + u.name + '</div><div class="admin-user-email">' + u.email + '</div></div></div></td>' +
-        '<td><span class="admin-badge ' + u.plan + '">' + u.plan + '</span></td>' +
-        '<td><span class="admin-badge ' + u.status + '">' + u.status + '</span></td>' +
-        '<td>' + u.joined + '</td></tr>'
-    ).join('');
-    document.getElementById('recent-users-table').innerHTML =
-        '<table class="admin-table"><thead><tr><th>User</th><th>Plan</th><th>Status</th><th>Joined</th></tr></thead><tbody>' + rows + '</tbody></table>';
+    const recentTable = document.getElementById('recent-users-table');
+    if (recentTable) {
+        const rows = (d.recentUsers || []).map(u =>
+            '<tr><td><div class="admin-user-cell"><div class="admin-avatar">' + _esc(initials(u.name)) + '</div><div><div class="admin-user-name">' + _esc(u.name) + '</div><div class="admin-user-email">' + _esc(u.email) + '</div></div></div></td>' +
+            '<td><span class="admin-badge ' + _esc(u.plan) + '">' + _esc(_planLabel(u.plan)) + '</span></td>' +
+            '<td>' + _esc(u.joined) + '</td></tr>'
+        ).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--text-light);padding:20px;">No users yet.</td></tr>';
+        recentTable.innerHTML =
+            '<table class="admin-table"><thead><tr><th>User</th><th>Plan</th><th>Joined</th></tr></thead><tbody>' + rows + '</tbody></table>';
+    }
 
-    // Activity chart
-    var max = Math.max(...ADMIN_DATA.activity.map(d => d.value));
-    var bars = ADMIN_DATA.activity.map(d =>
-        '<div class="admin-chart-bar" style="height:' + (d.value/max*100) + '%"><span class="admin-chart-bar-value">' + d.value + '</span><span class="admin-chart-bar-label">' + d.day + '</span></div>'
-    ).join('');
-    document.getElementById('activity-chart').innerHTML = bars;
+    const chart = document.getElementById('activity-chart');
+    if (chart) {
+        const act = d.activity || [];
+        const max = Math.max(1, ...act.map(x => x.value));
+        chart.innerHTML = act.map(x =>
+            '<div class="admin-chart-bar" style="height:' + (x.value / max * 100) + '%"><span class="admin-chart-bar-value">' + x.value + '</span><span class="admin-chart-bar-label">' + _esc(x.day) + '</span></div>'
+        ).join('');
+    }
 
-    // Revenue cards
-    var indivCount = users.filter(u => u.plan === 'individual').length;
-    var proCount = users.filter(u => u.plan === 'professional').length;
-    var famCount = users.filter(u => u.plan === 'family').length;
-    document.getElementById('revenue-cards').innerHTML =
-        '<div class="admin-revenue-card"><div class="admin-revenue-value">' + formatRand(indivCount * 149) + '</div><div class="admin-revenue-label">Individual (' + indivCount + ' users)</div></div>' +
-        '<div class="admin-revenue-card"><div class="admin-revenue-value">' + formatRand(proCount * 299) + '</div><div class="admin-revenue-label">Professional (' + proCount + ' users)</div></div>' +
-        '<div class="admin-revenue-card"><div class="admin-revenue-value">' + formatRand(famCount * 499) + '</div><div class="admin-revenue-label">Family (' + famCount + ' users)</div></div>';
-}
+    const revCards = document.getElementById('revenue-cards');
+    if (revCards) {
+        revCards.innerHTML = (d.revenueByPlan || []).map(p =>
+            '<div class="admin-revenue-card"><div class="admin-revenue-value">' + formatRand(p.revenue) + '</div><div class="admin-revenue-label">' + _esc(_planLabel(p.plan)) + ' (' + p.users + ' users)</div></div>'
+        ).join('') || '<div style="color:var(--text-light);font-size:13px;padding:10px;">No plan data.</div>';
+    }
 
-function statCard(icon, color, value, label, change) {
-    return '<div class="admin-stat-card"><div class="admin-stat-icon ' + color + '"><i data-lucide="' + icon + '"></i></div><div class="admin-stat-info"><span class="admin-stat-label">' + label + '</span><span class="admin-stat-value">' + value + '</span><span class="admin-stat-change up">' + change + '</span></div></div>';
+    if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 /* ── Render Users ── */
-function renderUsers(filter) {
-    var users = ADMIN_DATA.users;
-    var search = (document.getElementById('user-search')?.value || '').toLowerCase();
-    var planFilter = document.getElementById('filter-plan')?.value || 'all';
-    var statusFilter = document.getElementById('filter-status')?.value || 'all';
+function renderUsers() {
+    const users = ADMIN.users || [];
+    const search = (document.getElementById('user-search')?.value || '').toLowerCase();
+    const planFilter = document.getElementById('filter-plan')?.value || 'all';
+    const statusFilter = document.getElementById('filter-status')?.value || 'all';
 
-    var filtered = users.filter(u => {
-        var matchSearch = u.name.toLowerCase().includes(search) || u.email.toLowerCase().includes(search);
-        var matchPlan = planFilter === 'all' || u.plan === planFilter;
-        var matchStatus = statusFilter === 'all' || u.status === statusFilter;
+    const filtered = users.filter(u => {
+        const matchSearch = u.name.toLowerCase().includes(search) || u.email.toLowerCase().includes(search);
+        const matchPlan = planFilter === 'all' || u.plan === planFilter.toLowerCase();
+        const matchStatus = statusFilter === 'all' || u.status === statusFilter;
         return matchSearch && matchPlan && matchStatus;
     });
 
-    document.getElementById('user-count').textContent = filtered.length + ' users';
+    const countEl = document.getElementById('user-count');
+    if (countEl) countEl.textContent = filtered.length + ' users';
 
-    var rows = filtered.map(u =>
-        '<tr><td><div class="admin-user-cell"><div class="admin-avatar">' + initials(u.name) + '</div><div><div class="admin-user-name">' + u.name + '</div><div class="admin-user-email">' + u.email + '</div></div></div></td>' +
-        '<td><span class="admin-badge ' + u.plan + '">' + u.plan + '</span></td>' +
-        '<td><span class="admin-badge ' + u.status + '">' + u.status + '</span></td>' +
+    const rows = filtered.map(u =>
+        '<tr><td><div class="admin-user-cell"><div class="admin-avatar">' + _esc(initials(u.name)) + '</div><div><div class="admin-user-name">' + _esc(u.name) + '</div><div class="admin-user-email">' + _esc(u.email) + '</div></div></div></td>' +
+        '<td><span class="admin-badge ' + _esc(u.plan) + '">' + _esc(_planLabel(u.plan)) + '</span></td>' +
+        '<td><span class="admin-badge ' + _esc(u.status) + '">' + _esc(u.status) + '</span></td>' +
         '<td>' + u.subs + '</td>' +
         '<td>' + u.goals + '</td>' +
         '<td>' + formatRand(u.spent) + '</td>' +
-        '<td>' + u.joined + '</td></tr>'
-    ).join('');
+        '<td>' + _esc(u.joined) + '</td></tr>'
+    ).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--text-light);padding:20px;">No users match.</td></tr>';
 
-    document.getElementById('users-table').innerHTML =
+    const table = document.getElementById('users-table');
+    if (table) table.innerHTML =
         '<table class="admin-table"><thead><tr><th>User</th><th>Plan</th><th>Status</th><th>Subs</th><th>Goals</th><th>Spent</th><th>Joined</th></tr></thead><tbody>' + rows + '</tbody></table>';
 }
 
 /* ── Render Analytics ── */
 function renderAnalytics() {
-    var users = ADMIN_DATA.users;
-    var totalSpent = users.reduce((s, u) => s + u.spent, 0);
-    var totalGoals = users.reduce((s, u) => s + u.goals, 0);
-    var avgSpent = Math.round(totalSpent / users.length);
+    const a = ADMIN.analytics;
+    if (!a) return;
 
-    document.getElementById('analytics-stats').innerHTML =
-        statCard('banknote', 'orange', formatRand(totalSpent), 'Total Spent (All Users)', 'This month') +
-        statCard('target', 'green', totalGoals, 'Total Goals', 'Across platform') +
-        statCard('trending-up', 'purple', formatRand(avgSpent), 'Avg Spend per User', 'Monthly average') +
-        statCard('users', 'blue', users.length, 'Total Accounts', activeCount(users) + ' active');
+    const statsEl = document.getElementById('analytics-stats');
+    if (statsEl) {
+        statsEl.innerHTML =
+            statCard('banknote', 'orange', formatRand(a.totalSpent), 'Total Spent (All Users)', 'All time') +
+            statCard('target', 'green', a.goals.total, 'Total Goals', 'Across platform') +
+            statCard('trending-up', 'purple', formatRand(a.avgSpent), 'Avg Spend per User', 'Per member') +
+            statCard('users', 'blue', a.totalUsers, 'Total Accounts', 'Registered members');
+    }
 
-    // Categories
-    var catHTML = ADMIN_DATA.categories.map(c =>
-        '<div class="admin-cat-row"><span class="admin-cat-dot" style="background:' + c.color + '"></span><span class="admin-cat-name">' + c.name + '</span><div class="admin-cat-bar-wrap"><div class="admin-cat-bar" style="width:' + c.pct + '%;background:' + c.color + '"></div></div><span class="admin-cat-value">' + formatRand(c.amount) + '</span></div>'
-    ).join('');
-    document.getElementById('category-breakdown').innerHTML = catHTML;
+    const catEl = document.getElementById('category-breakdown');
+    if (catEl) {
+        catEl.innerHTML = (a.categories || []).map(c =>
+            '<div class="admin-cat-row"><span class="admin-cat-dot" style="background:' + c.color + '"></span><span class="admin-cat-name">' + _esc(c.name) + '</span><div class="admin-cat-bar-wrap"><div class="admin-cat-bar" style="width:' + c.pct + '%;background:' + c.color + '"></div></div><span class="admin-cat-value">' + formatRand(c.amount) + '</span></div>'
+        ).join('') || '<div style="color:var(--text-light);font-size:13px;padding:10px;">No subscription spend yet.</div>';
+    }
 
-    // Goals
-    var completed = 12;
-    var inProgress = totalGoals - completed;
-    document.getElementById('goals-stats').innerHTML =
-        '<div class="admin-goal-stat"><div class="admin-goal-stat-value">' + totalGoals + '</div><div class="admin-goal-stat-label">Total Goals</div></div>' +
-        '<div class="admin-goal-stat"><div class="admin-goal-stat-value">' + completed + '</div><div class="admin-goal-stat-label">Completed</div></div>' +
-        '<div class="admin-goal-stat"><div class="admin-goal-stat-value">' + inProgress + '</div><div class="admin-goal-stat-label">In Progress</div></div>' +
-        '<div class="admin-goal-stat"><div class="admin-goal-stat-value">R142,500</div><div class="admin-goal-stat-label">Total Saved</div></div>';
+    const goalsEl = document.getElementById('goals-stats');
+    if (goalsEl) {
+        const g = a.goals;
+        goalsEl.innerHTML =
+            '<div class="admin-goal-stat"><div class="admin-goal-stat-value">' + g.total + '</div><div class="admin-goal-stat-label">Total Goals</div></div>' +
+            '<div class="admin-goal-stat"><div class="admin-goal-stat-value">' + g.completed + '</div><div class="admin-goal-stat-label">Completed</div></div>' +
+            '<div class="admin-goal-stat"><div class="admin-goal-stat-value">' + g.inProgress + '</div><div class="admin-goal-stat-label">In Progress</div></div>' +
+            '<div class="admin-goal-stat"><div class="admin-goal-stat-value">' + formatRand(g.totalSaved) + '</div><div class="admin-goal-stat-label">Total Saved</div></div>';
+    }
 
-    // Top subs
-    var subsRows = ADMIN_DATA.subscriptions.map(s =>
-        '<tr><td>' + s.name + '</td><td>' + s.category + '</td><td>' + s.users + '</td><td>' + formatRand(s.revenue) + '</td></tr>'
-    ).join('');
-    document.getElementById('top-subs-table').innerHTML =
-        '<table class="admin-table"><thead><tr><th>Service</th><th>Category</th><th>Users</th><th>Monthly Revenue</th></tr></thead><tbody>' + subsRows + '</tbody></table>';
+    const topSubs = document.getElementById('top-subs-table');
+    if (topSubs) {
+        const rows = (ADMIN.subscriptions || []).slice(0, 8).map(s =>
+            '<tr><td>' + _esc(s.name) + '</td><td>' + _esc(s.category) + '</td><td>' + s.users + '</td><td>' + formatRand(s.revenue) + '</td></tr>'
+        ).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--text-light);padding:20px;">No subscriptions yet.</td></tr>';
+        topSubs.innerHTML =
+            '<table class="admin-table"><thead><tr><th>Service</th><th>Category</th><th>Users</th><th>Monthly Revenue</th></tr></thead><tbody>' + rows + '</tbody></table>';
+    }
 
-    // Growth chart
-    var months = ['Jan','Feb','Mar','Apr','May','Jun'];
-    var values = [82, 97, 110, 125, 138, 153];
-    var maxV = Math.max(...values);
-    var growthBars = months.map((m, i) =>
-        '<div class="admin-chart-bar" style="height:' + (values[i]/maxV*100) + '%"><span class="admin-chart-bar-value">' + values[i] + '</span><span class="admin-chart-bar-label">' + m + '</span></div>'
-    ).join('');
-    document.getElementById('growth-chart').innerHTML = growthBars;
+    const growthEl = document.getElementById('growth-chart');
+    if (growthEl) {
+        const growth = a.growth || [];
+        const maxV = Math.max(1, ...growth.map(x => x.value));
+        growthEl.innerHTML = growth.map(x =>
+            '<div class="admin-chart-bar" style="height:' + (x.value / maxV * 100) + '%"><span class="admin-chart-bar-value">' + x.value + '</span><span class="admin-chart-bar-label">' + _esc(x.month) + '</span></div>'
+        ).join('');
+    }
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
 }
-
-function activeCount(users) { return users.filter(u => u.status === 'active').length; }
 
 /* ── Render Subscriptions ── */
 function renderSubscriptions() {
-    var totalUsers = ADMIN_DATA.subscriptions.reduce((s, sub) => s + sub.users, 0);
-    var totalRev = ADMIN_DATA.subscriptions.reduce((s, sub) => s + sub.revenue, 0);
+    const subs = ADMIN.subscriptions || [];
+    const totalUsers = subs.reduce((s, x) => s + x.users, 0);
+    const totalRev = subs.reduce((s, x) => s + x.revenue, 0);
 
-    document.getElementById('subs-stats').innerHTML =
-        statCard('repeat', 'orange', ADMIN_DATA.subscriptions.length, 'Unique Services', 'Being tracked') +
-        statCard('users', 'green', totalUsers, 'Active Subscriptions', 'Across all users') +
-        statCard('banknote', 'blue', formatRand(totalRev), 'Monthly Revenue', 'From all subscriptions');
-
-    var rows = ADMIN_DATA.subscriptions.map(s =>
-        '<tr><td><strong>' + s.name + '</strong></td><td>' + s.category + '</td><td>' + s.users + ' users</td><td>' + formatRand(s.revenue) + '/mo</td></tr>'
-    ).join('');
-    document.getElementById('all-subs-table').innerHTML =
-        '<table class="admin-table"><thead><tr><th>Service</th><th>Category</th><th>Users</th><th>Revenue</th></tr></thead><tbody>' + rows + '</tbody></table>';
-}
-
-/* ── Render Audit Logs ── */
-function renderAudit(filter) {
-    var logs = ADMIN_DATA.auditLogs;
-    var actionFilter = document.getElementById('filter-audit-action')?.value || 'all';
-
-    if (actionFilter !== 'all') {
-        logs = logs.filter(l => l.action === actionFilter);
+    const statsEl = document.getElementById('subs-stats');
+    if (statsEl) {
+        statsEl.innerHTML =
+            statCard('repeat', 'orange', subs.length, 'Unique Services', 'Being tracked') +
+            statCard('users', 'green', totalUsers, 'Active Subscriptions', 'Across all users') +
+            statCard('banknote', 'blue', formatRand(totalRev), 'Monthly Revenue', 'From all subscriptions');
     }
 
-    var rows = logs.map(l =>
-        '<tr><td style="white-space:nowrap;color:var(--text-light);font-size:12px">' + l.time + '</td><td>' + l.user + '</td><td><span class="admin-action-badge ' + l.action + '">' + l.action + '</span></td><td>' + l.detail + '</td></tr>'
-    ).join('');
-    document.getElementById('audit-table').innerHTML =
+    const table = document.getElementById('all-subs-table');
+    if (table) {
+        const rows = subs.map(s =>
+            '<tr><td><strong>' + _esc(s.name) + '</strong></td><td>' + _esc(s.category) + '</td><td>' + s.users + ' users</td><td>' + formatRand(s.revenue) + '/mo</td></tr>'
+        ).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--text-light);padding:20px;">No subscriptions yet.</td></tr>';
+        table.innerHTML =
+            '<table class="admin-table"><thead><tr><th>Service</th><th>Category</th><th>Users</th><th>Revenue</th></tr></thead><tbody>' + rows + '</tbody></table>';
+    }
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+/* ── Render Audit / Activity ── */
+function renderAudit() {
+    let logs = ADMIN.activity || [];
+    const actionFilter = document.getElementById('filter-audit-action')?.value || 'all';
+    if (actionFilter !== 'all') logs = logs.filter(l => l.action === actionFilter);
+
+    const rows = logs.map(l =>
+        '<tr><td style="white-space:nowrap;color:var(--text-light);font-size:12px">' + _esc(l.time) + '</td><td>' + _esc(l.user) + '</td><td><span class="admin-action-badge ' + _esc(l.action) + '">' + _esc(l.action) + '</span></td><td>' + _esc(l.detail) + '</td></tr>'
+    ).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--text-light);padding:20px;">No recent activity.</td></tr>';
+
+    const table = document.getElementById('audit-table');
+    if (table) table.innerHTML =
         '<table class="admin-table"><thead><tr><th>Time</th><th>User</th><th>Action</th><th>Details</th></tr></thead><tbody>' + rows + '</tbody></table>';
 }
 
-/* ── Init ── */
-document.addEventListener('DOMContentLoaded', function() {
-    renderDashboard();
-    renderUsers();
-    renderAnalytics();
-    renderSubscriptions();
-    renderAudit();
+/* ── Init: fetch everything from the DB, then render ── */
+document.addEventListener('DOMContentLoaded', async function() {
+    // Quick client guard (server still enforces the real gate).
+    if (!_adminToken()) {
+        _adminError('Please sign in as an administrator.');
+        setTimeout(() => { window.location.href = 'login.html'; }, 1500);
+        return;
+    }
 
-    // Re-render lucide icons after dynamic content
-    if (typeof lucide !== 'undefined') lucide.createIcons();
+    ['stats-row', 'recent-users-table', 'activity-chart', 'revenue-cards',
+     'users-table', 'analytics-stats', 'category-breakdown', 'goals-stats',
+     'top-subs-table', 'growth-chart', 'subs-stats', 'all-subs-table', 'audit-table'
+    ].forEach(_setLoading);
 
-    // Search & filter events
+    try {
+        const [dashboard, users, analytics, subscriptions, activity] = await Promise.all([
+            adminFetch('/admin/dashboard'),
+            adminFetch('/admin/users'),
+            adminFetch('/admin/analytics'),
+            adminFetch('/admin/subscriptions'),
+            adminFetch('/admin/activity')
+        ]);
+        ADMIN.dashboard = dashboard;
+        ADMIN.users = users || [];
+        ADMIN.analytics = analytics;
+        ADMIN.subscriptions = subscriptions || [];
+        ADMIN.activity = activity || [];
+
+        renderDashboard();
+        renderUsers();
+        renderAnalytics();
+        renderSubscriptions();
+        renderAudit();
+
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    } catch (err) {
+        if (err && err.message !== 'unauthorised') {
+            _adminError('Could not load admin data. Is the server running?');
+            console.error('Admin load error:', err);
+        }
+        return;
+    }
+
+    // Search & filter events (operate on the already-fetched data).
     document.getElementById('user-search')?.addEventListener('input', renderUsers);
     document.getElementById('filter-plan')?.addEventListener('change', renderUsers);
     document.getElementById('filter-status')?.addEventListener('change', renderUsers);

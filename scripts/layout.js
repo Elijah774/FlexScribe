@@ -254,7 +254,78 @@ function loadPage(pageName) {
         if (pageName === 'settings') {
             _initSettingsPanel();
         }
+
+        // ── Scribe Score side-effects per page ──
+        _scribeScorePageHook(pageName);
+
+        // ── Prevent past dates on all future-dated calendar inputs ──
+        _enforceFutureDates();
     });
+}
+
+/* ===========================================================
+   Date-picker guard — future-dated fields can't be in the past
+   Sets min = today on billing / target / due-date calendar
+   inputs so the native date picker blocks past dates. Date-of-
+   birth fields are intentionally excluded (those are past dates).
+=========================================================== */
+function _todayISO() {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); // local, not UTC
+    return d.toISOString().slice(0, 10);
+}
+function _enforceFutureDates(root) {
+    const today = _todayISO();
+    // Explicit future-date field IDs across the app.
+    const ids = ['sub-modal-date', 'rec-add-date', 'goals-modal-date', 'dep-task-due'];
+    (root || document).querySelectorAll(
+        ids.map(id => '#' + id).join(',')
+    ).forEach(el => { el.min = today; });
+}
+// Expose so modals opened outside page-load can re-apply it.
+window._enforceFutureDates = _enforceFutureDates;
+
+/* ===========================================================
+   Scribe Score per-page hook
+   - Records genuine "review" actions (analytics / upcoming
+     payments) when the user actually opens those pages. The
+     backend decides eligibility & awards at most once/period.
+   - Shows at most one contextual tip for the page.
+   The score cache is invalidated after a review award so the
+   dashboard and the next tip reflect the new state.
+=========================================================== */
+function _scribeScorePageHook(pageName) {
+    if (typeof API === 'undefined' || !API.Score) return;
+
+    function refreshScoreUI(delta, toast) {
+        try { if (window.ScribeTips) ScribeTips.invalidate(); } catch (e) {}
+        try {
+            if (window.ScribeScore) ScribeScore.refresh(delta ? { delta: delta, toast: toast } : {});
+        } catch (e) {}
+    }
+
+    if (pageName === 'analytics') {
+        API.Score.reviewAnalytics().then(function (res) {
+            if (res && res.success && res.data && res.data.applied) {
+                refreshScoreUI(res.data.delta, 'Reviewed monthly analytics');
+            }
+        }).catch(function () {});
+    } else if (pageName === 'timeline') {
+        API.Score.reviewUpcoming().then(function (res) {
+            if (res && res.success && res.data && res.data.applied) {
+                refreshScoreUI(res.data.delta, 'Reviewed upcoming payments');
+            }
+        }).catch(function () {});
+    }
+
+    // One contextual tip per page — always shows guidance on how to earn
+    // points (eligible action, else informational, else a neutral card).
+    if (window.ScribeTips) {
+        // Let any review-award above settle so the tip reflects fresh state.
+        setTimeout(function () {
+            ScribeTips.showForPage(pageName);
+        }, pageName === 'analytics' || pageName === 'timeline' ? 350 : 0);
+    }
 }
 
 /* ===========================================================
@@ -478,28 +549,71 @@ function _bindNotifEvents() {
     const markAllBtn = document.getElementById('notif-mark-all-read');
     if (markAllBtn) {
         markAllBtn.addEventListener('click', () => {
+            const hadUnread = document.querySelectorAll('.notif-full-item.unread').length > 0;
+            if (!hadUnread) {
+                if (window.UIUtils) UIUtils.toast('No unread notifications.', 'info');
+                return;
+            }
             document.querySelectorAll('.notif-full-item.unread').forEach(item => item.classList.remove('unread'));
+            document.querySelectorAll('.notif-full-item .notif-full-dot').forEach(d => d.remove());
             _updateNotifBadge();
             document.querySelectorAll('#notif-dropdown-list .notif-dot').forEach(dot => dot.style.display = 'none');
             // Persist to database
             if (typeof API !== 'undefined') {
-                API.Notifications.markAllRead();
+                API.Notifications.markAllRead().then(function (r) {
+                    if (window.UIUtils) {
+                        if (r && r.success !== false) UIUtils.toast('All notifications marked as read.', 'success');
+                        else UIUtils.toast((r && r.error) || 'Could not mark all as read.', 'error');
+                    }
+                }).catch(function () {
+                    if (window.UIUtils) UIUtils.toast('Network error. Please try again.', 'error');
+                });
             }
         });
     }
 
-    // Click on notification item to mark as read
+    // Click on notification item to mark as read (ignore clicks on the delete btn)
     getItems().forEach(item => {
-        item.addEventListener('click', () => {
+        item.addEventListener('click', (e) => {
+            if (e.target.closest('.notif-full-delete')) return;
             if (item.classList.contains('unread')) {
                 item.classList.remove('unread');
+                const dot = item.querySelector('.notif-full-dot');
+                if (dot) dot.remove();
                 _updateNotifBadge();
                 // Persist to database
                 const nid = item.dataset.notifId;
                 if (nid && typeof API !== 'undefined') {
-                    API.Notifications.markRead(nid);
+                    API.Notifications.markRead(nid).then(function (r) {
+                        if (window.UIUtils && r && r.success === false) UIUtils.toast((r && r.error) || 'Could not update notification.', 'error');
+                    }).catch(function () {});
                 }
             }
+        });
+    });
+
+    // Delete a notification
+    getItems().forEach(item => {
+        const delBtn = item.querySelector('.notif-full-delete');
+        if (!delBtn) return;
+        delBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const nid = item.dataset.notifId;
+            if (!nid || typeof API === 'undefined' || !API.Notifications.remove) return;
+            delBtn.disabled = true;
+            API.Notifications.remove(nid).then(function (r) {
+                if (r && r.success !== false) {
+                    item.remove();
+                    _updateNotifBadge();
+                    if (window.UIUtils) UIUtils.toast('Notification deleted.', 'success');
+                } else {
+                    delBtn.disabled = false;
+                    if (window.UIUtils) UIUtils.toast((r && r.error) || 'Could not delete notification.', 'error');
+                }
+            }).catch(function () {
+                delBtn.disabled = false;
+                if (window.UIUtils) UIUtils.toast('Network error. Please try again.', 'error');
+            });
         });
     });
 }

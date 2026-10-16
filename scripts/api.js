@@ -834,6 +834,21 @@ const API = (() => {
                     amount: amount
                 }
             );
+        },
+
+
+        // Release a COMPLETED goal's saved funds back to the wallet.
+        async acceptFunds(id) {
+
+            if (USE_MOCK) {
+                return _mock({ refunded: 0, walletBalance: 0 });
+            }
+
+            return _fetch(
+                'POST',
+                `/goals/${id}/accept-funds`,
+                {}
+            );
         }
     };
 
@@ -1005,6 +1020,19 @@ const API = (() => {
             return _fetch(
                 'PATCH',
                 '/notifications/mark-all-read'
+            );
+        },
+
+
+        async remove(id) {
+
+            if (USE_MOCK) {
+                return _mock({ deleted: true });
+            }
+
+            return _fetch(
+                'DELETE',
+                `/notifications/${id}`
             );
         },
 
@@ -1203,6 +1231,48 @@ const API = (() => {
 
 
     /* ==========================================================
+       SCRIBE SCORE (rule-based, 1000-point breakdown + tips)
+       The backend is the source of truth: it returns the score,
+       the five category totals, recent activity, a recommended
+       next action, and per-action eligibility used by the
+       contextual tips. The client never invents point values.
+    ========================================================== */
+
+    const Score = {
+
+        // Full score state: { score, maxScore, categories, activity,
+        //                     eligibility, recommendation }
+        async get() {
+            if (USE_MOCK) {
+                return _mock({
+                    score: 495, maxScore: 1000, categories: [], activity: [],
+                    eligibility: {}, recommendation: null
+                });
+            }
+            return _fetch('GET', '/score');
+        },
+
+        // Record a genuine monthly analytics review (+5, once/month).
+        async reviewAnalytics() {
+            if (USE_MOCK) return _mock({ applied: false });
+            return _fetch('POST', '/score/review/analytics', {});
+        },
+
+        // Record a review of upcoming payments (+5, once/month).
+        async reviewUpcoming() {
+            if (USE_MOCK) return _mock({ applied: false });
+            return _fetch('POST', '/score/review/upcoming', {});
+        },
+
+        // Record a qualifying weekly check-in (+5, once/week).
+        async checkin() {
+            if (USE_MOCK) return _mock({ applied: false });
+            return _fetch('POST', '/score/checkin', {});
+        }
+    };
+
+
+    /* ==========================================================
        PUBLIC API
     ========================================================== */
 
@@ -1218,6 +1288,7 @@ const API = (() => {
         Support,
         BankStatements,
         Reports,
+        Score,
 
         get isMock() {
             return USE_MOCK;

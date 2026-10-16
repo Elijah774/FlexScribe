@@ -305,8 +305,12 @@ const DependantsUI = (() => {
         document.getElementById('dep-drawer-delete-btn').addEventListener('click', () => {
             if (!_drawerDepId) return;
             _showConfirm('Are you sure you want to remove this dependant? This cannot be undone.', () => {
-                DependantsStore.remove(_drawerDepId);
-                closeDrawer();
+                Promise.resolve(DependantsStore.remove(_drawerDepId)).then(function () {
+                    closeDrawer();
+                    _showToast('Dependant removed.', 'success');
+                }).catch(function (err) {
+                    _showToast((err && err.message) || 'Could not remove dependant.', 'error');
+                });
             });
         });
 
@@ -335,6 +339,7 @@ const DependantsUI = (() => {
                 <p class="dep-card-name">${dep.name}</p>
                 <span class="dep-card-relationship">${dep.relationship}${dep.age ? ' · ' + dep.age + ' yrs' : ''}</span>
                 <p class="dep-card-allowance">Allowance: <strong>${DependantsStore.fmtCurrency(dep.allowance)}</strong>/mo</p>
+                <p class="dep-card-received">Received: <strong>${DependantsStore.fmtCurrency(dep.totalReceived || 0)}</strong></p>
                 <span class="dep-status-badge ${statusClass}">${dep.status}</span>
             </div>`;
         });
@@ -549,6 +554,7 @@ const DependantsUI = (() => {
             _showToast('Dependant added successfully!', 'success');
         } catch (err) {
             $addError.textContent = err.message;
+            _showToast(err.message || 'Could not add dependant.', 'error');
         }
     }
 
@@ -625,6 +631,7 @@ const DependantsUI = (() => {
             if (!$drawer.hidden) openDrawer(_drawerDepId);
         } catch (err) {
             $editError.textContent = err.message;
+            _showToast(err.message || 'Could not update dependant.', 'error');
         }
     }
 
@@ -665,7 +672,7 @@ const DependantsUI = (() => {
             promise = DependantsStore.sendAllowance(depId, amount, frequency);
         } catch (err) {
             $sendError.textContent = err.message;
-            return;
+            _showToast(err.message || 'Could not send allowance.', 'error');
         }
 
         Promise.resolve(promise).then(function(result) {
@@ -741,6 +748,8 @@ const DependantsUI = (() => {
         document.getElementById('dep-info-dob').textContent = dep.dateOfBirth ? DependantsStore.fmtDate(dep.dateOfBirth) + (dep.age ? ' (' + dep.age + ' yrs)' : '') : '—';
         document.getElementById('dep-info-allowance').textContent = DependantsStore.fmtCurrency(dep.allowance || 0);
         document.getElementById('dep-info-spending-limit').textContent = DependantsStore.fmtCurrency(dep.spendingLimit || 0);
+        var depRecvEl = document.getElementById('dep-info-received');
+        if (depRecvEl) depRecvEl.textContent = DependantsStore.fmtCurrency(dep.totalReceived || 0);
 
         // Permissions
         document.getElementById('dep-perm-spend').checked = dep.permissions.canSpend;
