@@ -42,11 +42,13 @@ function _labelForDays(days) {
 }
 
 /* -----------------------------------------------------------
-   runInsufficientFundsCheck(now)
+   runInsufficientFundsCheck(now, opts)
    3 days before billing, warn if wallet < subscription amount.
+   opts.force skips the hour-gate and quiet-hours.
 ----------------------------------------------------------- */
-async function runInsufficientFundsCheck(now) {
+async function runInsufficientFundsCheck(now, opts) {
     const when = now || new Date();
+    const force = !!(opts && opts.force);
     const summary = { checked: 0, sent: 0, skippedQuiet: 0, skippedDup: 0, ok: 0, errors: 0 };
 
     const rows = await query(`
@@ -65,10 +67,12 @@ async function runInsufficientFundsCheck(now) {
 
             const user = { timezone: r.timezone, quietHoursEnabled: r.quietHoursEnabled, quietHoursStart: r.quietHoursStart, quietHoursEnd: r.quietHoursEnd };
             const local = tz.getLocalParts(when, r.timezone);
-            if (local.hour !== RUN_HOUR) continue;
+            if (!force && local.hour !== RUN_HOUR) continue;
 
             const billingKey = new Date(r.billingDate).toISOString().slice(0, 10);
-            if (_daysUntil(billingKey, local.dateKey) !== 3) continue; // only 3 days before
+            const daysAway = _daysUntil(billingKey, local.dateKey);
+            // Normal mode: only 3 days before. Force mode: within 7 days.
+            if (force ? (daysAway < 0 || daysAway > 7) : daysAway !== 3) continue;
 
             summary.checked++;
 
@@ -76,7 +80,7 @@ async function runInsufficientFundsCheck(now) {
             const amount = parseFloat(r.billingAmount) || 0;
             if (balance >= amount) { summary.ok++; continue; } // funds are sufficient
 
-            const gate = tz.shouldSendNow(user, when, { critical: false });
+            const gate = force ? { allowed: true } : tz.shouldSendNow(user, when, { critical: false });
             if (!gate.allowed) { summary.skippedQuiet++; continue; }
 
             const result = await notificationService.createNotification({
@@ -103,12 +107,13 @@ async function runInsufficientFundsCheck(now) {
 }
 
 /* -----------------------------------------------------------
-   runUpcomingPaymentSummary(now)
+   runUpcomingPaymentSummary(now, opts)
    One daily summary per user of payments due in the next 7 days.
-   Only sent when there is >= 1 upcoming payment.
+   opts.force skips the hour-gate and quiet-hours.
 ----------------------------------------------------------- */
-async function runUpcomingPaymentSummary(now) {
+async function runUpcomingPaymentSummary(now, opts) {
     const when = now || new Date();
+    const force = !!(opts && opts.force);
     const summary = { usersChecked: 0, sent: 0, skippedQuiet: 0, skippedDup: 0, noUpcoming: 0, errors: 0 };
 
     // All active subscriptions with billing dates + owner scheduling prefs
@@ -134,7 +139,7 @@ async function runUpcomingPaymentSummary(now) {
 
             const user = { timezone: first.timezone, quietHoursEnabled: first.quietHoursEnabled, quietHoursStart: first.quietHoursStart, quietHoursEnd: first.quietHoursEnd };
             const local = tz.getLocalParts(when, first.timezone);
-            if (local.hour !== RUN_HOUR) continue;
+            if (!force && local.hour !== RUN_HOUR) continue;
 
             summary.usersChecked++;
 
@@ -150,7 +155,7 @@ async function runUpcomingPaymentSummary(now) {
 
             if (upcoming.length === 0) { summary.noUpcoming++; continue; } // nothing to send
 
-            const gate = tz.shouldSendNow(user, when, { critical: false });
+            const gate = force ? { allowed: true } : tz.shouldSendNow(user, when, { critical: false });
             if (!gate.allowed) { summary.skippedQuiet++; continue; }
 
             upcoming.sort((a, b) => a.days - b.days);

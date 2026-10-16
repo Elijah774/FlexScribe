@@ -99,13 +99,13 @@ function stop() {
    Manually run every job once with the given instant. Useful for
    tests and for an admin "run now" trigger. Returns per-job results.
 ----------------------------------------------------------- */
-async function runAllOnce(now) {
+async function runAllOnce(now, opts) {
     const at = now || new Date();
     return {
         billing: await billingProcessor.runBilling(at),
-        subscriptionReminders: await subscriptionReminders.runSubscriptionReminders(at),
-        insufficientFunds: await paymentSummaries.runInsufficientFundsCheck(at),
-        upcomingSummary: await paymentSummaries.runUpcomingPaymentSummary(at),
+        subscriptionReminders: await subscriptionReminders.runSubscriptionReminders(at, opts),
+        insufficientFunds: await paymentSummaries.runInsufficientFundsCheck(at, opts),
+        upcomingSummary: await paymentSummaries.runUpcomingPaymentSummary(at, opts),
         weeklySummary: await financialSummaries.runWeeklySummary(at),
         monthlyReport: await financialSummaries.runMonthlyReport(at)
     };

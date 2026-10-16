@@ -214,7 +214,12 @@ document.addEventListener('DOMContentLoaded', () => {
             else { await new Promise(r => setTimeout(r, 1000)); sessionStorage.setItem('flexscribe_token', 'mock-token'); result = { success: true }; }
             if (result.success) {
                 setBtnSuccess(loginSubmit);
-                var _admin = result.data && result.data.isAdmin;
+                // Persist the user object (myBranch) and derive admin from either
+                // the top-level isAdmin flag or the user.userType.
+                if (result.data && result.data.user) {
+                    try { sessionStorage.setItem('flexscribe_user', JSON.stringify(result.data.user)); } catch (e) {}
+                }
+                var _admin = !!(result.data && (result.data.isAdmin || (result.data.user && result.data.user.userType === 'Admin')));
                 if (_admin) { try { sessionStorage.setItem('flexscribe_admin', '1'); } catch (e) {} }
                 if (window.UIUtils) UIUtils.toast('Welcome back!', 'success');
                 setTimeout(() => { window.location.href = _admin ? 'admin.html' : 'loading.html'; }, 1200);

@@ -523,6 +523,34 @@ function _initNotificationsPanel() {
 }
 
 function _bindNotifEvents() {
+    // Generate reminders button
+    const generateBtn = document.getElementById('notif-generate-reminders-btn');
+    if (generateBtn) {
+        generateBtn.addEventListener('click', async () => {
+            generateBtn.disabled = true;
+            generateBtn.textContent = 'Generating...';
+            try {
+                const result = await API.Notifications.generateReminders();
+                if (result.success) {
+                    const sent = result.data.sent || 0;
+                    if (typeof UIUtils !== 'undefined') {
+                        UIUtils.toast(sent > 0 ? `${sent} reminder${sent === 1 ? '' : 's'} generated` : 'No new reminders — all up to date', 'success');
+                    }
+                    // Reload the list to show new notifications
+                    await window._initNotificationsFromAPI();
+                    _bindNotifEvents();
+                } else {
+                    if (typeof UIUtils !== 'undefined') UIUtils.toast('Could not generate reminders', 'error');
+                }
+            } catch (e) {
+                if (typeof UIUtils !== 'undefined') UIUtils.toast('Error generating reminders', 'error');
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" width="14" height="14"><path d="M4 4v5h5M20 20v-5h-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 9a9 9 0 0114.5-5.5M20 15a9 9 0 01-14.5 5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Generate Reminders';
+            }
+        });
+    }
+
     // Tab filtering
     const tabs = document.querySelectorAll('.notif-tab-btn');
     const getItems = () => document.querySelectorAll('.notif-full-item');

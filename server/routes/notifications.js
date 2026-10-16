@@ -96,6 +96,37 @@ router.patch('/read-all', _markAllHandler);
 router.patch('/mark-all-read', _markAllHandler);
 
 /* -----------------------------------------------------------
+   POST /api/notifications/generate-reminders
+   Immediately generates upcoming-payment reminder notifications
+   for the authenticated user, bypassing the hour-gate.
+   Returns how many new notifications were created.
+----------------------------------------------------------- */
+router.post('/generate-reminders', async (req, res) => {
+    try {
+        const subscriptionReminders = require('../jobs/subscriptionReminders');
+        const paymentSummaries = require('../jobs/paymentSummaries');
+        const now = new Date();
+        const opts = { force: true };
+
+        // Run per-subscription reminders (7/3/1/0 days before billing date)
+        const reminders = await subscriptionReminders.runSubscriptionReminders(now, opts);
+        // Run upcoming-payment summary (aggregated list for the next 7 days)
+        const summary = await paymentSummaries.runUpcomingPaymentSummary(now, opts);
+        // Run insufficient-funds check within next 7 days
+        const funds = await paymentSummaries.runInsufficientFundsCheck(now, opts);
+
+        res.json({
+            message: 'Reminders generated',
+            sent: (reminders.sent || 0) + (summary.sent || 0) + (funds.sent || 0),
+            details: { reminders, summary, funds }
+        });
+    } catch (err) {
+        console.error('[notifications] generate-reminders error:', err.message);
+        res.status(500).json({ error: 'Could not generate reminders: ' + err.message });
+    }
+});
+
+/* -----------------------------------------------------------
    DELETE /api/notifications/:id
    Deletes a notification (owner-checked).
 ----------------------------------------------------------- */

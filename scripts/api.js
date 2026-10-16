@@ -124,8 +124,8 @@ const API = (() => {
                 // Log the real reason so cases can be told apart.
                 console.error(`API ${method} ${url} -> HTTP ${response.status}`, json);
                 return _err(
-                    json.message ||
                     json.error ||
+                    json.message ||
                     `Server responded with an error (HTTP ${response.status})`,
                     response.status
                 );
@@ -308,10 +308,17 @@ const API = (() => {
                 });
             }
 
-            return _fetch(
+            const result = await _fetch(
                 'GET',
                 '/auth/profile'
             );
+
+            if (result.success && result.data) {
+                result.data.id = result.data.subscriberID;
+                result.data.name = (result.data.preferredName || ((result.data.firstName || '') + ' ' + (result.data.lastName || ''))).trim();
+            }
+
+            return result;
         },
 
 
@@ -393,10 +400,31 @@ const API = (() => {
                 return _mock([]);
             }
 
-            return _fetch(
+            const result = await _fetch(
                 'GET',
                 '/subscriptions'
             );
+
+            if (result.success && Array.isArray(result.data)) {
+                result.data = result.data.map(s => ({
+                    id: s.subscriptionID,
+                    name: s.serviceName,
+                    category: s.categoryName || 'Other',
+                    categoryID: s.categoryID,
+                    amount: parseFloat(s.billingAmount) || 0,
+                    billingCycle: s.billingCycle || 'monthly',
+                    nextPaymentDate: s.billingDate ? new Date(s.billingDate).toISOString().slice(0,10) : null,
+                    active: s.subStatus === 'active',
+                    status: s.subStatus,
+                    logoClass: s.logoClass || null,
+                    logoText: s.logoText || (s.serviceName || '?').charAt(0).toUpperCase(),
+                    colorTag: s.colorTag || null,
+                    notes: s.notes || '',
+                    createdAt: s.createdAt || null
+                }));
+            }
+
+            return result;
         },
 
 
@@ -512,10 +540,18 @@ const API = (() => {
                 });
             }
 
-            return _fetch(
+            const result = await _fetch(
                 'GET',
                 '/wallet'
             );
+
+            if (result.success && result.data) {
+                result.data.balanceCents = Math.round((parseFloat(result.data.balance) || 0) * 100);
+                result.data.pendingInCents = Math.round((parseFloat(result.data.pendingIn) || 0) * 100);
+                result.data.pendingOutCents = Math.round((parseFloat(result.data.pendingOut) || 0) * 100);
+            }
+
+            return result;
         },
 
 
@@ -753,10 +789,27 @@ const API = (() => {
                 return _mock([]);
             }
 
-            return _fetch(
+            const result = await _fetch(
                 'GET',
                 '/goals'
             );
+
+            if (result.success && Array.isArray(result.data)) {
+                result.data = result.data.map(g => ({
+                    id: g.goalID,
+                    name: g.goalName,
+                    targetAmount: parseFloat(g.targetAmount) || 0,
+                    savedAmount: parseFloat(g.savedAmount) || 0,
+                    targetDate: g.deadline ? new Date(g.deadline).toISOString().slice(0,10) : '',
+                    category: g.category || 'Other',
+                    imageUrl: g.imageUrl || '',
+                    status: g.goalStatus || 'in_progress',
+                    createdAt: g.createdAt ? new Date(g.createdAt).toISOString().slice(0,10) : '',
+                    contributions: []
+                }));
+            }
+
+            return result;
         },
 
 
@@ -775,7 +828,12 @@ const API = (() => {
             return _fetch(
                 'POST',
                 '/goals',
-                data
+                {
+                    goalName: data.name || data.goalName,
+                    targetAmount: data.targetAmount || (data.targetCents ? data.targetCents / 100 : 0),
+                    deadline: data.targetDate || data.deadline || null,
+                    imageUrl: data.imageUrl || null
+                }
             );
         },
 
@@ -793,7 +851,13 @@ const API = (() => {
             return _fetch(
                 'PUT',
                 `/goals/${id}`,
-                data
+                {
+                    goalName: data.name || data.goalName,
+                    targetAmount: data.targetAmount !== undefined ? data.targetAmount : (data.targetCents !== undefined ? data.targetCents / 100 : undefined),
+                    deadline: data.targetDate || data.deadline,
+                    imageUrl: data.imageUrl,
+                    goalStatus: data.status || data.goalStatus
+                }
             );
         },
 
@@ -831,7 +895,8 @@ const API = (() => {
                 'POST',
                 `/goals/${id}/contribute`,
                 {
-                    amount: amount
+                    amount: typeof amount === 'number' && amount > 1000 ? amount / 100 : amount,
+                    source: 'wallet'
                 }
             );
         },
@@ -1020,6 +1085,30 @@ const API = (() => {
             return _fetch(
                 'PATCH',
                 '/notifications/mark-all-read'
+            );
+        },
+
+        async generateReminders() {
+
+            if (USE_MOCK) {
+                return _mock({ sent: 0 });
+            }
+
+            return _fetch(
+                'POST',
+                '/notifications/generate-reminders'
+            );
+        },
+
+        async deleteOne(id) {
+
+            if (USE_MOCK) {
+                return _mock({ deleted: true });
+            }
+
+            return _fetch(
+                'DELETE',
+                `/notifications/${id}`
             );
         },
 

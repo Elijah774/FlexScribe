@@ -80,12 +80,16 @@ function _buildMessage(sub, daysBefore) {
 }
 
 /* -----------------------------------------------------------
-   runSubscriptionReminders(now)
-   @param now Date (defaults to new Date()) — injectable for tests
+   runSubscriptionReminders(now, opts)
+   @param now  Date (defaults to new Date()) — injectable for tests
+   @param opts { force: bool }  — when true, skips the hour-gate and
+               quiet-hours so reminders are generated immediately.
+               Used by the admin "run now" endpoint.
    @returns summary { checked, sent, skippedQuiet, skippedDup, errors, details }
 ----------------------------------------------------------- */
-async function runSubscriptionReminders(now) {
+async function runSubscriptionReminders(now, opts) {
     const when = now || new Date();
+    const force = !!(opts && opts.force);
     const summary = { checked: 0, sent: 0, skippedQuiet: 0, skippedDup: 0, errors: 0, details: [] };
     const REMIND_DAYS = [7, 3, 1, 0];
 
@@ -113,16 +117,20 @@ async function runSubscriptionReminders(now) {
             const local = tz.getLocalParts(when, sub.timezone);
 
             // Only run this job at the user's local reminder hour (08:00)
-            if (local.hour !== REMIND_HOUR) continue;
+            // unless forced — in that case generate for all upcoming days
+            if (!force && local.hour !== REMIND_HOUR) continue;
 
             const billingKey = new Date(sub.billingDate).toISOString().slice(0, 10);
             const days = _daysUntil(billingKey, local.dateKey);
-            if (!REMIND_DAYS.includes(days)) continue;
+
+            // In force mode, generate reminders for any subscription due within 7 days
+            const daysToCheck = force ? (days >= 0 && days <= 7 ? [days] : []) : REMIND_DAYS;
+            if (!daysToCheck.includes(days)) continue;
 
             summary.checked++;
 
-            // Quiet-hours check (08:00 is normally outside quiet hours, but honour config)
-            const gate = tz.shouldSendNow(user, when, { critical: false });
+            // Quiet-hours check (bypass when forced)
+            const gate = force ? { allowed: true } : tz.shouldSendNow(user, when, { critical: false });
             if (!gate.allowed) { summary.skippedQuiet++; continue; }
 
             const { title, message } = _buildMessage(sub, days);
