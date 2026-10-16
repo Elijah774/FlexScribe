@@ -81,9 +81,9 @@ window._pageContent['reports'] = `
                             <p>Drag &amp; drop file here</p>
                             <span>or</span>
                             <button class="rpt-choose-file-btn" id="rpt-choose-file-btn">Choose File</button>
-                            <input type="file" id="rpt-file-input" accept=".pdf,.csv,.xlsx" hidden>
+                            <input type="file" id="rpt-file-input" accept=".csv,text/csv" hidden>
                         </div>
-                        <p class="rpt-upload-hint">Supported: PDF, CSV, Excel (.xlsx) &middot; Max size: 10MB</p>
+                        <p class="rpt-upload-hint">Supported: CSV only &middot; Max size: 50MB</p>
                         <div class="rpt-recent-uploads" id="rpt-recent-uploads">
                             <h4>Recent Uploads</h4>
                             <p style="color:var(--text-light);font-size:13px;">No uploads yet.</p>

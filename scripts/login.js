@@ -147,13 +147,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (forgotSendBtn) {
         forgotSendBtn.addEventListener('click', async () => {
+            const fEmail = document.getElementById('forgot-email')?.value.trim() || '';
+            if (!fEmail || !isValidEmail(fEmail)) {
+                if (window.UIUtils) UIUtils.toast('Enter a valid email address.', 'error');
+                return;
+            }
             forgotSendBtn.disabled = true;
             forgotSendBtn.textContent = 'Sending...';
-            if (typeof API !== 'undefined') await API.Auth.forgotPassword(document.getElementById('forgot-email')?.value);
-            else await new Promise(r => setTimeout(r, 800));
-            forgotSendBtn.textContent = 'Send Reset Link';
-            forgotSendBtn.disabled = false;
-            if (forgotSuccess) forgotSuccess.style.display = 'block';
+            try {
+                let r = { success: true };
+                if (typeof API !== 'undefined') r = await API.Auth.forgotPassword(fEmail);
+                else await new Promise(res => setTimeout(res, 800));
+                if (r && r.success !== false) {
+                    if (forgotSuccess) forgotSuccess.style.display = 'block';
+                    if (window.UIUtils) UIUtils.toast('If that email exists, a reset link is on its way.', 'success');
+                } else {
+                    if (window.UIUtils) UIUtils.toast((r && r.error) || 'Could not send reset link.', 'error');
+                }
+            } catch (err) {
+                if (window.UIUtils) UIUtils.toast('Network error. Please try again.', 'error');
+            } finally {
+                forgotSendBtn.textContent = 'Send Reset Link';
+                forgotSendBtn.disabled = false;
+            }
         });
     }
 
@@ -193,8 +209,14 @@ document.addEventListener('DOMContentLoaded', () => {
             let result;
             if (typeof API !== 'undefined') { result = await API.Auth.login(email, pw); }
             else { await new Promise(r => setTimeout(r, 1000)); sessionStorage.setItem('flexscribe_token', 'mock-token'); result = { success: true }; }
-            if (result.success) { setBtnSuccess(loginSubmit); setTimeout(() => { window.location.href = result.data?.isAdmin ? 'admin.html' : 'loading.html'; }, 1200); }
-            else { resetBtn(loginSubmit); showAuthError(result.error || 'Invalid credentials.'); }
+            if (result.success) {
+                setBtnSuccess(loginSubmit);
+                var _admin = result.data && result.data.isAdmin;
+                if (_admin) { try { sessionStorage.setItem('flexscribe_admin', '1'); } catch (e) {} }
+                if (window.UIUtils) UIUtils.toast('Welcome back!', 'success');
+                setTimeout(() => { window.location.href = _admin ? 'admin.html' : 'loading.html'; }, 1200);
+            }
+            else { resetBtn(loginSubmit); showAuthError(result.error || 'Invalid credentials.'); if (window.UIUtils) UIUtils.toast(result.error || 'Invalid email or password.', 'error'); }
         });
     }
 
@@ -260,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const cd = document.getElementById('success-countdown');
                     const iv = setInterval(() => { sec--; if (cd) cd.textContent = sec; if (sec <= 0) { clearInterval(iv); window.location.href = 'loading.html'; } }, 1000);
                 }, 800);
-            } else { resetBtn(registerSubmit); showAuthError(result.error || 'Registration failed.'); }
+            } else { resetBtn(registerSubmit); showAuthError(result.error || 'Registration failed.'); if (window.UIUtils) UIUtils.toast(result.error || 'Registration failed.', 'error'); }
         });
     }
 

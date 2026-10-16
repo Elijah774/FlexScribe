@@ -50,7 +50,7 @@ const UIUtils = (() => {
         _toastContainer.setAttribute('aria-atomic', 'false');
         Object.assign(_toastContainer.style, {
             position:      'fixed',
-            bottom:        '28px',
+            bottom:        'max(16px, env(safe-area-inset-bottom))',
             left:          '50%',
             transform:     'translateX(-50%)',
             display:       'flex',
@@ -59,6 +59,10 @@ const UIUtils = (() => {
             gap:           '10px',
             zIndex:        '9999',
             pointerEvents: 'none',
+            width:         'auto',
+            maxWidth:      'min(92vw, 440px)',
+            padding:       '0 8px',
+            boxSizing:     'border-box',
         });
         document.body.appendChild(_toastContainer);
         return _toastContainer;
@@ -81,16 +85,21 @@ const UIUtils = (() => {
             background:    'var(--card, #181D24)',
             border:        '1px solid var(--border, #272D35)',
             borderRadius:  '10px',
-            padding:       '12px 20px',
+            padding:       '12px 18px',
             fontSize:      '13.5px',
+            lineHeight:    '1.35',
             color:         'var(--text, #F5F5F5)',
             boxShadow:     '0 8px 24px rgba(0,0,0,0.35)',
-            whiteSpace:    'nowrap',
+            whiteSpace:    'normal',
+            overflowWrap:  'anywhere',
+            maxWidth:      '100%',
+            boxSizing:     'border-box',
             pointerEvents: 'all',
             opacity:       '0',
             transform:     'translateY(12px)',
             transition:    'opacity 200ms ease, transform 200ms ease',
             userSelect:    'none',
+            cursor:        'pointer',
         });
 
         const icon = document.createElement('span');
@@ -98,6 +107,7 @@ const UIUtils = (() => {
         icon.style.color = TOAST_COLORS[type] || TOAST_COLORS.info;
         icon.style.fontWeight = '700';
         icon.style.fontSize = '15px';
+        icon.style.flexShrink = '0';
 
         const text = document.createElement('span');
         text.textContent = message;
@@ -418,8 +428,19 @@ const UIUtils = (() => {
 
     function refresh(opts) {
         opts = opts || {};
-        // Re-render the dashboard ring if that module is present/mounted.
+        // Re-render the dashboard ring/breakdown if that module is mounted.
         try { if (window.DashboardUI && DashboardUI.refreshScore) DashboardUI.refreshScore(); } catch (e) {}
+
+        // The score just changed — drop the tips' cached score so the next
+        // tip reflects the new eligibility (e.g. an earned action vanishes),
+        // then re-show the current page's tip.
+        try {
+            if (window.ScribeTips) {
+                ScribeTips.invalidate();
+                var page = (typeof getCurrentPage === 'function') ? getCurrentPage() : _currentPageName();
+                if (page) ScribeTips.showForPage(page);
+            }
+        } catch (e) {}
 
         // Pull the authoritative score and update any visible stat + toast.
         if (typeof API !== 'undefined' && API.Auth && API.Auth.getUser) {
@@ -435,6 +456,19 @@ const UIUtils = (() => {
                 }
             }).catch(function () {});
         }
+    }
+
+    // Best-effort "which page is showing" — reads the visible page panel.
+    function _currentPageName() {
+        try {
+            var panels = document.querySelectorAll('.page-panel');
+            for (var i = 0; i < panels.length; i++) {
+                if (!panels[i].hidden) {
+                    return panels[i].id ? panels[i].id.replace(/-panel$/, '').replace(/^panel-/, '') : null;
+                }
+            }
+        } catch (e) {}
+        return null;
     }
 
     window.ScribeScore = { refresh: refresh };

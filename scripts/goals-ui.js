@@ -71,8 +71,12 @@ const GoalsUI = (() => {
             render();
         });
 
-        // Grid click → open card or open add modal
+        // Grid click → accept funds, open card, or open add modal
         $grid.addEventListener('click', (e) => {
+            // "Accept Funds" on a completed goal (don't open the drawer).
+            const acceptBtn = e.target.closest('.goal-accept-btn[data-accept]');
+            if (acceptBtn) { e.stopPropagation(); _acceptFunds(acceptBtn.dataset.accept, acceptBtn); return; }
+
             const addCard = e.target.closest('.goal-card--add');
             if (addCard) { openModal(); return; }
 
@@ -108,17 +112,24 @@ const GoalsUI = (() => {
                     if (result.success) {
                         closeDrawer();
                         _loadGoalsFromAPI();
+                        if (typeof UIUtils !== 'undefined') UIUtils.toast('Goal deleted.', 'success');
                     } else {
-                        alert(result.error || 'Failed to delete goal.');
+                        if (typeof UIUtils !== 'undefined') UIUtils.toast(result.error || 'Failed to delete goal.', 'error');
                     }
                 }).catch(function() {
-                    alert('Network error. Please try again.');
+                    if (typeof UIUtils !== 'undefined') UIUtils.toast('Network error. Please try again.', 'error');
                 });
             });
         });
 
         // Add Funds inside drawer
         document.getElementById('goals-drawer-addfunds-btn').addEventListener('click', _handleAddFunds);
+
+        // Accept Funds inside drawer (completed goal → release to wallet)
+        var drawerAcceptBtn = document.getElementById('goals-drawer-accept-btn');
+        if (drawerAcceptBtn) drawerAcceptBtn.addEventListener('click', function() {
+            if (_drawerGoalId) _acceptFunds(_drawerGoalId, drawerAcceptBtn);
+        });
     }
 
     /* ----------------------------------------------------------
@@ -138,6 +149,7 @@ const GoalsUI = (() => {
                         category: g.category || 'Other',
                         imageUrl: g.imageUrl || '',
                         status: g.goalStatus === 'active' ? 'in_progress' : (g.goalStatus || 'in_progress'),
+                        fundsReturned: !!(g.fundsReturned),
                         createdAt: g.createdAt ? g.createdAt.split('T')[0] : '',
                         contributions: g.contributions || []
                     };
@@ -213,6 +225,11 @@ const GoalsUI = (() => {
                             <span class="goal-category-badge" data-cat="${goal.category}">${goal.category}</span>
                         </div>
                     </div>
+                    ${(isComplete && !goal.fundsReturned && goal.savedAmount > 0)
+                        ? `<button type="button" class="goal-accept-btn" data-accept="${goal.id}">Accept Funds · R${goal.savedAmount.toFixed(2)}</button>`
+                        : (isComplete && goal.fundsReturned)
+                            ? `<span class="goal-accepted-tag">Funds accepted ✓</span>`
+                            : ''}
                 </div>
             </div>`;
         });
@@ -262,6 +279,14 @@ const GoalsUI = (() => {
             $modalForm.reset();
         }
 
+        // Block past dates on the target-date calendar.
+        if (typeof window._enforceFutureDates === 'function') {
+            window._enforceFutureDates();
+        } else {
+            var di = document.getElementById('goals-modal-date');
+            if (di) { var d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); di.min = d.toISOString().slice(0, 10); }
+        }
+
         $modal.hidden = false;
         document.getElementById('goals-modal-name').focus();
     }
@@ -294,22 +319,31 @@ const GoalsUI = (() => {
                 if (result.success) {
                     closeModal();
                     _loadGoalsFromAPI();
+                    if (typeof UIUtils !== 'undefined') UIUtils.toast('Goal updated.', 'success');
                 } else {
                     $modalError.textContent = result.error || 'Failed to update goal.';
+                    if (typeof UIUtils !== 'undefined') UIUtils.toast(result.error || 'Failed to update goal.', 'error');
                 }
             }).catch(function(err) {
                 $modalError.textContent = 'Network error. Please try again.';
+                if (typeof UIUtils !== 'undefined') UIUtils.toast('Network error. Please try again.', 'error');
             });
         } else {
             API.Goals.add({ goalName: name, targetAmount: targetAmount, deadline: targetDate }).then(function(result) {
                 if (result.success) {
                     closeModal();
                     _loadGoalsFromAPI();
+                    // Creating a goal awards +10 (Financial Goals) — refresh
+                    // the score + contextual tip to reflect it (this also toasts).
+                    if (window.ScribeScore) window.ScribeScore.refresh({ delta: 10, toast: 'Goal created — ScribeScore +10' });
+                    else if (typeof UIUtils !== 'undefined') UIUtils.toast('Goal created.', 'success');
                 } else {
                     $modalError.textContent = result.error || 'Failed to create goal.';
+                    if (typeof UIUtils !== 'undefined') UIUtils.toast(result.error || 'Failed to create goal.', 'error');
                 }
             }).catch(function(err) {
                 $modalError.textContent = 'Network error. Please try again.';
+                if (typeof UIUtils !== 'undefined') UIUtils.toast('Network error. Please try again.', 'error');
             });
         }
     }
@@ -358,6 +392,30 @@ const GoalsUI = (() => {
         // Clear fund input
         document.getElementById('goals-drawer-fund-amount').value = '';
 
+        // Add Funds (active) vs Accept Funds (completed, still holding funds).
+        var addSection = document.getElementById('goals-drawer-addfunds-section');
+        var acceptSection = document.getElementById('goals-drawer-accept-section');
+        var acceptBtn = document.getElementById('goals-drawer-accept-btn');
+        var acceptHint = document.getElementById('goals-drawer-accept-hint');
+        var acceptedNote = document.getElementById('goals-drawer-accepted-note');
+        var isCompleted = goal.status === 'completed';
+        var holdsFunds = isCompleted && !goal.fundsReturned && goal.savedAmount > 0;
+        if (addSection) addSection.hidden = isCompleted;          // can't add to a completed goal
+        if (acceptSection) acceptSection.hidden = !isCompleted;
+        if (isCompleted && acceptBtn) {
+            if (holdsFunds) {
+                acceptBtn.hidden = false;
+                acceptBtn.disabled = false;
+                acceptBtn.textContent = 'Accept Funds · R' + goal.savedAmount.toFixed(2);
+                if (acceptHint) acceptHint.hidden = false;
+                if (acceptedNote) acceptedNote.hidden = true;
+            } else {
+                acceptBtn.hidden = true;
+                if (acceptHint) acceptHint.hidden = true;
+                if (acceptedNote) acceptedNote.hidden = false;  // already accepted
+            }
+        }
+
         $drawerOverlay.hidden = false;
         $drawer.hidden = false;
     }
@@ -402,6 +460,15 @@ const GoalsUI = (() => {
                     var data = result.data || {};
                     if (data.completed && window.ScribeScore) {
                         window.ScribeScore.refresh({ delta: 5, toast: 'Goal completed — ScribeScore +5' });
+                    } else if (window.ScribeScore) {
+                        // A contribution may have crossed a 25/50/75% milestone
+                        // (+5 each). Refresh so the score + tip reflect any award.
+                        window.ScribeScore.refresh();
+                    }
+                    if (typeof UIUtils !== 'undefined') {
+                        UIUtils.toast(data.completed
+                            ? 'Goal reached! R' + amount.toFixed(2) + ' added — tap Accept Funds to withdraw.'
+                            : 'R' + amount.toFixed(2) + ' added to your goal.', 'success');
                     }
                     // Refresh the wallet balance (it was debited) then re-render.
                     var after = (typeof WalletStore !== 'undefined' && WalletStore.loadFromAPI)
@@ -414,13 +481,52 @@ const GoalsUI = (() => {
                     });
                 } else {
                     if ($hint) $hint.textContent = result.error || 'Failed to add funds.';
+                    if (typeof UIUtils !== 'undefined') UIUtils.toast(result.error || 'Failed to add funds.', 'error');
                 }
             }).catch(function() {
                 if ($hint) $hint.textContent = 'Network error. Please try again.';
+                if (typeof UIUtils !== 'undefined') UIUtils.toast('Network error. Please try again.', 'error');
             });
         } catch (err) {
             if ($hint) $hint.textContent = err.message;
         }
+    }
+
+    /* ----------------------------------------------------------
+       ACCEPT FUNDS — release a completed goal's funds to the wallet
+    ---------------------------------------------------------- */
+    function _acceptFunds(goalId, btnEl) {
+        if (!goalId || typeof API === 'undefined') return;
+        if (btnEl) { btnEl.disabled = true; btnEl.textContent = 'Transferring…'; }
+
+        API.Goals.acceptFunds(goalId).then(function(result) {
+            if (result.success) {
+                var data = result.data || {};
+                var amt = (typeof data.refunded === 'number') ? data.refunded : 0;
+                if (typeof UIUtils !== 'undefined' && UIUtils.toast) {
+                    UIUtils.toast('R' + amt.toFixed(2) + ' moved to your wallet.', 'success');
+                }
+                // Wallet was credited — refresh it, then re-render goals.
+                var after = (typeof WalletStore !== 'undefined' && WalletStore.loadFromAPI)
+                    ? WalletStore.loadFromAPI()
+                    : Promise.resolve();
+                Promise.resolve(after).finally(function() {
+                    _loadGoalsFromAPI();
+                    // If the drawer is open on this goal, refresh it.
+                    if (_drawerGoalId === goalId && $drawer && !$drawer.hidden) openDrawer(goalId);
+                });
+            } else {
+                if (typeof UIUtils !== 'undefined' && UIUtils.toast) {
+                    UIUtils.toast(result.error || 'Could not accept funds.', 'error');
+                }
+                _loadGoalsFromAPI(); // re-render to restore the button
+            }
+        }).catch(function() {
+            if (typeof UIUtils !== 'undefined' && UIUtils.toast) {
+                UIUtils.toast('Network error. Please try again.', 'error');
+            }
+            _loadGoalsFromAPI();
+        });
     }
 
     /* ----------------------------------------------------------

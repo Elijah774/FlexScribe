@@ -85,6 +85,16 @@
     font-weight: 600;
 }
 
+.dep-card-received {
+    font-size: 13px;
+    color: var(--text-light);
+    margin-top: 2px;
+}
+.dep-card-received strong {
+    color: var(--green);
+    font-weight: 600;
+}
+
 /* ── Status Badge ── */
 .dep-status-badge {
     font-size: 11px;

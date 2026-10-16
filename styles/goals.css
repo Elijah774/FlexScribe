@@ -697,3 +697,54 @@
         flex-wrap: wrap;
     }
 }
+
+/* ============================================================
+   ACCEPT FUNDS — completed goals release their saved funds to
+   the wallet only when the user clicks (no auto-return).
+============================================================ */
+/* Card button */
+.goal-accept-btn {
+    margin-top: 12px;
+    width: 100%;
+    padding: 9px 14px;
+    border: none;
+    border-radius: var(--radius-pill, 999px);
+    background: var(--green);
+    color: #0B1A10;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: filter 0.15s ease, transform 0.1s ease;
+}
+.goal-accept-btn:hover { filter: brightness(1.06); }
+.goal-accept-btn:active { transform: translateY(1px); }
+.goal-accept-btn:disabled { opacity: 0.6; cursor: default; }
+
+/* Card "already accepted" tag */
+.goal-accepted-tag {
+    display: inline-block;
+    margin-top: 12px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--green);
+}
+
+/* Drawer accept section */
+.goals-accept-funds-btn {
+    width: 100%;
+    padding: 12px 16px;
+    border: none;
+    border-radius: var(--radius-md, 10px);
+    background: var(--green);
+    color: #0B1A10;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: filter 0.15s ease, transform 0.1s ease;
+}
+.goals-accept-funds-btn:hover { filter: brightness(1.06); }
+.goals-accept-funds-btn:active { transform: translateY(1px); }
+.goals-accept-funds-btn:disabled { opacity: 0.6; cursor: default; }
+.goals-accepted-note { font-size: 13px; font-weight: 600; color: var(--green); margin-top: 4px; }

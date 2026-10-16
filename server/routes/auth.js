@@ -97,8 +97,10 @@ router.post('/login', async (req, res) => {
                 preferredName: user.preferredName || null,
                 email: user.email,
                 userType: user.userType,
-                avatarUrl: user.avatarUrl || null
-            }
+                avatarUrl: user.avatarUrl || null,
+                isAdmin: user.userType === 'Admin'
+            },
+            isAdmin: user.userType === 'Admin'
         });
     } catch (err) {
         console.error('Login error:', err);

@@ -29,6 +29,11 @@ app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/bank-statements', require('./routes/bank-statements'));
+app.use('/api/score', require('./routes/score'));
+
+// Admin API — JWT + Admin role required for every route.
+const { authenticateToken, requireAdmin } = require('./middleware/auth');
+app.use('/api/admin', authenticateToken, requireAdmin, require('./routes/admin'));
 
 // Health check
 app.get('/api/health', async (req, res) => {

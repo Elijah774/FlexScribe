@@ -156,8 +156,12 @@ router.post('/', async (req, res) => {
             VALUES (@sid, @name, @target, @deadline, @img)
         `, { sid: req.user.subscriberID, name: goalName, target: targetAmount, deadline: deadline || null, img: imageUrl || null });
 
-        res.status(201).json(result.recordset[0]);
+        const createdGoal = result.recordset[0];
+        res.status(201).json(createdGoal);
         updateUserAnalytics(req.user.subscriberID);
+        // Scribe Score: +10 once for creating a valid financial goal.
+        scribeScore.awardGoalCreated(req.user.subscriberID, createdGoal.goalID)
+            .catch(e => console.error('[score] goal_created:', e.message));
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -180,9 +184,10 @@ router.put('/:id', async (req, res) => {
 
         if (sets.length === 0) return res.json({ message: 'Nothing to update' });
 
-        // Manually marking a goal completed/expired returns its funds to the
-        // wallet (once) in its own atomic transaction, before the status update.
-        if (goalStatus === 'completed' || goalStatus === 'expired') {
+        // EXPIRED goals (deadline missed) auto-return their funds to the
+        // wallet. COMPLETED goals do NOT — the user must click "Accept Funds"
+        // (POST /goals/:id/accept-funds) to release them.
+        if (goalStatus === 'expired') {
             const pool = await getPool();
             const transaction = new sql.Transaction(pool);
             try {
@@ -263,9 +268,9 @@ router.delete('/:id', async (req, res) => {
 //   • amount must be > 0
 //   • amount must not exceed the current wallet balance
 //   • wallet is debited and a WalletTransaction is recorded
-//   • if the goal reaches its target it is completed and its funds
-//     are immediately returned to the wallet (completed goals don't
-//     hold money)
+//   • if the goal reaches its target it is marked completed, but its
+//     funds STAY in the goal until the user accepts them via
+//     POST /goals/:id/accept-funds
 router.post('/:id/contribute', async (req, res) => {
     const goalID = parseInt(req.params.id);
     const subscriberID = req.user.subscriberID;
@@ -341,14 +346,12 @@ router.post('/:id/contribute', async (req, res) => {
             .input('gid', goalID).input('amt', amount).input('src', source)
             .query("INSERT INTO GoalContribution (goalID, amount, source) VALUES (@gid, @amt, @src)");
 
-        // Completed? Complete + return the funds to the wallet immediately.
+        // Completed? Mark it completed but DO NOT auto-return the funds — they
+        // stay in the goal until the user explicitly accepts them (via the
+        // Accept Funds button -> POST /goals/:id/accept-funds).
         let completed = false;
-        let refunded = 0;
         if (newProgress >= parseFloat(goal.targetAmount)) {
             completed = true;
-            refunded = await _returnGoalFundsTx(transaction, subscriberID, {
-                goalID, goalName: goal.goalName, currentProgress: newProgress, fundsReturned: goal.fundsReturned
-            });
             await req2()
                 .input('gid', goalID)
                 .query("UPDATE FinancialGoal SET goalStatus = 'completed' WHERE goalID = @gid");
@@ -359,9 +362,9 @@ router.post('/:id/contribute', async (req, res) => {
         res.json({
             message: 'Contribution added',
             goalProgress: newProgress,
-            walletBalance: completed ? money(walletAfter + refunded) : walletAfter,
+            walletBalance: walletAfter,   // funds remain in the goal on completion
             completed,
-            refunded
+            refunded: 0
         });
 
         // ── Side effects (post-commit) ──
@@ -369,7 +372,15 @@ router.post('/:id/contribute', async (req, res) => {
         notificationEvents.goalMilestoneCheck(
             subscriberID, goalID, goal.goalName, newProgress, goal.targetAmount
         );
-        // Reaching a goal awards +5 ScribeScore (once per goal).
+        // Scribe Score (Financial Goals): award +5 for each 25/50/75/100%
+        // milestone newly reached (idempotent per milestone per goal).
+        const target = parseFloat(goal.targetAmount) || 0;
+        if (target > 0) {
+            const pct = Math.min(100, (newProgress / target) * 100);
+            scribeScore.awardGoalProgress(subscriberID, goalID, pct)
+                .catch(e => console.error('[score] goal_milestone:', e.message));
+        }
+        // Reaching a goal also awards the legacy +5 completion event (once per goal).
         if (completed) {
             scribeScore.awardGoalCompleted(subscriberID, goalID)
                 .catch(e => console.warn('Goal-completed ScribeScore award failed:', e.message));
@@ -378,6 +389,68 @@ router.post('/:id/contribute', async (req, res) => {
         if (transaction) { try { await transaction.rollback(); } catch (_) { /* already rolled back */ } }
         console.error('POST /goals/:id/contribute error:', err.message);
         res.status(500).json({ error: 'Could not add funds. No money was moved.' });
+    }
+});
+
+/* ----------------------------------------------------------
+   POST /api/goals/:id/accept-funds
+   Releases a COMPLETED goal's saved funds back to the wallet.
+   The funds are not returned automatically on completion — the
+   user clicks "Accept Funds". Atomic + idempotent (fundsReturned
+   guards against a double credit).
+---------------------------------------------------------- */
+router.post('/:id/accept-funds', async (req, res) => {
+    const goalID = parseInt(req.params.id);
+    const subscriberID = req.user.subscriberID;
+
+    let transaction;
+    try {
+        const pool = await getPool();
+        transaction = new sql.Transaction(pool);
+        await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
+        const req2 = () => new sql.Request(transaction);
+
+        // Lock + validate the goal (must belong to the caller).
+        const gRes = await req2()
+            .input('gid', goalID).input('sid', subscriberID)
+            .query(`SELECT goalID, goalName, targetAmount, currentProgress, goalStatus, fundsReturned
+                    FROM FinancialGoal WITH (UPDLOCK, HOLDLOCK)
+                    WHERE goalID = @gid AND subscriberID = @sid`);
+        const goal = gRes.recordset[0];
+        if (!goal) { await transaction.rollback(); return res.status(404).json({ error: 'Goal not found' }); }
+
+        if (goal.goalStatus !== 'completed') {
+            await transaction.rollback();
+            return res.status(400).json({ error: 'Only a completed goal can release its funds.' });
+        }
+        if (goal.fundsReturned) {
+            await transaction.rollback();
+            return res.status(400).json({ error: 'These funds have already been accepted.' });
+        }
+
+        const refunded = await _returnGoalFundsTx(transaction, subscriberID, goal);
+
+        // Read the resulting wallet balance to return to the client.
+        const wRes = await req2()
+            .input('sid', subscriberID)
+            .query('SELECT balance FROM VirtualWallet WHERE subscriberID = @sid');
+        const walletBalance = wRes.recordset.length ? parseFloat(wRes.recordset[0].balance) || 0 : 0;
+
+        await transaction.commit();
+
+        res.json({
+            message: 'Funds accepted',
+            goalID,
+            refunded,
+            walletBalance
+        });
+
+        // Keep analytics in sync (non-blocking).
+        updateUserAnalytics(subscriberID);
+    } catch (err) {
+        if (transaction) { try { await transaction.rollback(); } catch (_) { /* already rolled back */ } }
+        console.error('POST /goals/:id/accept-funds error:', err.message);
+        res.status(500).json({ error: 'Could not accept funds. No money was moved.' });
     }
 });
 

@@ -1,6 +1,6 @@
 /* ===========================================================
    /api/bank-statements — Upload & parse bank statements
-   Supports: CSV, PDF, XLSX
+   Supports: CSV only (max 50 MB)
    SA bank formats: FNB, Standard Bank, Capitec, Nedbank
    Features: Smart column detection, subscription detection
 =========================================================== */
@@ -13,7 +13,19 @@ const scribeScore = require('../helpers/scribe-score');
 const router = express.Router();
 router.use(authenticateToken);
 
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+// CSV only, max 50 MB. The fileFilter rejects anything that isn't a .csv file.
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 50 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        const name = (file.originalname || '').toLowerCase();
+        const okExt = name.endsWith('.csv');
+        const okMime = /text\/csv|application\/vnd\.ms-excel|text\/plain|application\/csv|application\/octet-stream/.test(file.mimetype || '');
+        if (okExt && okMime) return cb(null, true);
+        if (okExt) return cb(null, true); // trust the extension if the browser sent an odd mimetype
+        return cb(null, false); // reject non-CSV (surfaced as "No/invalid file" below)
+    }
+});
 
 /* ===========================================================
    KNOWN SUBSCRIPTION SERVICES (for detection)
@@ -402,12 +414,26 @@ function _analyze(transactions) {
 /* ----------------------------------------------------------
    POST /api/bank-statements/upload
 ---------------------------------------------------------- */
-router.post('/upload', upload.single('statement'), async (req, res) => {
+// Wrap multer so size/type errors return clean JSON (not a generic 500).
+function _uploadMiddleware(req, res, next) {
+    upload.single('statement')(req, res, (err) => {
+        if (err) {
+            if (err.code === 'LIMIT_FILE_SIZE') {
+                return res.status(413).json({ success: false, message: 'File too large. Max 50MB.' });
+            }
+            return res.status(400).json({ success: false, message: 'Only CSV files are accepted.' });
+        }
+        next();
+    });
+}
+
+router.post('/upload', _uploadMiddleware, async (req, res) => {
     try {
-        if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded' });
+        // multer's fileFilter rejects non-CSV files (req.file is then undefined).
+        if (!req.file) return res.status(400).json({ success: false, message: 'Only CSV files are accepted.' });
         const ext = (req.file.originalname || '').split('.').pop().toLowerCase();
-        if (!['pdf', 'csv', 'xlsx'].includes(ext)) {
-            return res.status(400).json({ success: false, message: 'Only PDF, CSV, and Excel (.xlsx) files are accepted' });
+        if (ext !== 'csv') {
+            return res.status(400).json({ success: false, message: 'Only CSV files are accepted.' });
         }
 
         // Enforce the yearly upload cap BEFORE doing any work.
@@ -419,11 +445,8 @@ router.post('/upload', upload.single('statement'), async (req, res) => {
             });
         }
 
-        // Parse file
-        let transactions = [];
-        if (ext === 'csv') transactions = _parseCSV(req.file.buffer.toString('utf-8'));
-        else if (ext === 'xlsx') transactions = _parseXLSX(req.file.buffer);
-        else transactions = await _parsePDF(req.file.buffer);
+        // Parse the CSV file.
+        const transactions = _parseCSV(req.file.buffer.toString('utf-8'));
 
         if (transactions.length === 0) {
             return res.status(422).json({ success: false, message: 'Could not extract transactions from the file. Please check the format.' });

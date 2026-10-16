@@ -1315,6 +1315,9 @@ const SubscriptionStore = (() => {
         // Reload from SQL Server
         await loadFromAPI();
 
+        // Adding a subscription awards +10 (Subscription Management) — refresh
+        // the Scribe Score + contextual tip to reflect it.
+        try { if (window.ScribeScore) window.ScribeScore.refresh({ delta: 10, toast: 'Subscription added — ScribeScore +10' }); } catch (e) {}
 
         // Return actual database record
         return result.data;
@@ -1377,6 +1380,9 @@ const SubscriptionStore = (() => {
 
         await loadFromAPI();
 
+        // A meaningful edit can award +5 (Subscription Management) once/month —
+        // refresh the Scribe Score + tip (no-op if the backend didn't award).
+        try { if (window.ScribeScore) window.ScribeScore.refresh(); } catch (e) {}
 
         return getById(id);
     }
@@ -1467,6 +1473,9 @@ const SubscriptionStore = (() => {
 
         await loadFromAPI();
 
+        // Recording a cancellation awards +10 (Subscription Management) —
+        // refresh the Scribe Score + contextual tip.
+        try { if (window.ScribeScore) window.ScribeScore.refresh({ delta: 10, toast: 'Cancellation recorded — ScribeScore +10' }); } catch (e) {}
 
         return true;
     }

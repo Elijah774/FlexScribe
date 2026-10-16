@@ -42,6 +42,9 @@ const ReportsUI = (() => {
                     var data = result.data?.data || result.data;
                     _showToast('Report generated successfully!', 'success');
                     _showReportModal(data);
+                    // The report is persisted server-side — refresh the
+                    // "Generated Reports" list + count so it shows immediately.
+                    _refreshReportsList();
                 } else {
                     var msg = result.error || result.data?.message || 'Failed to generate report.';
                     _showToast(msg, 'error');
@@ -95,12 +98,12 @@ const ReportsUI = (() => {
 
     async function _uploadFile(file) {
         var ext = file.name.split('.').pop().toLowerCase();
-        if (ext !== 'pdf' && ext !== 'csv' && ext !== 'xlsx') {
-            _showToast('Only PDF, CSV, and Excel (.xlsx) files are accepted.', 'error');
+        if (ext !== 'csv') {
+            _showToast('Only CSV files are accepted.', 'error');
             return;
         }
-        if (file.size > 10 * 1024 * 1024) {
-            _showToast('File too large. Max 10MB.', 'error');
+        if (file.size > 50 * 1024 * 1024) {
+            _showToast('File too large. Max 50MB.', 'error');
             return;
         }
 
@@ -286,15 +289,24 @@ const ReportsUI = (() => {
 
         if (seeBtn) {
             seeBtn.addEventListener('click', async function() {
-                var data = window._lastStatementReport;
-                if (!data) {
-                    try {
-                        var result = await API.BankStatements.getReport();
-                        if (result.success && result.data) data = result.data?.data || result.data;
-                    } catch(e) {}
+                // Always show a LIVE report (current wallet + subscriptions),
+                // not the frozen bank-statement snapshot — so it reflects how
+                // the user has been interacting with the system.
+                seeBtn.disabled = true;
+                try {
+                    var result = await API.Reports.compile({ period: 'This Month', reportType: 'Detailed Report' });
+                    if (result.success) {
+                        var data = result.data?.data || result.data;
+                        _showReportModal(data);
+                        _refreshReportsList();
+                    } else {
+                        _showToast(result.error || 'Could not build the report.', 'error');
+                    }
+                } catch (e) {
+                    _showToast('Could not connect to server. Is the backend running?', 'error');
+                } finally {
+                    seeBtn.disabled = false;
                 }
-                if (!data) { _showToast('No report available. Upload a statement first.', 'error'); return; }
-                _showReportModal(data);
             });
         }
 
@@ -515,20 +527,12 @@ const ReportsUI = (() => {
     /* ----------------------------------------------------------
        CHECK EXISTING REPORT ON LOAD
     ---------------------------------------------------------- */
-    async function _checkExistingReport() {
-        try {
-            var result = await API.BankStatements.getReport();
-            if (result.success && result.data) {
-                var d = result.data?.data || result.data;
-                if (d && d.statementID) {
-                    window._lastStatementReport = d;
-                    var seeBtn = document.getElementById('rpt-see-full-report-btn');
-                    if (seeBtn) seeBtn.style.display = 'block';
-                }
-            }
-        } catch(e) {
-            // Silently ignore — user may not be logged in or backend not running
-        }
+    function _checkExistingReport() {
+        // "See Full Report" now builds a LIVE report (current wallet +
+        // subscriptions) on demand, so it's always available — no dependency
+        // on a previously uploaded bank statement.
+        var seeBtn = document.getElementById('rpt-see-full-report-btn');
+        if (seeBtn) seeBtn.style.display = 'block';
     }
 
     /* ----------------------------------------------------------
@@ -551,49 +555,37 @@ const ReportsUI = (() => {
     async function _loadPageData() {
         if (typeof API === 'undefined') return;
 
-        // --- Stats strip: spending, savings, report count ---
+        // --- Stats strip: live spending + savings from analytics summary ---
+        // The server computes these from WalletTransaction (debits/credits in
+        // the period), so they stay in sync with how the user interacts.
         try {
-            var walletResult = await API.Wallet.getHistory('30d');
-            if (walletResult.success && Array.isArray(walletResult.data)) {
-                var txs = walletResult.data;
-                var spending = 0, income = 0;
-                txs.forEach(function(t) {
-                    var amt = Math.abs(t.amountCents || t.amount || 0);
-                    if (t.type === 'debit' || t.type === 'transfer') spending += amt;
-                    if (t.type === 'credit') income += amt;
-                });
-                // Convert cents to Rands if needed
-                if (spending > 10000) { spending = spending / 100; income = income / 100; }
-                var savings = income - spending;
+            var sumRes = await API.Analytics.getSummary('30d');
+            if (sumRes.success && sumRes.data) {
+                var s = sumRes.data;
+                var spending = parseFloat(s.totalSpent) || 0;
+                var income = parseFloat(s.totalIncome) || 0;
+                var savings = Math.max(0, income - spending);
                 var spendEl = document.getElementById('rpt-stat-spending');
                 var saveEl = document.getElementById('rpt-stat-savings');
                 if (spendEl) spendEl.textContent = 'R' + spending.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-                if (saveEl) saveEl.textContent = 'R' + Math.max(0, savings).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+                if (saveEl) saveEl.textContent = 'R' + savings.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
             }
         } catch(e) {}
 
-        // --- Reports count from reports list ---
-        try {
-            var reportsResult = await API.Reports.getAll();
-            if (reportsResult.success && Array.isArray(reportsResult.data)) {
-                var reports = reportsResult.data;
-                var countEl = document.getElementById('rpt-stat-count');
-                if (countEl) countEl.textContent = reports.length;
-                _renderReportsTable(reports);
-            }
-        } catch(e) {}
+        // --- Reports count + table (populates the cache for _viewReport) ---
+        await _refreshReportsList();
 
-        // --- Scribe Score ---
+        // --- Scribe Score (out of 1000) ---
         try {
             var userResult = await API.Auth.getUser();
             if (userResult.success && userResult.data) {
-                var score = userResult.data.scribeScore || 0;
+                var score = parseInt(userResult.data.scribeScore) || 0;
                 var accEl = document.getElementById('rpt-stat-accuracy');
                 var accSub = document.getElementById('rpt-stat-accuracy-sub');
                 if (accEl) accEl.textContent = score;
                 if (accSub) {
-                    if (score >= 80) accSub.textContent = 'Excellent';
-                    else if (score >= 50) accSub.textContent = 'Good';
+                    if (score >= 800) accSub.textContent = 'Excellent';
+                    else if (score >= 500) accSub.textContent = 'Good';
                     else if (score > 0) accSub.textContent = 'Building';
                     else accSub.textContent = '--';
                 }
@@ -643,9 +635,45 @@ const ReportsUI = (() => {
             '<div class="rpt-upload-item"><span>' + data.fileReference + '</span><span class="rpt-upload-date">' + (data.uploadDate || '') + '</span><span class="rpt-upload-status complete">Complete &#10003;</span></div>';
     }
 
+    /* Re-fetch the generated-reports list + count and re-render. Called after
+       a successful compile and on page load. Keeps a cache for _viewReport. */
+    var _reportsCache = [];
+    async function _refreshReportsList() {
+        if (typeof API === 'undefined') return;
+        try {
+            var res = await API.Reports.getAll();
+            var reports = (res && res.success && res.data)
+                ? (Array.isArray(res.data) ? res.data : (res.data.data || []))
+                : [];
+            _reportsCache = reports;
+            var countEl = document.getElementById('rpt-stat-count');
+            if (countEl) countEl.textContent = reports.length;
+            _renderReportsTable(reports);
+        } catch (e) {}
+    }
+
+    /* View a previously generated report from the table — opens the modal
+       with that report's stored figures. */
+    function _viewReport(id) {
+        var r = _reportsCache.filter(function (x) { return x.id === id; })[0];
+        if (!r) { _showToast('Report not found.', 'error'); return; }
+        _showReportModal({
+            reportType: 'Detailed',
+            periodStart: r.startDate,
+            periodEnd: r.endDate,
+            totalIncome: r.income,
+            totalExpenses: r.expenses,
+            netCashFlow: r.savings,
+            totalSubscriptionCost: r.totalSubscriptionCost,
+            walletBalance: r.balance,
+            riskLevel: r.riskLevel,
+            transactions: []
+        });
+    }
+
     /* ----------------------------------------------------------
        PUBLIC
     ---------------------------------------------------------- */
-    return Object.freeze({ init: init, _viewReport: function() {}, addDetectedSubscription: _addDetectedSubscription });
+    return Object.freeze({ init: init, _viewReport: _viewReport, addDetectedSubscription: _addDetectedSubscription });
 
 })();
