@@ -51,12 +51,18 @@
     flex-shrink: 0;
 }
 
-.dep-avatar--blue   { background: #94969D; }
-.dep-avatar--purple { background: #FF7A29; }
-.dep-avatar--green  { background: #6FDB8F; }
+/* Distinct avatar colours — one per person (assigned deterministically from
+   the dependant's identity so each keeps a consistent, unique colour). */
+.dep-avatar--blue   { background: #3B82F6; }
+.dep-avatar--purple { background: #8B5CF6; }
+.dep-avatar--green  { background: #22A95A; }
 .dep-avatar--orange { background: #FF7A29; }
-.dep-avatar--pink   { background: #FF7A29; }
-.dep-avatar--teal   { background: #6FDB8F; }
+.dep-avatar--pink   { background: #EC4899; }
+.dep-avatar--teal   { background: #14B8A6; }
+.dep-avatar--amber  { background: #F59E0B; }
+.dep-avatar--red    { background: #EF4444; }
+.dep-avatar--indigo { background: #6366F1; }
+.dep-avatar--cyan   { background: #06B6D4; }
 
 /* ── Card Content ── */
 .dep-card-name {
@@ -207,6 +213,10 @@
     gap: 16px;
 }
 
+.dep-modal-row[hidden] {
+    display: none !important;
+}
+
 .dep-modal-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -262,6 +272,30 @@
     font-size: 13px;
     color: var(--danger);
     min-height: 18px;
+}
+
+/* ── Per-field inline validation error ── */
+.dep-field-error {
+    font-size: 12px;
+    color: var(--danger);
+    line-height: 1.35;
+    display: none;
+}
+
+.dep-field-error.is-visible {
+    display: block;
+}
+
+/* ── Invalid field highlight ── */
+.dep-modal-field input.is-invalid,
+.dep-modal-field select.is-invalid {
+    border-color: var(--danger);
+}
+
+.dep-modal-field input.is-invalid:focus,
+.dep-modal-field select.is-invalid:focus {
+    border-color: var(--danger);
+    box-shadow: 0 0 0 3px rgba(227, 101, 101, 0.15);
 }
 
 .dep-modal-footer {
@@ -508,6 +542,11 @@
 
 .dep-activity-amount--spend {
     color: var(--danger);
+}
+
+/* Completed-task reward entry (green = earned) */
+.dep-activity-amount--task {
+    color: #2EA86B;
 }
 
 /* ── Drawer Footer ── */
@@ -853,6 +892,31 @@
 .dep-task-status--overdue {
     background: rgba(227, 101, 101, 0.12);
     color: #E36565;
+}
+
+/* ── Inline task message (e.g. daily-completion restriction) ── */
+.dep-task-msg {
+    margin: 0;
+    padding: 9px 12px;
+    border-radius: 8px;
+    background: rgba(227, 101, 101, 0.1);
+    border: 1px solid rgba(227, 101, 101, 0.28);
+    border-left: 3px solid #E36565;
+    color: #E36565;
+    font-size: 12.5px;
+    line-height: 1.45;
+    opacity: 0;
+    transform: translateY(-2px);
+    transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.dep-task-msg[hidden] {
+    display: none;
+}
+
+.dep-task-msg.is-visible {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 /* ── Task Action Buttons ── */

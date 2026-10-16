@@ -136,6 +136,16 @@ BEGIN
         taskStatus      VARCHAR(50)     NOT NULL DEFAULT 'pending',
         recurring       BIT             NOT NULL DEFAULT 0,
         recurrenceCycle VARCHAR(20)         NULL,
+        -- Recurring-task occurrence tracking (see migration 008):
+        --  recurrenceParentID      = root occurrence id for the sequence
+        --  nextOccurrenceGenerated = guard so the next occurrence is only
+        --                            ever created once, after completion.
+        recurrenceParentID      INT         NULL,
+        nextOccurrenceGenerated BIT         NOT NULL DEFAULT 0,
+        -- taskRewardPaid (see migration 009): 1 while this occurrence's reward
+        -- has been charged to the wallet and not yet refunded. Guards against
+        -- double-charging when a task is completed, unmarked, then re-completed.
+        taskRewardPaid          BIT         NOT NULL DEFAULT 0,
         completedAt     DATETIME            NULL,
         createdAt       DATETIME        NOT NULL DEFAULT GETDATE(),
         updatedAt       DATETIME        NOT NULL DEFAULT GETDATE(),

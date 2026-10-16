@@ -66,16 +66,66 @@
 /* ── Summary strip (5 stat cards) ──────────────────────── */
 .analytics-stats {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 16px;
     margin-bottom: 24px;
 }
 
+/* Flip card: front = stat, back = calculation.
+   The .analytics-stat-card is the 3D stage; .analytics-stat-inner is the
+   rotating element. Fixed min-height so both faces share one footprint. */
 .analytics-stat-card {
+    perspective: 1000px;
+    min-height: 104px;
+    cursor: pointer;
+    outline: none;
+}
+
+.analytics-stat-card:focus-visible .analytics-stat-inner {
+    box-shadow: 0 0 0 2px var(--orange);
+    border-radius: 14px;
+}
+
+.analytics-stat-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 104px;
+    transition: transform 0.5s cubic-bezier(0.4, 0.2, 0.2, 1);
+    transform-style: preserve-3d;
+}
+
+.analytics-stat-card.flipped .analytics-stat-inner {
+    transform: rotateY(180deg);
+}
+
+.analytics-stat-face {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: 14px;
     padding: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.analytics-stat-front {
+    justify-content: flex-start;
+}
+
+.analytics-stat-back {
+    transform: rotateY(180deg);
+    overflow: auto;
+    /* Keep scrollability for small screens but hide the scrollbar chrome */
+    scrollbar-width: none;          /* Firefox */
+    -ms-overflow-style: none;       /* legacy Edge/IE */
+}
+
+.analytics-stat-back::-webkit-scrollbar {
+    display: none;                  /* Chrome, Safari, newer Edge */
 }
 
 .analytics-stat-label {
@@ -92,6 +142,49 @@
 
 .analytics-stat-value.positive { color: var(--green); }
 .analytics-stat-value.negative { color: var(--danger); }
+
+/* "click to see calculation" hint — subtle, pushed to the bottom */
+.analytics-stat-hint {
+    margin-top: auto;
+    font-size: 10px;
+    letter-spacing: 0.02em;
+    color: var(--text-light);
+    opacity: 0.6;
+}
+
+/* Card back — the calculation / breakdown */
+.analytics-stat-calc {
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--text-light);
+}
+
+.analytics-stat-calc p { margin: 0 0 6px; }
+.analytics-stat-calc strong { color: var(--text); }
+
+.analytics-stat-formula {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    color: var(--text);
+    font-size: 11px;
+}
+
+.analytics-stat-list {
+    list-style: none;
+    margin: 4px 0 6px;
+    padding: 0;
+}
+
+.analytics-stat-list li {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 1px 0;
+}
+
+.analytics-stat-list li span:last-child {
+    color: var(--text);
+    font-weight: 600;
+}
 
 /* ── Main chart grid ──────────────────────────────────── */
 .analytics-charts-grid {
@@ -291,6 +384,12 @@
     border-bottom: none;
 }
 
+/* Centre the "% of Total" column (header + values) */
+.analytics-merchants-table th:last-child,
+.analytics-merchants-table td:last-child {
+    text-align: center;
+}
+
 .merchant-row {
     display: flex;
     align-items: center;
@@ -317,52 +416,75 @@
 }
 
 /* ── Budget vs Actual bars ────────────────────────────── */
-.analytics-budgets {
+/* ── Where Your Money Goes (spending breakdown) ───────── */
+.analytics-spending {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 18px;
 }
 
-.budget-row {
+.spend-row {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
 }
 
-.budget-row-header {
+.spend-row-top {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: baseline;
 }
 
-.budget-category {
+.spend-label {
     font-size: 13px;
     font-weight: 500;
     color: var(--text);
 }
 
-.budget-amounts {
+.spend-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.spend-pct {
+    margin-left: 8px;
     font-size: 12px;
+    font-weight: 500;
     color: var(--text-light);
 }
 
-.budget-bar-track {
-    height: 10px;
+.spend-track {
+    height: 8px;
     background: var(--border);
     border-radius: 6px;
     overflow: hidden;
-    position: relative;
 }
 
-.budget-bar-fill {
+.spend-fill {
     height: 100%;
     border-radius: 6px;
-    transition: width 0.6s ease, background 0.3s;
+    transition: width 0.6s ease;
 }
 
-.budget-bar-fill.green  { background: #6FDB8F; }
-.budget-bar-fill.yellow { background: #FF7A29; }
-.budget-bar-fill.red    { background: var(--danger); }
+/* Total footer — reconciles to the Total Spent summary card */
+.spend-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 12px;
+    margin-top: 2px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.spend-empty {
+    padding: 24px;
+    text-align: center;
+    color: var(--text-light);
+}
 
 /* ── Responsive ──────────────────────────────────────── */
 @media (max-width: 1024px) {

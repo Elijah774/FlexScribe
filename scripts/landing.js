@@ -114,7 +114,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (typeof UIUtils !== 'undefined') UIUtils.toast('Please fill in all fields.', 'error');
                 return;
             }
-            const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+            const emailOk = (typeof Validators !== 'undefined' && Validators.isValidEmail)
+                ? Validators.isValidEmail(email)
+                : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
             if (!emailOk) {
                 if (typeof UIUtils !== 'undefined') UIUtils.toast('Please enter a valid email.', 'error');
                 return;

@@ -58,7 +58,7 @@ window._pageContent['analytics'] = `
                                 <tr>
                                     <th>Merchant</th>
                                     <th>Total</th>
-                                    <th>Count</th>
+                                    <th>% of Total</th>
                                 </tr>
                             </thead>
                             <tbody id="analytics-merchants-body">
@@ -67,10 +67,10 @@ window._pageContent['analytics'] = `
                         </table>
                     </div>
 
-                    <!-- Budget vs Actual -->
+                    <!-- Where Your Money Goes (spending breakdown) -->
                     <div class="analytics-panel">
-                        <h3 class="analytics-panel-title">Budget vs Actual</h3>
-                        <div class="analytics-budgets" id="analytics-budgets">
+                        <h3 class="analytics-panel-title">Where Your Money Goes</h3>
+                        <div class="analytics-spending" id="analytics-spending">
                             <!-- Rendered by AnalyticsUI -->
                         </div>
                     </div>

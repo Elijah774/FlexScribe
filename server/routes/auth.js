@@ -12,11 +12,28 @@ const router = express.Router();
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
     try {
-        const { firstName, lastName, email, password, phone, marketingOptIn, dob } = req.body;
+        const { firstName, lastName, email, password, phone, marketingOptIn, marketing, dob, termsAccepted } = req.body;
 
         if (!firstName || !lastName || !email || !password) {
             return res.status(400).json({ error: 'First name, last name, email, and password are required.' });
         }
+
+        // Password must meet all five strength criteria:
+        // >= 8 chars, uppercase, lowercase, number, special character.
+        const STRONG_PASSWORD_RE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,}$/;
+        if (!STRONG_PASSWORD_RE.test(password)) {
+            return res.status(400).json({
+                error: 'Password must be at least 8 characters and include an uppercase letter, a lowercase letter, a number, and a special character.'
+            });
+        }
+
+        // Terms must be accepted to create an account
+        if (!termsAccepted) {
+            return res.status(400).json({ error: 'You must accept the Terms to create an account.' });
+        }
+
+        // Normalise marketing opt-in (client may send either `marketing` or `marketingOptIn`)
+        const marketingOptInValue = (marketingOptIn ?? marketing) ? 1 : 0;
 
         // Check if email exists
         const existing = await query('SELECT subscriberID FROM Subscriber WHERE email = @email', { email });
@@ -31,8 +48,8 @@ router.post('/register', async (req, res) => {
         const result = await query(`
             INSERT INTO Subscriber (firstName, lastName, email, passwordHash, phone, marketingOptIn, dateOfBirth, termsAcceptedAt, accentColor, avatarUrl, scribeScore)
             OUTPUT INSERTED.subscriberID
-            VALUES (@firstName, @lastName, @email, @passwordHash, @phone, @marketingOptIn, @dateOfBirth, GETDATE(), @accentColor, @avatarUrl, 500)
-        `, { firstName, lastName, email, passwordHash, phone: phone || null, marketingOptIn: marketingOptIn ? 1 : 0, dateOfBirth: dob || null, accentColor: '#FF8A34', avatarUrl: null });
+            VALUES (@firstName, @lastName, @email, @passwordHash, @phone, @marketingOptIn, @dateOfBirth, SYSUTCDATETIME(), @accentColor, @avatarUrl, 500)
+        `, { firstName, lastName, email, passwordHash, phone: phone || null, marketingOptIn: marketingOptInValue, dateOfBirth: dob || null, accentColor: '#FF8A34', avatarUrl: null });
 
         const subscriberID = result.recordset[0].subscriberID;
 

@@ -168,7 +168,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const el = document.getElementById('auth-error');
         if (el) { el.textContent = msg; el.classList.add('visible'); }
     }
-    function isValidEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
+    function isValidEmail(e) {
+        if (typeof Validators !== 'undefined' && Validators.isValidEmail) return Validators.isValidEmail(e);
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+    }
     function setBtnLoading(b) { b.classList.add('loading'); b.disabled = true; }
     function setBtnSuccess(b) { b.classList.remove('loading'); b.classList.add('success'); }
     function resetBtn(b) { b.classList.remove('loading', 'success'); b.disabled = false; }
@@ -242,13 +245,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             if (!password)  { setError('reg-password-error', 'Password required.'); valid = false; }
-            else if (password.length < 8) { setError('reg-password-error', 'Minimum 8 characters.'); valid = false; }
+            else {
+                const pwResult = (typeof Validators !== 'undefined' && Validators.validatePassword)
+                    ? Validators.validatePassword(password)
+                    : { valid: /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{8,}$/.test(password),
+                        message: 'Password must be at least 8 characters and include an uppercase letter, a lowercase letter, a number, and a special character.' };
+                if (!pwResult.valid) { setError('reg-password-error', pwResult.message); valid = false; }
+            }
             if (password !== confirm) { setError('reg-confirm-error', 'Passwords do not match.'); valid = false; }
             if (!terms) { setError('reg-terms-error', 'You must accept the Terms.'); valid = false; }
             if (!valid) return;
             setBtnLoading(registerSubmit);
             let result;
-            if (typeof API !== 'undefined') { result = await API.Auth.register({ firstName, lastName, email, phone, dob, password, confirmPassword: confirm, marketing }); }
+            if (typeof API !== 'undefined') { result = await API.Auth.register({ firstName, lastName, email, phone, dob, password, confirmPassword: confirm, marketing, termsAccepted: !!terms }); }
             else { await new Promise(r => setTimeout(r, 1200)); sessionStorage.setItem('flexscribe_token', 'mock-token'); result = { success: true, data: { scribeScore: 500 } }; }
             if (result.success) {
                 setBtnSuccess(registerSubmit);

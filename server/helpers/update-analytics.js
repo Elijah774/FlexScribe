@@ -82,8 +82,27 @@ async function updateUserAnalytics(subscriberID) {
             ? Math.max(0, Math.min(100, parseFloat(((parseFloat(totalSaved) / parseFloat(totalTarget)) * 100).toFixed(2))))
             : 0;
 
-        // Overall score (weighted average)
-        const scoreValue = Math.round(subscriptionPct * 0.3 + budgetPct * 0.4 + savingsPct * 0.3);
+        // Runway: how many months the current wallet balance covers at the
+        // recent (~30-day) monthly spend. 3+ months of buffer = full marks.
+        // No spend with a positive balance = full marks; no spend and no
+        // balance = unknown (50, matching the other no-data defaults).
+        // Computed in memory only — not persisted as a ScribeScore column.
+        const RUNWAY_TARGET_MONTHS = 3;
+        let runwayPct;
+        if (totalSpent > 0) {
+            const runwayMonths = balance / totalSpent;
+            runwayPct = Math.max(0, Math.min(100, Math.round((runwayMonths / RUNWAY_TARGET_MONTHS) * 100)));
+        } else {
+            runwayPct = balance > 0 ? 100 : 50;
+        }
+
+        // Overall score — four equally-weighted factors (0.25 each)
+        const scoreValue = Math.round(
+            subscriptionPct * 0.25 +
+            budgetPct       * 0.25 +
+            savingsPct      * 0.25 +
+            runwayPct       * 0.25
+        );
 
         // Risk score (inverse of financial health — higher = more risky)
         const riskScore = Math.max(0, Math.min(100, 100 - scoreValue));

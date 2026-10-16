@@ -1173,16 +1173,19 @@
                     <div class="dep-modal-field">
                         <label for="dep-add-firstname">First Name <span class="required">*</span></label>
                         <input type="text" id="dep-add-firstname" placeholder="e.g. James" autocomplete="off">
+                        <span class="dep-field-error" id="dep-add-firstname-error"></span>
                     </div>
                     <div class="dep-modal-field">
                         <label for="dep-add-lastname">Last Name <span class="required">*</span></label>
                         <input type="text" id="dep-add-lastname" placeholder="e.g. Mitchell" autocomplete="off">
+                        <span class="dep-field-error" id="dep-add-lastname-error"></span>
                     </div>
                 </div>
                 <div class="dep-modal-row">
                     <div class="dep-modal-field">
                         <label for="dep-add-email">Email <span class="required">*</span></label>
                         <input type="email" id="dep-add-email" placeholder="e.g. james@email.com" autocomplete="off">
+                        <span class="dep-field-error" id="dep-add-email-error"></span>
                     </div>
                 </div>
                 <div class="dep-modal-row">
@@ -1197,20 +1200,32 @@
                             <option value="Sibling">Sibling</option>
                             <option value="Other">Other</option>
                         </select>
+                        <span class="dep-field-error" id="dep-add-relationship-error"></span>
                     </div>
                     <div class="dep-modal-field">
                         <label for="dep-add-dob">Date of Birth <span class="required">*</span></label>
-                        <input type="date" id="dep-add-dob" max="9999-12-31" required>
+                        <!-- max is kept current (yesterday) by DependantsUI; this static baseline just prevents far-future dates before JS runs -->
+                        <input type="date" id="dep-add-dob" max="2026-10-14" required>
+                        <span class="dep-field-error" id="dep-add-dob-error"></span>
+                    </div>
+                </div>
+                <div class="dep-modal-row" id="dep-add-other-row" hidden>
+                    <div class="dep-modal-field">
+                        <label for="dep-add-relationship-other">Please specify relationship <span class="required">*</span></label>
+                        <input type="text" id="dep-add-relationship-other" placeholder="e.g. Grandchild" maxlength="100" autocomplete="off">
+                        <span class="dep-field-error" id="dep-add-relationship-other-error"></span>
                     </div>
                 </div>
                 <div class="dep-modal-row">
                     <div class="dep-modal-field">
                         <label for="dep-add-allowance">Allowance (R/mo)</label>
-                        <input type="number" id="dep-add-allowance" placeholder="0.00" min="0" step="0.01">
+                        <input type="text" inputmode="decimal" id="dep-add-allowance" placeholder="0.00" autocomplete="off">
+                        <span class="dep-field-error" id="dep-add-allowance-error"></span>
                     </div>
                     <div class="dep-modal-field">
                         <label for="dep-add-spending-limit">Spending Limit (R)</label>
-                        <input type="number" id="dep-add-spending-limit" placeholder="0.00" min="0" step="0.01">
+                        <input type="text" inputmode="decimal" id="dep-add-spending-limit" placeholder="0.00" autocomplete="off">
+                        <span class="dep-field-error" id="dep-add-spending-limit-error"></span>
                     </div>
                 </div>
                 <span class="dep-modal-error" id="dep-add-error"></span>
@@ -1281,21 +1296,24 @@
                     <div class="dep-modal-field">
                         <label for="dep-edit-firstname">First Name <span class="required">*</span></label>
                         <input type="text" id="dep-edit-firstname" placeholder="e.g. James" autocomplete="off">
+                        <span class="dep-field-error" id="dep-edit-firstname-error"></span>
                     </div>
                     <div class="dep-modal-field">
                         <label for="dep-edit-lastname">Last Name <span class="required">*</span></label>
                         <input type="text" id="dep-edit-lastname" placeholder="e.g. Mitchell" autocomplete="off">
+                        <span class="dep-field-error" id="dep-edit-lastname-error"></span>
                     </div>
                 </div>
                 <div class="dep-modal-row">
                     <div class="dep-modal-field">
                         <label for="dep-edit-email">Email <span class="required">*</span></label>
                         <input type="email" id="dep-edit-email" placeholder="e.g. james@email.com" autocomplete="off">
+                        <span class="dep-field-error" id="dep-edit-email-error"></span>
                     </div>
                 </div>
                 <div class="dep-modal-row">
                     <div class="dep-modal-field">
-                        <label for="dep-edit-relationship">Relationship</label>
+                        <label for="dep-edit-relationship">Relationship <span class="required">*</span></label>
                         <select id="dep-edit-relationship">
                             <option value="Son">Son</option>
                             <option value="Daughter">Daughter</option>
@@ -1304,20 +1322,32 @@
                             <option value="Sibling">Sibling</option>
                             <option value="Other">Other</option>
                         </select>
+                        <span class="dep-field-error" id="dep-edit-relationship-error"></span>
                     </div>
                     <div class="dep-modal-field">
                         <label for="dep-edit-dob">Date of Birth <span class="required">*</span></label>
-                        <input type="date" id="dep-edit-dob" max="9999-12-31" required>
+                        <!-- max is kept current (yesterday) by DependantsUI; this static baseline just prevents far-future dates before JS runs -->
+                        <input type="date" id="dep-edit-dob" max="2026-10-14" required>
+                        <span class="dep-field-error" id="dep-edit-dob-error"></span>
+                    </div>
+                </div>
+                <div class="dep-modal-row" id="dep-edit-other-row" hidden>
+                    <div class="dep-modal-field">
+                        <label for="dep-edit-relationship-other">Please specify relationship <span class="required">*</span></label>
+                        <input type="text" id="dep-edit-relationship-other" placeholder="e.g. Grandchild" maxlength="100" autocomplete="off">
+                        <span class="dep-field-error" id="dep-edit-relationship-other-error"></span>
                     </div>
                 </div>
                 <div class="dep-modal-row">
                     <div class="dep-modal-field">
                         <label for="dep-edit-allowance">Allowance (R/mo)</label>
-                        <input type="number" id="dep-edit-allowance" placeholder="0.00" min="0" step="0.01">
+                        <input type="text" inputmode="decimal" id="dep-edit-allowance" placeholder="0.00" autocomplete="off">
+                        <span class="dep-field-error" id="dep-edit-allowance-error"></span>
                     </div>
                     <div class="dep-modal-field">
                         <label for="dep-edit-spending-limit">Spending Limit (R)</label>
-                        <input type="number" id="dep-edit-spending-limit" placeholder="0.00" min="0" step="0.01">
+                        <input type="text" inputmode="decimal" id="dep-edit-spending-limit" placeholder="0.00" autocomplete="off">
+                        <span class="dep-field-error" id="dep-edit-spending-limit-error"></span>
                     </div>
                 </div>
                 <span class="dep-modal-error" id="dep-edit-error"></span>
@@ -1674,16 +1704,17 @@
 
 <script>lucide.createIcons();</script>
 <script src="../scripts/ui-utils.js"></script>
+<script src="../scripts/validators.js?v=2"></script>
 <script src="../backend/auth-sql.js"></script>
 <script src="../backend/auth-db.js"></script>
-<script src="../scripts/api.js"></script>
+<script src="../scripts/api.js?v=2"></script>
 <script src="../backend/subscriptions.js"></script>
 <script src="../backend/dashboard.js"></script>
 <script src="../backend/wallet.js"></script>
 <script src="../backend/goals.js"></script>
 <script src="../backend/dependants-sql.js"></script>
 <script src="../backend/dependants-db.js"></script>
-<script src="../backend/dependants.js"></script>
+<script src="../backend/dependants.js?v=2"></script>
 <script src="../backend/analytics-sql.js"></script>
 <script src="../backend/analytics-db.js"></script>
 <script src="../scripts/dashboard-ui.js"></script>
@@ -1693,7 +1724,7 @@
 <script src="../scripts/analytics-ui.js"></script>
 <script src="../scripts/reports-ui.js"></script>
 <script src="../scripts/timeline-ui.js"></script>
-<script src="../scripts/dependants-ui.js"></script>
+<script src="../scripts/dependants-ui.js?v=2"></script>
 <script src="../scripts/profile-panel.js"></script>
 <script src="../scripts/search.js"></script>
 <script src="../scripts/timeline.page.js"></script>

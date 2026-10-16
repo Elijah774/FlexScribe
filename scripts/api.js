@@ -950,6 +950,10 @@ const API = (() => {
 
         async getTasks(depId) {
             return _fetch('GET', `/dependants/${depId}/tasks`);
+        },
+
+        async getActivity(depId) {
+            return _fetch('GET', `/dependants/${depId}/activity`);
         }
     };
 
@@ -1086,15 +1090,17 @@ const API = (() => {
         },
 
 
-        async getInsights() {
+        async getSpendingBreakdown(
+            range = 'thisMonth'
+        ) {
 
             if (USE_MOCK) {
-                return _mock([]);
+                return _mock({ total: 0, breakdown: [] });
             }
 
             return _fetch(
                 'GET',
-                '/analytics/insights'
+                `/analytics/spending-breakdown?range=${encodeURIComponent(range)}`
             );
         }
     };

@@ -38,10 +38,22 @@ const DependantsUI = (() => {
     /* ----------------------------------------------------------
        AVATAR COLORS (rotate based on index)
     ---------------------------------------------------------- */
-    const AVATAR_COLORS = ['blue', 'purple', 'green', 'orange', 'pink', 'teal'];
+    const AVATAR_COLORS = ['blue', 'purple', 'green', 'orange', 'pink', 'teal', 'amber', 'red', 'indigo', 'cyan'];
 
-    function _avatarColor(index) {
-        return AVATAR_COLORS[index % AVATAR_COLORS.length];
+    /**
+     * Pick an avatar colour for a dependant. The colour is derived from the
+     * dependant's stable identity (id, falling back to name) rather than their
+     * position in the list, so each person always keeps the SAME colour and
+     * reordering/adding others never changes it. A simple string hash spreads
+     * identities across the palette for good visual separation.
+     */
+    function _avatarColor(key) {
+        const str = String(key == null ? '' : key);
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            hash = (hash * 31 + str.charCodeAt(i)) | 0;
+        }
+        return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
     }
 
     /* ----------------------------------------------------------
@@ -74,6 +86,11 @@ const DependantsUI = (() => {
             _initialized = true;
         }
 
+        // Constrain the DOB calendars to past dates only (max = yesterday),
+        // so future dates are greyed out/unselectable in the native picker.
+        // Done here (on panel load) so it applies before either modal opens.
+        _applyDobMax();
+
         // Load from API
         DependantsStore.loadFromAPI().then(function() {
             render();
@@ -102,6 +119,9 @@ const DependantsUI = (() => {
         $addModal.addEventListener('click', (e) => { if (e.target === $addModal) closeAddModal(); });
         $addForm.addEventListener('submit', (e) => { e.preventDefault(); _handleAddSave(); });
 
+        // Show/hide the custom relationship field + live-clear errors.
+        _wireFormInteractions('add');
+
         // ── Edit Modal ──
         document.getElementById('dep-edit-close').addEventListener('click', () => {
             _showConfirm('Are you sure you want to cancel editing this dependant?', () => closeEditModal(), 'Confirm', 'Confirm Cancellation');
@@ -114,8 +134,14 @@ const DependantsUI = (() => {
         });
         $editForm.addEventListener('submit', (e) => {
             e.preventDefault();
+            // Validate first — only ask for confirmation once the form is valid.
+            const result = _validateDependantForm('edit');
+            if (!result.ok) return;
             _showConfirm('Save changes to this dependant?', () => _handleEditSave(), 'Confirm', 'Confirm Changes');
         });
+
+        // Show/hide the custom relationship field + live-clear errors.
+        _wireFormInteractions('edit');
 
         // ── Task Modal ──
         document.getElementById('dep-task-modal-close').addEventListener('click', () => {
@@ -192,14 +218,52 @@ const DependantsUI = (() => {
         document.getElementById('dep-drawer-tasks-list').addEventListener('click', (e) => {
             const completeBtn = e.target.closest('.dep-task-complete-btn');
             if (completeBtn) {
-                DependantsStore.completeTask(_drawerDepId, completeBtn.dataset.taskId);
-                _renderTasks();
-                _showToast('Task marked as complete!', 'success');
+                const depId = _drawerDepId;
+                const taskId = completeBtn.dataset.taskId;
+
+                // ── Daily recurring tasks: block completion unless today is
+                //    the due date. Mirrors the authoritative server rule so
+                //    the user gets instant feedback and no needless request.
+                //    The message is shown inline beneath the task (not a toast).
+                const guard = _dailyCompletionGuard(depId, taskId);
+                if (!guard.allowed) {
+                    _showTaskMessage(taskId, guard.message);
+                    return;
+                }
+
+                // Prevent double-clicks from firing two completion requests.
+                completeBtn.disabled = true;
+                Promise.resolve(DependantsStore.completeTask(depId, taskId))
+                    .then(function(result) {
+                        // Server is authoritative: if it rejected the completion
+                        // (e.g. a stale client clock), surface its message inline
+                        // and leave the task unchanged.
+                        if (result && result.success === false) {
+                            if (_drawerDepId === depId) _renderTasks();
+                            _showTaskMessage(taskId, result.error || 'This task could not be completed.');
+                        } else {
+                            _showToast('Task marked as complete!', 'success');
+                            // Re-render so the completed occurrence and any newly
+                            // generated occurrence both appear.
+                            if (_drawerDepId === depId) _renderTasks();
+                            // Refresh the activity panel so the completed task
+                            // shows up there immediately.
+                            if (DependantsStore.getActivity) {
+                                DependantsStore.getActivity(depId).then(function(activity) {
+                                    if (_drawerDepId === depId) _renderActivity(activity);
+                                });
+                            }
+                        }
+                    });
                 return;
             }
             const undoBtn = e.target.closest('.dep-task-undo-btn');
             if (undoBtn) {
-                DependantsStore.uncompleteTask(_drawerDepId, undoBtn.dataset.taskId);
+                const depId = _drawerDepId;
+                Promise.resolve(DependantsStore.uncompleteTask(depId, undoBtn.dataset.taskId))
+                    .then(function() {
+                        if (_drawerDepId === depId) _renderTasks();
+                    });
                 _renderTasks();
                 _showToast('Task marked as pending.', 'info');
                 return;
@@ -262,7 +326,7 @@ const DependantsUI = (() => {
         let html = '';
 
         deps.forEach((dep, idx) => {
-            const colorClass = _avatarColor(idx);
+            const colorClass = _avatarColor(dep.id || dep.name);
             const statusClass = `dep-status-badge--${dep.status}`;
 
             html += `
@@ -286,11 +350,177 @@ const DependantsUI = (() => {
     }
 
     /* ----------------------------------------------------------
+       FIELD-LEVEL VALIDATION HELPERS
+
+       Each form field has a matching <span class="dep-field-error">
+       with id "<fieldId>-error". These helpers show/clear the
+       inline message and toggle the .is-invalid border highlight.
+    ---------------------------------------------------------- */
+    function _setFieldError(fieldId, message) {
+        const $input = document.getElementById(fieldId);
+        const $err = document.getElementById(fieldId + '-error');
+        if ($err) {
+            $err.textContent = message || '';
+            $err.classList.toggle('is-visible', !!message);
+        }
+        if ($input) $input.classList.toggle('is-invalid', !!message);
+    }
+
+    function _clearFieldError(fieldId) {
+        _setFieldError(fieldId, '');
+    }
+
+    /**
+     * Set the max selectable date on both DOB pickers to yesterday so the
+     * native calendar greys out today and all future dates. Falls back to a
+     * plain yesterday calculation if the shared Validators isn't loaded.
+     */
+    function _applyDobMax() {
+        let maxDate;
+        if (typeof Validators !== 'undefined' && Validators.yesterdayISO) {
+            maxDate = Validators.yesterdayISO();
+        } else {
+            const d = new Date();
+            d.setDate(d.getDate() - 1);
+            const pad = n => (n < 10 ? '0' : '') + n;
+            maxDate = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+        }
+        ['dep-add-dob', 'dep-edit-dob'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.setAttribute('max', maxDate);
+        });
+    }
+
+    /** Clear every inline + summary error for a modal ('add' | 'edit'). */
+    function _clearAllErrors(prefix) {
+        ['firstname', 'lastname', 'email', 'relationship', 'relationship-other', 'dob', 'allowance', 'spending-limit']
+            .forEach(f => _clearFieldError('dep-' + prefix + '-' + f));
+        const $summary = document.getElementById('dep-' + prefix + '-error');
+        if ($summary) $summary.textContent = '';
+    }
+
+    /**
+     * Show or hide the custom "Please specify relationship" field based
+     * on the current relationship selection. When hidden, its value and
+     * any error are cleared so stale data is never submitted.
+     */
+    function _syncOtherRelationship(prefix) {
+        const sel = document.getElementById('dep-' + prefix + '-relationship');
+        const row = document.getElementById('dep-' + prefix + '-other-row');
+        const input = document.getElementById('dep-' + prefix + '-relationship-other');
+        if (!sel || !row) return;
+
+        const isOther = sel.value === 'Other';
+        row.hidden = !isOther;
+        if (!isOther && input) {
+            input.value = '';
+            _clearFieldError('dep-' + prefix + '-relationship-other');
+        }
+    }
+
+    /**
+     * Shared field validation for the add/edit dependant forms.
+     * Returns { ok, name, email, relationship, dob, allowance, spendingLimit }.
+     * On failure it populates inline errors, focuses the first bad field
+     * and returns { ok: false }.
+     */
+    function _validateDependantForm(prefix) {
+        _clearAllErrors(prefix);
+
+        const firstName = document.getElementById('dep-' + prefix + '-firstname').value.trim();
+        const lastName = document.getElementById('dep-' + prefix + '-lastname').value.trim();
+        const emailRaw = document.getElementById('dep-' + prefix + '-email').value;
+        const relationship = document.getElementById('dep-' + prefix + '-relationship').value;
+        const otherInput = document.getElementById('dep-' + prefix + '-relationship-other');
+        const dob = document.getElementById('dep-' + prefix + '-dob').value;
+        const allowanceRaw = document.getElementById('dep-' + prefix + '-allowance').value;
+        const spendingRaw = document.getElementById('dep-' + prefix + '-spending-limit').value;
+
+        let firstBad = null;
+        function fail(fieldId, message) {
+            _setFieldError(fieldId, message);
+            if (!firstBad) firstBad = fieldId;
+        }
+
+        if (!firstName) fail('dep-' + prefix + '-firstname', 'Please enter a first name.');
+        if (!lastName) fail('dep-' + prefix + '-lastname', 'Please enter a last name.');
+
+        const emailResult = Validators.validateEmail(emailRaw);
+        if (!emailResult.valid) fail('dep-' + prefix + '-email', emailResult.message);
+
+        if (!relationship) {
+            fail('dep-' + prefix + '-relationship', 'Please select a relationship.');
+        }
+
+        // Custom relationship when "Other" is selected.
+        let finalRelationship = relationship;
+        if (relationship === 'Other') {
+            const custom = (otherInput ? otherInput.value : '').trim();
+            if (!custom) {
+                fail('dep-' + prefix + '-relationship-other', 'Please specify the relationship.');
+            } else {
+                finalRelationship = custom;
+            }
+        }
+
+        const dobResult = Validators.validateDateOfBirth(dob);
+        if (!dobResult.valid) fail('dep-' + prefix + '-dob', dobResult.message);
+
+        // Allowance / spending limit — optional per existing business rules,
+        // but any value entered must be a valid monetary amount.
+        const allowanceResult = Validators.validateAmount(allowanceRaw, { required: false });
+        if (!allowanceResult.valid) fail('dep-' + prefix + '-allowance', allowanceResult.message);
+
+        const spendingResult = Validators.validateAmount(spendingRaw, { required: false });
+        if (!spendingResult.valid) fail('dep-' + prefix + '-spending-limit', spendingResult.message);
+
+        if (firstBad) {
+            const $focus = document.getElementById(firstBad);
+            if ($focus) $focus.focus();
+            return { ok: false };
+        }
+
+        return {
+            ok: true,
+            name: firstName + ' ' + lastName,
+            email: emailResult.value,
+            relationship: finalRelationship,
+            dob: dobResult.value,
+            allowance: allowanceResult.value,
+            spendingLimit: spendingResult.value
+        };
+    }
+
+    /**
+     * Wires the interactive behaviour for an add/edit dependant form:
+     * toggling the custom "Other" relationship field and clearing a
+     * field's inline error as soon as the user starts correcting it.
+     */
+    function _wireFormInteractions(prefix) {
+        const sel = document.getElementById('dep-' + prefix + '-relationship');
+        if (sel) {
+            sel.addEventListener('change', () => {
+                _syncOtherRelationship(prefix);
+                _clearFieldError('dep-' + prefix + '-relationship');
+            });
+        }
+
+        ['firstname', 'lastname', 'email', 'relationship-other', 'dob', 'allowance', 'spending-limit']
+            .forEach(f => {
+                const el = document.getElementById('dep-' + prefix + '-' + f);
+                if (el) el.addEventListener('input', () => _clearFieldError('dep-' + prefix + '-' + f));
+            });
+    }
+
+    /* ----------------------------------------------------------
        ADD DEPENDANT MODAL
     ---------------------------------------------------------- */
     function openAddModal() {
         $addForm.reset();
-        $addError.textContent = '';
+        _clearAllErrors('add');
+        _syncOtherRelationship('add');
+        // Restrict the date picker to yesterday or earlier (no today/future).
+        document.getElementById('dep-add-dob').setAttribute('max', Validators.yesterdayISO());
         $addModal.hidden = false;
         document.getElementById('dep-add-firstname').focus();
     }
@@ -298,29 +528,23 @@ const DependantsUI = (() => {
     function closeAddModal() {
         $addModal.hidden = true;
         $addForm.reset();
-        $addError.textContent = '';
+        _clearAllErrors('add');
+        _syncOtherRelationship('add');
     }
 
     function _handleAddSave() {
-        const firstName = document.getElementById('dep-add-firstname').value.trim();
-        const lastName = document.getElementById('dep-add-lastname').value.trim();
-        const email = document.getElementById('dep-add-email').value.trim();
-        const relationship = document.getElementById('dep-add-relationship').value;
-        const dob = document.getElementById('dep-add-dob').value;
-        const allowance = parseFloat(document.getElementById('dep-add-allowance').value) || 0;
-        const spendingLimit = parseFloat(document.getElementById('dep-add-spending-limit').value) || 0;
+        const result = _validateDependantForm('add');
+        if (!result.ok) return;
 
-        if (!firstName) { $addError.textContent = 'Please enter a first name.'; return; }
-        if (!lastName) { $addError.textContent = 'Please enter a last name.'; return; }
-        if (!email) { $addError.textContent = 'Please enter an email.'; return; }
-        if (!email.includes('@')) { $addError.textContent = 'Please enter a valid email.'; return; }
-        if (!relationship) { $addError.textContent = 'Please select a relationship.'; return; }
-        if (!dob) { $addError.textContent = 'Please enter a date of birth.'; return; }
-        if (dob.split('-')[0].length > 4) { $addError.textContent = 'Please enter a valid year (4 digits).'; return; }
-
-        const name = firstName + ' ' + lastName;
         try {
-            DependantsStore.add({ name, email, relationship, dob, allowance, spendingLimit });
+            DependantsStore.add({
+                name: result.name,
+                email: result.email,
+                relationship: result.relationship,
+                dob: result.dob,
+                allowance: result.allowance,
+                spendingLimit: result.spendingLimit
+            });
             closeAddModal();
             _showToast('Dependant added successfully!', 'success');
         } catch (err) {
@@ -346,11 +570,29 @@ const DependantsUI = (() => {
         document.getElementById('dep-edit-firstname').value = depFirstName;
         document.getElementById('dep-edit-lastname').value = depLastName;
         document.getElementById('dep-edit-email').value = dep.email;
-        document.getElementById('dep-edit-relationship').value = dep.relationship;
+
+        // Relationship may be a standard option or a custom "Other" value.
+        const $rel = document.getElementById('dep-edit-relationship');
+        const $relOther = document.getElementById('dep-edit-relationship-other');
+        const STANDARD = DependantsStore.RELATIONSHIPS; // ['Son',...,'Other']
+        if (dep.relationship && STANDARD.indexOf(dep.relationship) === -1) {
+            // Custom relationship saved previously → select Other and fill it.
+            $rel.value = 'Other';
+            if ($relOther) $relOther.value = dep.relationship;
+        } else {
+            $rel.value = dep.relationship || '';
+            if ($relOther) $relOther.value = '';
+        }
+
         document.getElementById('dep-edit-dob').value = dep.dateOfBirth || '';
-        document.getElementById('dep-edit-allowance').value = dep.allowance;
-        document.getElementById('dep-edit-spending-limit').value = dep.spendingLimit;
-        $editError.textContent = '';
+        document.getElementById('dep-edit-allowance').value = (dep.allowance != null ? dep.allowance : '');
+        document.getElementById('dep-edit-spending-limit').value = (dep.spendingLimit != null ? dep.spendingLimit : '');
+
+        _clearAllErrors('edit');
+        _syncOtherRelationship('edit');
+
+        // Restrict the date picker to yesterday or earlier (no today/future).
+        document.getElementById('dep-edit-dob').setAttribute('max', Validators.yesterdayISO());
 
         $editModal.hidden = false;
         document.getElementById('dep-edit-firstname').focus();
@@ -359,28 +601,23 @@ const DependantsUI = (() => {
     function closeEditModal() {
         $editModal.hidden = true;
         $editForm.reset();
-        $editError.textContent = '';
+        _clearAllErrors('edit');
+        _syncOtherRelationship('edit');
     }
 
     function _handleEditSave() {
-        const firstName = document.getElementById('dep-edit-firstname').value.trim();
-        const lastName = document.getElementById('dep-edit-lastname').value.trim();
-        const email = document.getElementById('dep-edit-email').value.trim();
-        const relationship = document.getElementById('dep-edit-relationship').value;
-        const dob = document.getElementById('dep-edit-dob').value;
-        const allowance = parseFloat(document.getElementById('dep-edit-allowance').value) || 0;
-        const spendingLimit = parseFloat(document.getElementById('dep-edit-spending-limit').value) || 0;
+        const result = _validateDependantForm('edit');
+        if (!result.ok) return;
 
-        if (!firstName) { $editError.textContent = 'Please enter a first name.'; return; }
-        if (!lastName) { $editError.textContent = 'Please enter a last name.'; return; }
-        if (!email) { $editError.textContent = 'Please enter an email.'; return; }
-        if (!email.includes('@')) { $editError.textContent = 'Please enter a valid email.'; return; }
-        if (!dob) { $editError.textContent = 'Please enter a date of birth.'; return; }
-        if (dob.split('-')[0].length > 4) { $editError.textContent = 'Please enter a valid year (4 digits).'; return; }
-
-        const name = firstName + ' ' + lastName;
         try {
-            DependantsStore.edit(_drawerDepId, { name, email, relationship, dob, allowance, spendingLimit });
+            DependantsStore.edit(_drawerDepId, {
+                name: result.name,
+                email: result.email,
+                relationship: result.relationship,
+                dob: result.dob,
+                allowance: result.allowance,
+                spendingLimit: result.spendingLimit
+            });
             closeEditModal();
             _showToast('Dependant updated successfully!', 'success');
 
@@ -422,29 +659,71 @@ const DependantsUI = (() => {
 
         if (!amount || amount <= 0) { $sendError.textContent = 'Please enter a valid amount.'; return; }
 
+        const depId = _drawerDepId;
+        let promise;
         try {
-            DependantsStore.sendAllowance(_drawerDepId, amount, frequency);
+            promise = DependantsStore.sendAllowance(depId, amount, frequency);
+        } catch (err) {
+            $sendError.textContent = err.message;
+            return;
+        }
+
+        Promise.resolve(promise).then(function(result) {
+            if (result && result.success === false) {
+                $sendError.textContent = result.error || 'Failed to send allowance.';
+                return;
+            }
             closeSendModal();
             _showToast('Allowance sent successfully!', 'success');
 
-            // Refresh drawer if still open
-            if (!$drawer.hidden) openDrawer(_drawerDepId);
-        } catch (err) {
-            $sendError.textContent = err.message;
-        }
+            // Data (incl. new activity) is now reloaded — refresh the drawer.
+            if (!$drawer.hidden) openDrawer(depId);
+        }).catch(function(err) {
+            $sendError.textContent = (err && err.message) || 'Failed to send allowance.';
+        });
     }
 
     /* ----------------------------------------------------------
        DETAIL DRAWER
     ---------------------------------------------------------- */
+    /** Render the activity list (most recent first). */
+    function _renderActivity(activity) {
+        const $actList = document.getElementById('dep-drawer-activity-list');
+        if (!$actList) return;
+        const items = Array.isArray(activity) ? activity : [];
+        if (items.length === 0) {
+            $actList.innerHTML = '<li style="color:var(--text-light);font-size:13px;padding:8px 0;">No activity yet.</li>';
+            return;
+        }
+        $actList.innerHTML = [...items].reverse().map(a => {
+            const isTask = a.type === 'task';
+            // Sign follows the money direction from the dependant's view:
+            // 'out' (debit) = -, otherwise (+). Fall back to legacy type when
+            // direction isn't provided.
+            const isOut = a.direction ? (a.direction === 'out') : (a.type === 'spend');
+            const prefix = isOut ? '-' : '+';
+            const amountClass = isOut
+                ? 'dep-activity-amount--spend'
+                : (isTask ? 'dep-activity-amount--task' : '');
+            const amountLabel = `${prefix}${DependantsStore.fmtCurrency(a.amount)}`;
+            return `
+            <li class="dep-activity-item">
+                <div class="dep-activity-info">
+                    <span class="dep-activity-desc">${a.description}</span>
+                    <span class="dep-activity-date">${DependantsStore.fmtDate(a.date)}</span>
+                </div>
+                <span class="dep-activity-amount ${amountClass}">${amountLabel}</span>
+            </li>`;
+        }).join('');
+    }
+
     function openDrawer(id) {
         const dep = DependantsStore.getById(id);
         if (!dep) return;
         _drawerDepId = id;
 
-        // Header
-        const idx = DependantsStore.getAll().findIndex(d => d.id === id);
-        const colorClass = _avatarColor(idx >= 0 ? idx : 0);
+        // Header — colour keyed on identity so the drawer matches the card.
+        const colorClass = _avatarColor(dep.id || dep.name);
         document.getElementById('dep-drawer-avatar').className = `dep-avatar dep-avatar--${colorClass}`;
         document.getElementById('dep-drawer-avatar').textContent = dep.avatar;
         document.getElementById('dep-drawer-name').textContent = dep.name;
@@ -473,23 +752,14 @@ const DependantsUI = (() => {
         _wirePermissionToggle('dep-perm-view-wallet', 'canViewWallet');
         _wirePermissionToggle('dep-perm-request', 'canRequestFunds');
 
-        // Activity list
-        const $actList = document.getElementById('dep-drawer-activity-list');
-        if (dep.activity.length === 0) {
-            $actList.innerHTML = '<li style="color:var(--text-light);font-size:13px;padding:8px 0;">No activity yet.</li>';
-        } else {
-            $actList.innerHTML = [...dep.activity].reverse().map(a => {
-                const amountClass = a.type === 'spend' ? 'dep-activity-amount--spend' : '';
-                const prefix = a.type === 'spend' ? '-' : '+';
-                return `
-                <li class="dep-activity-item">
-                    <div class="dep-activity-info">
-                        <span class="dep-activity-desc">${a.description}</span>
-                        <span class="dep-activity-date">${DependantsStore.fmtDate(a.date)}</span>
-                    </div>
-                    <span class="dep-activity-amount ${amountClass}">${prefix}${DependantsStore.fmtCurrency(a.amount)}</span>
-                </li>`;
-            }).join('');
+        // Activity list — render what we have, then refresh from the API so
+        // newly sent allowances show up without depending on a bulk reload.
+        _renderActivity(dep.activity || []);
+        if (DependantsStore.getActivity) {
+            DependantsStore.getActivity(id).then(function(activity) {
+                // Only update if this drawer is still the one open.
+                if (_drawerDepId === id) _renderActivity(activity);
+            });
         }
 
         $drawerOverlay.hidden = false;
@@ -537,6 +807,39 @@ const DependantsUI = (() => {
     }
 
     /* ----------------------------------------------------------
+       TASKS — DAILY COMPLETION GUARD
+       Daily recurring tasks may only be completed on their exact due
+       date. Returns { allowed, message } mirroring the server rule so
+       the UI can block early/late completion with instant feedback.
+    ---------------------------------------------------------- */
+    function _localTodayISO() {
+        const d = new Date();
+        const pad = n => (n < 10 ? '0' : '') + n;
+        return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    }
+
+    function _dailyCompletionGuard(depId, taskId) {
+        const dep = DependantsStore.getById(depId);
+        const task = dep && (dep.tasks || []).find(t => t.id === taskId);
+        if (!task) return { allowed: true, message: '' };
+
+        // Only applies to DAILY recurring tasks that have a due date.
+        if (!task.recurring || task.frequency !== 'daily' || !task.dueDate) {
+            return { allowed: true, message: '' };
+        }
+
+        const dueISO = String(task.dueDate).slice(0, 10);
+        const todayISO = _localTodayISO();
+        if (dueISO === todayISO) return { allowed: true, message: '' };
+
+        const overdue = todayISO > dueISO;
+        const message = overdue
+            ? 'This task can only be completed on its scheduled due date as it is a daily recurring task. The task is overdue and cannot be marked as complete.'
+            : 'This task can only be completed on its scheduled due date as it is a daily recurring task. Its scheduled date has not yet arrived, therefore cannot be marked as complete today.';
+        return { allowed: false, message: message, overdue: overdue };
+    }
+
+    /* ----------------------------------------------------------
        TASKS — RENDER
     ---------------------------------------------------------- */
     function _renderTasks() {
@@ -570,7 +873,7 @@ const DependantsUI = (() => {
             const showUndo = t.status === 'complete' || t.status === 'completed';
 
             return `
-            <li class="dep-task-item">
+            <li class="dep-task-item" data-task-id="${t.id}">
                 <div class="dep-task-top">
                     <div class="dep-task-title-wrap">
                         <span class="dep-task-name">${t.task}</span>
@@ -601,8 +904,33 @@ const DependantsUI = (() => {
                         ${recurringBadge}
                     </div>
                 </div>
+                <p class="dep-task-msg" data-task-msg="${t.id}" role="alert" hidden></p>
             </li>`;
         }).join('');
+    }
+
+    /**
+     * Show a neat inline message beneath a specific task row (used for the
+     * daily-completion restriction instead of a toast). Replaces any message
+     * currently shown on another row so only one is visible at a time.
+     * @param {string} taskId
+     * @param {string} message
+     */
+    function _showTaskMessage(taskId, message) {
+        const $list = document.getElementById('dep-drawer-tasks-list');
+        if (!$list) return;
+        // Clear any other inline messages first.
+        $list.querySelectorAll('.dep-task-msg').forEach(el => {
+            el.hidden = true;
+            el.textContent = '';
+            el.classList.remove('is-visible');
+        });
+        const $msg = $list.querySelector('.dep-task-msg[data-task-msg="' + taskId + '"]');
+        if (!$msg) return;
+        $msg.textContent = message;
+        $msg.hidden = false;
+        // Next frame so the transition plays on re-show.
+        requestAnimationFrame(() => $msg.classList.add('is-visible'));
     }
 
     /* ----------------------------------------------------------
@@ -670,19 +998,60 @@ const DependantsUI = (() => {
 
         if (!reward || reward <= 0) { $taskError.textContent = 'Please enter a reward amount.'; return; }
 
-        try {
-            if (_editingTaskId) {
-                DependantsStore.editTask(_drawerDepId, _editingTaskId, { task, description, dueDate, reward, recurring, frequency });
-                _showToast('Task updated successfully!', 'success');
-            } else {
-                DependantsStore.addTask(_drawerDepId, { task, description, dueDate, reward, recurring, frequency });
-                _showToast('Task added successfully!', 'success');
+        // ── Wallet funding pre-check (immediate feedback) ──
+        // The reward is paid from the main member's available wallet balance
+        // when the task is completed. Refuse up front if the current available
+        // balance cannot cover this reward. The backend validates again and is
+        // authoritative; this is just a fast, friendly guardrail. For recurring
+        // tasks we validate the single initial occurrence, never a series.
+        _checkRewardAffordable(reward).then(function(ok) {
+            if (!ok.affordable) {
+                $taskError.textContent = INSUFFICIENT_FUNDS_MSG;
+                return;
             }
-            closeTaskModal();
-            _renderTasks();
-        } catch (err) {
-            $taskError.textContent = err.message;
+            try {
+                if (_editingTaskId) {
+                    DependantsStore.editTask(_drawerDepId, _editingTaskId, { task, description, dueDate, reward, recurring, frequency });
+                    _showToast('Task updated successfully!', 'success');
+                } else {
+                    DependantsStore.addTask(_drawerDepId, { task, description, dueDate, reward, recurring, frequency });
+                    _showToast('Task added successfully!', 'success');
+                }
+                closeTaskModal();
+                _renderTasks();
+            } catch (err) {
+                $taskError.textContent = err.message;
+            }
+        });
+    }
+
+    // Friendly message mirrored from the backend (server is authoritative).
+    const INSUFFICIENT_FUNDS_MSG =
+        "Insufficient wallet funds. Your available balance is not enough to cover this task's reward. Please upload funds to your wallet or reduce the reward amount.";
+
+    /**
+     * Resolve whether the main member's available wallet balance can cover a
+     * reward. Fails open (affordable:true) if the wallet can't be read, since
+     * the backend will still enforce the real check.
+     * @param {number} reward
+     * @returns {Promise<{affordable:boolean, available:number}>}
+     */
+    function _checkRewardAffordable(reward) {
+        if (!reward || reward <= 0) return Promise.resolve({ affordable: true, available: 0 });
+        if (typeof API === 'undefined' || !API.Wallet || !API.Wallet.get) {
+            return Promise.resolve({ affordable: true, available: 0 });
         }
+        return API.Wallet.get().then(function(result) {
+            if (!result || result.success === false || !result.data) {
+                return { affordable: true, available: 0 }; // fail open; backend enforces
+            }
+            const w = result.data;
+            const available = (w.available != null ? w.available : (w.balance != null ? w.balance : 0));
+            const avail = parseFloat(available) || 0;
+            return { affordable: avail >= reward, available: avail };
+        }).catch(function() {
+            return { affordable: true, available: 0 }; // fail open; backend enforces
+        });
     }
 
     /* ----------------------------------------------------------

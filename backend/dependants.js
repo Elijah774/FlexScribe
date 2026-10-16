@@ -150,6 +150,28 @@ const DependantsStore = (() => {
                         });
                     }
                 } catch (e) { /* ignore task load errors */ }
+
+                // Load activity (wallet transactions, e.g. allowances sent)
+                try {
+                    var actResult = await API.Dependants.getActivity(_data.dependants[i].id);
+                    if (actResult.success && Array.isArray(actResult.data)) {
+                        _data.dependants[i].activity = actResult.data.map(function(a) {
+                            // Map the dependant's own wallet row → activity
+                            // item. Direction reflects the dependant: credit =
+                            // money in (+), debit = money out (-).
+                            var isCredit = a.transactionType === 'credit';
+                            var isTaskReward = a.category === 'task-reward-earned';
+                            return {
+                                id: 'da_' + a.transactionID,
+                                direction: isCredit ? 'in' : 'out',
+                                type: isTaskReward ? 'task' : (isCredit ? 'allowance' : 'spend'),
+                                description: a.description || (isCredit ? 'Allowance received' : 'Payment'),
+                                amount: parseFloat(a.transactionAmount) || 0,
+                                date: a.transactionDate ? a.transactionDate.split('T')[0] : ''
+                            };
+                        });
+                    }
+                } catch (e) { /* ignore activity load errors */ }
             }
             _listeners.forEach(fn => fn(getAll()));
             return _data.dependants;
@@ -229,8 +251,35 @@ const DependantsStore = (() => {
     ---------------------------------------------------------- */
     function add({ name, email, relationship, allowance, spendingLimit, dob }) {
         if (!name || !name.trim()) throw new Error('Dependant name is required.');
-        if (!email || !email.trim()) throw new Error('Email is required.');
-        allowance = parseFloat(allowance) || 0;
+
+        // Email — proper format check (shared rules).
+        if (typeof Validators !== 'undefined') {
+            const er = Validators.validateEmail(email);
+            if (!er.valid) throw new Error(er.message);
+            email = er.value;
+        } else if (!email || !email.trim()) {
+            throw new Error('Email is required.');
+        }
+
+        // Date of birth — must be a real date in the past.
+        if (typeof Validators !== 'undefined') {
+            const dr = Validators.validateDateOfBirth(dob);
+            if (!dr.valid) throw new Error(dr.message);
+            dob = dr.value;
+        }
+
+        // Allowance / spending limit — validated monetary amounts (no silent coercion).
+        if (typeof Validators !== 'undefined') {
+            const ar = Validators.validateAmount(allowance, { required: false });
+            if (!ar.valid) throw new Error(ar.message);
+            allowance = ar.value;
+
+            const sr = Validators.validateAmount(spendingLimit, { required: false });
+            if (!sr.valid) throw new Error(sr.message);
+            spendingLimit = sr.value;
+        } else {
+            allowance = parseFloat(allowance) || 0;
+        }
 
         // Split name into first/last for the backend
         const parts = name.trim().split(/\s+/);
@@ -254,7 +303,7 @@ const DependantsStore = (() => {
             email: email.trim(),
             relationship: relationship || 'Other',
             allowance: allowance,
-            spendingLimit: parseFloat(spendingLimit) || null,
+            spendingLimit: (spendingLimit != null && spendingLimit > 0) ? spendingLimit : null,
             dateOfBirth: dob || null,
             age: age
         }).then(function(result) {
@@ -275,6 +324,34 @@ const DependantsStore = (() => {
         const idx = _data.dependants.findIndex(d => d.id === id);
         if (idx === -1) throw new Error('Dependant not found.');
 
+        updates = updates || {};
+
+        // Validate any provided fields before touching local state so an
+        // invalid value never silently overwrites a good one. Permission-only
+        // updates (canSpend etc.) skip these checks.
+        if (typeof Validators !== 'undefined') {
+            if (updates.email !== undefined) {
+                const er = Validators.validateEmail(updates.email);
+                if (!er.valid) throw new Error(er.message);
+                updates.email = er.value;
+            }
+            if (updates.dob !== undefined && updates.dob !== '' && updates.dob != null) {
+                const dr = Validators.validateDateOfBirth(updates.dob);
+                if (!dr.valid) throw new Error(dr.message);
+                updates.dob = dr.value;
+            }
+            if (updates.allowance !== undefined) {
+                const ar = Validators.validateAmount(updates.allowance, { required: false });
+                if (!ar.valid) throw new Error(ar.message);
+                updates.allowance = ar.value;
+            }
+            if (updates.spendingLimit !== undefined) {
+                const sr = Validators.validateAmount(updates.spendingLimit, { required: false });
+                if (!sr.valid) throw new Error(sr.message);
+                updates.spendingLimit = sr.value;
+            }
+        }
+
         // Update local state immediately
         const dep = _data.dependants[idx];
         if (updates.name !== undefined) {
@@ -283,7 +360,19 @@ const DependantsStore = (() => {
         }
         if (updates.email !== undefined) dep.email = updates.email;
         if (updates.relationship !== undefined) dep.relationship = updates.relationship;
-        if (updates.dob !== undefined) dep.dob = updates.dob;
+        if (updates.dob !== undefined) {
+            // Store under dateOfBirth (the key the rest of the app reads) and
+            // keep age in sync so the drawer/edit modal reflect the new DOB.
+            dep.dateOfBirth = updates.dob;
+            if (updates.dob) {
+                const dobDate = new Date(updates.dob);
+                const today = new Date();
+                let a = today.getFullYear() - dobDate.getFullYear();
+                const md = today.getMonth() - dobDate.getMonth();
+                if (md < 0 || (md === 0 && today.getDate() < dobDate.getDate())) a--;
+                dep.age = a;
+            }
+        }
         if (updates.allowance !== undefined) dep.allowance = updates.allowance;
         if (updates.spendingLimit !== undefined) dep.spendingLimit = updates.spendingLimit;
 
@@ -332,19 +421,67 @@ const DependantsStore = (() => {
      * @returns {Object} activity record
      */
     function sendAllowance(id, amount, frequency) {
-        amount = parseFloat(amount);
+        if (typeof Validators !== 'undefined') {
+            const ar = Validators.validateAmount(amount, { required: true });
+            if (!ar.valid) throw new Error(ar.message);
+            amount = ar.value;
+        } else {
+            amount = parseFloat(amount);
+        }
         if (!amount || amount <= 0) throw new Error('Amount must be greater than zero.');
 
         const idx = _data.dependants.findIndex(d => d.id === id);
         if (idx === -1) throw new Error('Dependant not found.');
 
-        // Call backend API
-        API.Dependants.sendAllowance(id, amount, frequency).then(function(result) {
-            if (result.success) { loadFromAPI(); }
-            else { console.error('Failed to send allowance:', result.error); }
-        }).catch(function(err) { console.error('Send allowance network error:', err); });
+        // Call backend API. Return a promise that resolves AFTER the data
+        // (including the new activity entry) has been reloaded, so callers
+        // can refresh the drawer once the activity actually exists.
+        return API.Dependants.sendAllowance(id, amount, frequency).then(function(result) {
+            if (result.success) {
+                return loadFromAPI().then(function() {
+                    return { success: true };
+                });
+            }
+            console.error('Failed to send allowance:', result.error);
+            return { success: false, error: result.error || 'Failed to send allowance.' };
+        }).catch(function(err) {
+            console.error('Send allowance network error:', err);
+            return { success: false, error: 'Could not reach the server.' };
+        });
+    }
 
-        return { id: 'pending', type: 'allowance', amount: amount, date: new Date().toISOString().slice(0, 10) };
+    /* ----------------------------------------------------------
+       READ — Dependant Activity (on-demand)
+       Fetches the dependant's wallet activity (e.g. allowances sent)
+       straight from the API and maps it to the drawer's format.
+    ---------------------------------------------------------- */
+    function getActivity(id) {
+        if (typeof API === 'undefined' || !API.Dependants || !API.Dependants.getActivity) {
+            return Promise.resolve([]);
+        }
+        return API.Dependants.getActivity(id).then(function(result) {
+            if (!result.success || !Array.isArray(result.data)) return [];
+            var mapped = result.data.map(function(a) {
+                // These are the DEPENDANT's own wallet rows, so direction maps
+                // directly: credit = money in (+), debit = money out (-).
+                var isCredit = a.transactionType === 'credit';
+                var isTaskReward = a.category === 'task-reward-earned';
+                return {
+                    id: 'da_' + a.transactionID,
+                    // direction drives the +/- sign in the UI
+                    direction: isCredit ? 'in' : 'out',
+                    // type is used only for optional styling
+                    type: isTaskReward ? 'task' : (isCredit ? 'allowance' : 'spend'),
+                    description: a.description || (isCredit ? 'Allowance received' : 'Payment'),
+                    amount: parseFloat(a.transactionAmount) || 0,
+                    date: a.transactionDate ? a.transactionDate.split('T')[0] : ''
+                };
+            });
+            // Keep local copy in sync so other renders have it too.
+            var dep = _data.dependants.find(function(d) { return d.id === id; });
+            if (dep) dep.activity = mapped;
+            return mapped;
+        }).catch(function() { return []; });
     }
 
     /* ----------------------------------------------------------
@@ -385,21 +522,6 @@ const DependantsStore = (() => {
         if (idx === -1) throw new Error('Dependant not found.');
         if (!task || !task.trim()) throw new Error('Task description is required.');
 
-        // Call backend API to persist to DependantTask table
-        if (typeof API !== 'undefined') {
-            API.Dependants.addTask(depId, {
-                taskName: task.trim(),
-                description: (description || '').trim().slice(0, 100),
-                dueDate: dueDate || null,
-                reward: parseFloat(reward) || 0,
-                recurring: !!recurring,
-                recurrenceCycle: recurring ? (frequency || 'weekly') : null
-            }).then(function(result) {
-                if (result.success) { loadFromAPI(); }
-                else { console.error('Failed to add task:', result.error); }
-            }).catch(function(err) { console.error('Add task network error:', err); });
-        }
-
         // Optimistic local update
         const entry = {
             id: _tid(),
@@ -415,6 +537,34 @@ const DependantsStore = (() => {
         if (!_data.dependants[idx].tasks) _data.dependants[idx].tasks = [];
         _data.dependants[idx].tasks.push(entry);
         _notify();
+
+        // Call backend API to persist to DependantTask table. The server
+        // enforces the wallet funding rule and may reject with HTTP 402; if so
+        // we roll back the optimistic entry and surface the server's message.
+        if (typeof API !== 'undefined') {
+            API.Dependants.addTask(depId, {
+                taskName: task.trim(),
+                description: (description || '').trim().slice(0, 100),
+                dueDate: dueDate || null,
+                reward: parseFloat(reward) || 0,
+                recurring: !!recurring,
+                recurrenceCycle: recurring ? (frequency || 'weekly') : null
+            }).then(function(result) {
+                if (result.success) { loadFromAPI(); }
+                else {
+                    console.error('Failed to add task:', result.error);
+                    // Remove the optimistic entry so the UI reflects reality.
+                    var d = _data.dependants.find(function(x) { return x.id === depId; });
+                    if (d && d.tasks) {
+                        var i = d.tasks.findIndex(function(t) { return t.id === entry.id; });
+                        if (i !== -1) { d.tasks.splice(i, 1); _notify(); }
+                    }
+                    if (typeof window !== 'undefined' && typeof window.showToast === 'function') {
+                        window.showToast(result.error || 'Could not add task.', 'error');
+                    }
+                }
+            }).catch(function(err) { console.error('Add task network error:', err); });
+        }
 
         return entry;
     }
@@ -476,17 +626,27 @@ const DependantsStore = (() => {
         task.status = 'completed';
         _notify();
 
-        // Persist to database
+        // Persist to database. The server marks this occurrence completed AND
+        // (for recurring tasks) generates the next occurrence atomically, so a
+        // full reload is required to surface the new occurrence. The returned
+        // promise resolves only AFTER that reload so the UI can re-render the
+        // task list with both the completed row and the new pending one.
         if (typeof API !== 'undefined') {
-            API.Dependants.editTask(depId, taskId, { taskStatus: 'completed' })
+            return API.Dependants.editTask(depId, taskId, { taskStatus: 'completed' })
                 .then(function(result) {
-                    if (result.success) { loadFromAPI(); }
-                    else { console.error('Complete task failed:', result.error); }
+                    if (result.success) {
+                        return loadFromAPI().then(function() { return { success: true, data: result.data }; });
+                    }
+                    console.error('Complete task failed:', result.error);
+                    return { success: false, error: result.error };
                 })
-                .catch(function(err) { console.error('Complete task error:', err); });
+                .catch(function(err) {
+                    console.error('Complete task error:', err);
+                    return { success: false, error: (err && err.message) || 'Network error' };
+                });
         }
 
-        return { ...task };
+        return Promise.resolve({ success: true });
     }
 
     /**
@@ -503,17 +663,25 @@ const DependantsStore = (() => {
         task.status = 'pending';
         _notify();
 
-        // Persist to database
+        // Persist to database. Resolve after reload so the UI reflects the
+        // server state (re-opening a completed occurrence also re-arms its
+        // next-occurrence guard server-side).
         if (typeof API !== 'undefined') {
-            API.Dependants.editTask(depId, taskId, { taskStatus: 'pending' })
+            return API.Dependants.editTask(depId, taskId, { taskStatus: 'pending' })
                 .then(function(result) {
-                    if (result.success) { loadFromAPI(); }
-                    else { console.error('Uncomplete task failed:', result.error); }
+                    if (result.success) {
+                        return loadFromAPI().then(function() { return { success: true }; });
+                    }
+                    console.error('Uncomplete task failed:', result.error);
+                    return { success: false, error: result.error };
                 })
-                .catch(function(err) { console.error('Uncomplete task error:', err); });
+                .catch(function(err) {
+                    console.error('Uncomplete task error:', err);
+                    return { success: false, error: (err && err.message) || 'Network error' };
+                });
         }
 
-        return { ...task };
+        return Promise.resolve({ success: true });
     }
 
     /**
@@ -594,13 +762,15 @@ const DependantsStore = (() => {
         // Data access
         getAll,
         getById,
+        getActivity,
         // Mutations (API-backed)
         add,
         edit,
         remove,
         sendAllowance,
         updatePermissions,
-        // Tasks (local only — no DB table for tasks)
+        // Tasks (API-backed via DependantTask table; recurring tasks keep
+        // one active occurrence at a time, next generated on completion)
         addTask,
         editTask,
         removeTask,
