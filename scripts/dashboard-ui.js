@@ -160,7 +160,10 @@ const DashboardUI = (function () {
 
         API.Score.get().then(function (result) {
             if (!result.success || !result.data) return;
-            var d = result.data;
+            // The API client wraps the HTTP body as { success, data }, and the
+            // /score body is ITSELF { success, data:{...} }. Unwrap the inner
+            // envelope so we read the real score object either way.
+            var d = (result.data && result.data.data) ? result.data.data : result.data;
             var score = parseInt(d.score) || 0;
             var maxScore = parseInt(d.maxScore) || 1000;
             var pct = Math.min(score / maxScore, 1);

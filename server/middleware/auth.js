@@ -41,4 +41,61 @@ function requireAdmin(req, res, next) {
     next();
 }
 
-module.exports = { authenticateToken, generateToken, requireAdmin };
+/* ===========================================================
+   ROLE HELPERS
+   Roles are derived from the JWT userType, which is set at
+   login/registration from the database — NEVER from a value
+   supplied by the client in a request body. These gates must
+   run AFTER authenticateToken.
+
+   Accepted role spellings (historic data uses mixed casing):
+     Main member : 'MainMember', 'individual', 'Admin'
+     Dependant   : 'Dependant', 'dependant'
+=========================================================== */
+
+function _isDependant(userType) {
+    return userType === 'Dependant' || userType === 'dependant';
+}
+
+function _isMainMember(userType) {
+    // Anything that is not a dependant is treated as a main-member-class
+    // account (MainMember / individual / Admin). Admins retain full access.
+    return !_isDependant(userType);
+}
+
+/** Convenience booleans attached for handlers that branch on role. */
+function attachRole(req) {
+    const t = req.user ? req.user.userType : null;
+    req.isDependant = _isDependant(t);
+    req.isMainMember = _isMainMember(t);
+    return req;
+}
+
+/** Block dependants from a main-member-only route. */
+function requireMainMember(req, res, next) {
+    if (!req.user) return res.status(401).json({ error: 'Authentication required.' });
+    if (_isDependant(req.user.userType)) {
+        return res.status(403).json({ error: 'This feature is only available to main members.' });
+    }
+    next();
+}
+
+/** Restrict a route to dependant accounts only. */
+function requireDependant(req, res, next) {
+    if (!req.user) return res.status(401).json({ error: 'Authentication required.' });
+    if (!_isDependant(req.user.userType)) {
+        return res.status(403).json({ error: 'This feature is only available to dependants.' });
+    }
+    next();
+}
+
+module.exports = {
+    authenticateToken,
+    generateToken,
+    requireAdmin,
+    requireMainMember,
+    requireDependant,
+    attachRole,
+    _isDependant,
+    _isMainMember
+};

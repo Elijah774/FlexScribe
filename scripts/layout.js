@@ -106,6 +106,7 @@ const pageTitles = {
     goals:         { title: "Goals",          heading: "Goals",                 sub: "Set targets and watch your savings grow." },
     analytics:     { title: "Analytics",      heading: "Analytics",             sub: "Interactive charts powered by your wallet activity." },
     timeline:      { title: "Timeline",       heading: "Billing Timeline",      sub: "Visualise money flowing out of your wallet for the next 30 days." },
+    tasks:         { title: "Tasks",          heading: "Tasks",                 sub: "View and complete the tasks assigned to you." },
     dependants:    { title: "Dependants",     heading: "Dependants",            sub: "Manage family members and their allocations." },
     notifications: { title: "Notifications", heading: "Notifications",         sub: "Stay on top of upcoming payments and alerts." },
     reports:       { title: "Reports",        heading: "Reports",               sub: "View, compile and analyse your financial reports with AI-powered insights." },
@@ -120,6 +121,7 @@ const pageFiles = {
     goals:         'goals.html',
     analytics:     'analytics.html',
     timeline:      'timeline.html',
+    tasks:         'tasks.html',
     dependants:    'dependants.html',
     notifications: 'notifications.html',
     reports:       'reports.html',
@@ -217,6 +219,8 @@ function loadPage(pageName) {
 
         if (pageName === 'wallet' && typeof WalletUI !== 'undefined') {
             WalletUI.init();
+            // Dependant-only Request Funds card (no-op for main members).
+            if (typeof RequestFundsUI !== 'undefined') RequestFundsUI.mount();
         }
 
         if (pageName === 'wallet-deposit' && typeof WalletDepositUI !== 'undefined') {
@@ -245,6 +249,10 @@ function loadPage(pageName) {
 
         if (pageName === 'dependants' && typeof DependantsUI !== 'undefined') {
             DependantsUI.init();
+        }
+
+        if (pageName === 'tasks' && typeof TasksUI !== 'undefined') {
+            TasksUI.init();
         }
 
         if (pageName === 'notifications') {
@@ -330,50 +338,79 @@ function _scribeScorePageHook(pageName) {
 
 /* ===========================================================
    ROLE-BASED ACCESS CONTROL
-   Reads user tier from localStorage (set at login from DB).
-   Tiers: 'individual', 'professional', 'family', 'dependant'
-   Hides nav items and blocks pages the user cannot access.
+   Roles come from the authenticated account's userType, which is
+   set server-side at login (never trusted from the client). The
+   backend independently enforces every restriction; this layer is
+   purely a UX convenience that hides what the user cannot use.
+
+   Dependant main navigation is restricted to EXACTLY five tabs,
+   in this order:
+       Dashboard, Wallet, Subscriptions, Timeline, Tasks
+   Shared chrome (Settings, Sign out, profile menu, notifications)
+   stays available to everyone.
+
+   Main members keep every tab (Tasks is hidden for them — tasks are
+   managed from the Dependants page).
 =========================================================== */
 
-// Which pages each tier can access
-const tierAccess = {
-    individual:   ['dashboard', 'wallet', 'subscription', 'goals', 'timeline', 'notifications', 'settings'],
-    professional: ['dashboard', 'wallet', 'subscription', 'goals', 'analytics', 'timeline', 'notifications', 'reports', 'settings'],
-    family:       ['dashboard', 'wallet', 'subscription', 'goals', 'analytics', 'timeline', 'dependants', 'notifications', 'reports', 'settings'],
-    dependant:    ['dashboard', 'wallet', 'subscription', 'notifications']
-};
+// Pages a DEPENDANT may reach via the main nav (data-page keys).
+const DEPENDANT_NAV = ['dashboard', 'wallet', 'subscription', 'timeline', 'tasks'];
+// Shared items always allowed regardless of role. (Notifications is NOT shared
+// — dependants are restricted to their five nav tabs and must not see it.)
+const SHARED_PAGES = ['settings', 'signout'];
+// The Tasks tab is a dependant-only main-nav item.
+const DEPENDANT_ONLY_PAGES = ['tasks'];
 
-function getUserTier() {
-    // This will come from the database via the login response.
-    // Stored in localStorage/sessionStorage after successful auth.
-    return localStorage.getItem('flexscribe_tier') || 'professional';
+function _normRole(t) {
+    return (t === 'Dependant' || t === 'dependant') ? 'dependant' : 'main';
 }
 
+/** Current role from cached profile (set during _initHeader / login). */
+function getUserRole() {
+    try {
+        const profile = JSON.parse(localStorage.getItem('flexscribe_profile') || 'null');
+        if (profile && profile.userType) return _normRole(profile.userType);
+    } catch (e) { /* ignore */ }
+    return _normRole(sessionStorage.getItem('flexscribe_role'));
+}
+
+function isDependantRole() {
+    return getUserRole() === 'dependant';
+}
+
+/** Show/hide nav items to match the current role. Idempotent. */
 function applyAccessControl() {
-    // DEV MODE: Tier restrictions commented out for development — all pages accessible
-    // const tier = getUserTier();
-    // const allowed = tierAccess[tier] || tierAccess['individual'];
+    const dependant = isDependantRole();
 
-    // // Show/hide nav items based on tier
-    // document.querySelectorAll('.nav-item[data-page]').forEach(item => {
-    //     const page = item.getAttribute('data-page');
-    //     if (page === 'signout') return; // always visible
-    //     const li = item.closest('li');
-    //     if (li) {
-    //         li.style.display = allowed.includes(page) ? '' : 'none';
-    //     }
-    // });
+    document.querySelectorAll('.nav-item[data-page]').forEach(item => {
+        const page = item.getAttribute('data-page');
+        const li = item.closest('li');
+        if (!li) return;
+
+        if (SHARED_PAGES.includes(page)) { li.style.display = ''; return; }
+
+        if (dependant) {
+            // Dependants: only the five allowed tabs are visible.
+            li.style.display = DEPENDANT_NAV.includes(page) ? '' : 'none';
+        } else {
+            // Main members: everything except the dependant-only Tasks tab.
+            li.style.display = DEPENDANT_ONLY_PAGES.includes(page) ? 'none' : '';
+        }
+    });
 }
 
+/** Whether the current role may open a given page (defence in depth). */
 function canAccessPage(pageName) {
-    // DEV MODE: All pages accessible during development
-    // const tier = getUserTier();
-    // const allowed = tierAccess[tier] || tierAccess['individual'];
-    // return allowed.includes(pageName);
-    return true;
+    if (SHARED_PAGES.includes(pageName) || pageName.startsWith('wallet-')) return true;
+    if (isDependantRole()) return DEPENDANT_NAV.includes(pageName);
+    // Main members cannot open the dependant-only Tasks page.
+    return !DEPENDANT_ONLY_PAGES.includes(pageName);
 }
 
-// Apply on load
+// Re-applied again once the profile role is known (see _initHeader).
+window.applyAccessControl = applyAccessControl;
+
+// Apply on load (uses whatever role is cached; refreshed after profile load).
 applyAccessControl();
 
 document.querySelectorAll('.nav-item').forEach(item => {
@@ -426,7 +463,16 @@ loadPage('dashboard');
             cached.nickname = d.preferredName || d.firstName || '';
             cached.email = d.email || cached.email || '';
             cached.phone = d.phone || cached.phone || '';
+            cached.userType = d.userType || cached.userType || 'MainMember';
             localStorage.setItem('flexscribe_profile', JSON.stringify(cached));
+            sessionStorage.setItem('flexscribe_role', cached.userType);
+
+            // Now that the real role is known, re-apply nav gating and make
+            // sure a dependant is never left viewing a restricted page.
+            try { applyAccessControl(); } catch (e) {}
+            var current = document.querySelector('.nav-item.active');
+            var currentPage = current ? current.getAttribute('data-page') : 'dashboard';
+            if (!canAccessPage(currentPage)) loadPage('dashboard');
         }
     }).catch(function() {});
 

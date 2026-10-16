@@ -434,6 +434,13 @@ router.post('/pay-month', async (req, res) => {
             success: true,
             outcome: allPaid ? 'all_paid' : 'unpaid',
             message,
+            // Exact, user-facing message when one or more subscriptions could
+            // not be charged because the available wallet balance was too low.
+            // No money was deducted for those — the charge was blocked, not
+            // partially applied.
+            insufficientFundsMessage: unpaidCount > 0
+                ? 'Insufficient wallet funds. You do not have enough available money to cover this subscription. Please request funds from your main member or wait until you have earned sufficient rewards or received your allowance.'
+                : undefined,
             allPaid,
             paidCount,
             unpaidCount,

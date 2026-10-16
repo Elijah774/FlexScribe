@@ -226,8 +226,17 @@ body::before {
 
 <script>
 (function() {
-    // Store logout timestamp
+    // Clear the session + any cached ROLE so the next account that logs in on
+    // this browser is never gated with a previous user's role. Without this,
+    // a stale userType could hide/show the wrong nav tabs on the next login
+    // until the profile API round-trips.
     sessionStorage.removeItem('flexscribe_token');
+    sessionStorage.removeItem('flexscribe_admin');
+    sessionStorage.removeItem('flexscribe_role');
+    try {
+        var p = JSON.parse(localStorage.getItem('flexscribe_profile') || 'null');
+        if (p) { delete p.userType; localStorage.setItem('flexscribe_profile', JSON.stringify(p)); }
+    } catch (e) {}
     localStorage.setItem('flexscribe_last_logout', new Date().toISOString());
 
     // Countdown

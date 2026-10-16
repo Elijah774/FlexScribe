@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlexScribe — Set Up Your Account</title>
+<link rel="stylesheet" href="../styles/login.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  .setup-field { margin-bottom:14px; }
+  .setup-field label { display:block; font-size:13px; margin-bottom:6px; color:var(--text, #fff); }
+  .setup-field input {
+    width:100%; box-sizing:border-box; padding:11px 12px; border-radius:9px;
+    border:1px solid var(--border, #2a2a30); background:var(--card, #1b1b1f); color:var(--text, #fff); font-size:14px;
+  }
+  .setup-err { color:#ff6b6b; font-size:12.5px; margin-top:5px; min-height:16px; }
+  .setup-msg { font-size:13px; margin:10px 0; }
+  .setup-msg.ok { color:#46d17a; } .setup-msg.err { color:#ff6b6b; }
+  .setup-btn {
+    width:100%; padding:12px; border:none; border-radius:10px; background:var(--orange, #FF7A29);
+    color:#fff; font-weight:600; font-size:15px; cursor:pointer; margin-top:6px;
+  }
+  .setup-btn:disabled { opacity:.6; cursor:not-allowed; }
+  .setup-hint { font-size:12px; color:var(--text-light, #9aa0a6); margin-top:4px; }
+  .setup-terms { display:flex; gap:8px; align-items:flex-start; font-size:13px; color:var(--text-light,#9aa0a6); margin:8px 0 14px; }
+  .req-star { color:#ff6b6b; margin-left:2px; }
+  /* Live password criteria checklist */
+  .pw-criteria { list-style:none; margin:8px 0 0; padding:0; display:grid; gap:5px; }
+  .pw-criteria li { display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--text-light,#9aa0a6); transition:color .15s; }
+  .pw-criteria li .pw-dot {
+    width:16px; height:16px; border-radius:50%; flex:0 0 auto;
+    border:1.5px solid var(--border,#3a3a42); display:inline-flex; align-items:center; justify-content:center;
+    font-size:10px; line-height:1; color:transparent; transition:all .15s;
+  }
+  .pw-criteria li.met { color:#46d17a; }
+  .pw-criteria li.met .pw-dot { background:#46d17a; border-color:#46d17a; color:#0b0c0f; }
+  .pw-criteria li.met .pw-dot::after { content:'✓'; }
+</style>
+</head>
+<body>
+<div class="login-container" id="setup-container">
+  <div style="text-align:center;margin-bottom:20px">
+    <img src="../images/smallLogo.png" alt="FlexScribe" width="48" height="48" style="border-radius:12px;margin-bottom:8px">
+    <div style="font-size:22px;font-weight:800;color:var(--text)">Flex<span style="color:var(--orange)">Scribe</span></div>
+  </div>
+
+  <h2 style="text-align:center;margin:0 0 4px;font-size:19px;color:var(--text)">Set up your account</h2>
+  <p id="setup-subtitle" style="text-align:center;color:var(--text-light,#9aa0a6);font-size:13px;margin:0 0 18px">Checking your invitation…</p>
+
+  <div id="setup-loading" class="setup-msg">Validating your setup link…</div>
+
+  <form id="setup-form" hidden novalidate>
+    <div class="setup-field">
+      <label>Email</label>
+      <input type="email" id="setup-email" disabled>
+    </div>
+
+    <div class="setup-field">
+      <label for="setup-password">Create a password <span class="req-star">*</span></label>
+      <input type="password" id="setup-password" autocomplete="new-password" required aria-required="true">
+      <ul class="pw-criteria" id="pw-criteria">
+        <li data-check="length"><span class="pw-dot"></span>At least 8 characters</li>
+        <li data-check="upper"><span class="pw-dot"></span>One uppercase letter (A–Z)</li>
+        <li data-check="lower"><span class="pw-dot"></span>One lowercase letter (a–z)</li>
+        <li data-check="number"><span class="pw-dot"></span>One number (0–9)</li>
+        <li data-check="special"><span class="pw-dot"></span>One special character (e.g. ! @ # $)</li>
+      </ul>
+      <div class="setup-err" id="err-password"></div>
+    </div>
+
+    <div class="setup-field">
+      <label for="setup-confirm">Confirm password <span class="req-star">*</span></label>
+      <input type="password" id="setup-confirm" autocomplete="new-password" required aria-required="true">
+      <div class="setup-err" id="err-confirm"></div>
+    </div>
+
+    <div class="setup-field" id="field-phone" hidden>
+      <label for="setup-phone">Phone number <span class="req-star">*</span></label>
+      <input type="tel" id="setup-phone" autocomplete="tel" required aria-required="true">
+      <div class="setup-err" id="err-phone"></div>
+    </div>
+
+    <div class="setup-field" id="field-dob" hidden>
+      <label for="setup-dob">Date of birth <span class="req-star">*</span></label>
+      <input type="date" id="setup-dob" required aria-required="true">
+      <div class="setup-err" id="err-dob"></div>
+    </div>
+
+    <label class="setup-terms">
+      <input type="checkbox" id="setup-terms" required aria-required="true">
+      <span>I accept the FlexScribe Terms and Privacy Policy. <span class="req-star">*</span></span>
+    </label>
+    <div class="setup-err" id="err-terms"></div>
+
+    <button type="submit" class="setup-btn" id="setup-submit">Activate account</button>
+    <div class="setup-msg" id="setup-form-msg"></div>
+  </form>
+
+  <div id="setup-invalid" class="setup-msg err" hidden></div>
+  <p style="text-align:center;margin-top:16px"><a href="login.html" style="color:var(--orange);font-size:13px">Go to sign in</a></p>
+</div>
+
+<script src="../scripts/validators.js?v=3"></script>
+<script src="../scripts/api.js?v=3"></script>
+<script>
+(function () {
+  const token = new URLSearchParams(location.search).get('token') || '';
+  const loadingEl = document.getElementById('setup-loading');
+  const formEl = document.getElementById('setup-form');
+  const invalidEl = document.getElementById('setup-invalid');
+  const subtitle = document.getElementById('setup-subtitle');
+
+  function showInvalid(msg) {
+    loadingEl.hidden = true;
+    formEl.hidden = true;
+    invalidEl.hidden = false;
+    invalidEl.textContent = msg || 'This setup link is not valid.';
+    subtitle.textContent = 'Invitation problem';
+  }
+
+  if (!token) { showInvalid('No setup token was provided. Please use the link from your invitation email.'); return; }
+
+  API.Auth.validateSetupToken(token).then(function (res) {
+    if (!res.success || !res.data || !res.data.valid) {
+      showInvalid((res.data && res.data.error) || (res.error) || 'This setup link is not valid or has expired.');
+      return;
+    }
+    const d = res.data;
+    loadingEl.hidden = true;
+    formEl.hidden = false;
+    subtitle.textContent = 'Welcome' + (d.firstName ? ', ' + d.firstName : '') + '! Choose a password to finish.';
+    document.getElementById('setup-email').value = d.email || '';
+    if (d.needs && d.needs.phone) document.getElementById('field-phone').hidden = false;
+    if (d.needs && d.needs.dateOfBirth) {
+      document.getElementById('field-dob').hidden = false;
+      // Prevent future DOB at the picker level.
+      if (window.Validators) document.getElementById('setup-dob').max = Validators.yesterdayISO();
+    }
+  }).catch(function () {
+    showInvalid('Could not validate your setup link. Please try again.');
+  });
+
+  // ── Live password criteria checklist ──
+  // Updates the 5-item list in real time as the user types, turning each
+  // criterion green the moment it is satisfied. Mirrors the exact rules the
+  // backend enforces (length, upper, lower, number, special).
+  const pwInput = document.getElementById('setup-password');
+  const criteriaEl = document.getElementById('pw-criteria');
+  function _updatePwCriteria() {
+    const checks = window.Validators
+      ? Validators.checkPassword(pwInput.value)
+      : (function (v) {
+          return { length: v.length >= 8, upper: /[A-Z]/.test(v), lower: /[a-z]/.test(v), number: /[0-9]/.test(v), special: /[^A-Za-z0-9]/.test(v) };
+        })(pwInput.value);
+    criteriaEl.querySelectorAll('li[data-check]').forEach(function (li) {
+      li.classList.toggle('met', !!checks[li.getAttribute('data-check')]);
+    });
+  }
+  pwInput.addEventListener('input', _updatePwCriteria);
+  _updatePwCriteria();
+
+  formEl.addEventListener('submit', function (e) {
+    e.preventDefault();
+    ['err-password','err-confirm','err-phone','err-dob','err-terms'].forEach(id => document.getElementById(id).textContent = '');
+    const msg = document.getElementById('setup-form-msg');
+    msg.textContent = ''; msg.className = 'setup-msg';
+
+    const pw = document.getElementById('setup-password').value;
+    const confirm = document.getElementById('setup-confirm').value;
+    const phoneField = document.getElementById('field-phone');
+    const dobField = document.getElementById('field-dob');
+    const phone = document.getElementById('setup-phone').value.trim();
+    const dob = document.getElementById('setup-dob').value;
+    const terms = document.getElementById('setup-terms').checked;
+
+    let ok = true;
+    const pwCheck = window.Validators ? Validators.validatePassword(pw) : { valid: pw.length >= 8, message: 'Password too weak.' };
+    if (!pwCheck.valid) { document.getElementById('err-password').textContent = pwCheck.message; ok = false; }
+    if (confirm !== pw) { document.getElementById('err-confirm').textContent = 'Passwords do not match.'; ok = false; }
+    if (!phoneField.hidden && !phone) { document.getElementById('err-phone').textContent = 'Please enter your phone number.'; ok = false; }
+    if (!dobField.hidden) {
+      const dv = window.Validators ? Validators.validateDateOfBirth(dob) : { valid: !!dob, message: 'Enter a valid date of birth.' };
+      if (!dv.valid) { document.getElementById('err-dob').textContent = dv.message; ok = false; }
+    }
+    if (!terms) { document.getElementById('err-terms').textContent = 'You must accept the Terms to continue.'; ok = false; }
+    if (!ok) return;
+
+    const btn = document.getElementById('setup-submit');
+    btn.disabled = true; btn.textContent = 'Activating…';
+
+    API.Auth.completeSetup({
+      token: token,
+      password: pw,
+      phone: phoneField.hidden ? undefined : phone,
+      dateOfBirth: dobField.hidden ? undefined : dob,
+      termsAccepted: true
+    }).then(function (res) {
+      if (res.success) {
+        msg.className = 'setup-msg ok';
+        msg.textContent = 'Account activated. Redirecting…';
+        try {
+          const u = res.data && res.data.user;
+          if (u && u.userType) {
+            sessionStorage.setItem('flexscribe_role', u.userType);
+            const p = JSON.parse(localStorage.getItem('flexscribe_profile') || '{}');
+            p.userType = u.userType;
+            p.fullName = ((u.firstName||'') + ' ' + (u.lastName||'')).trim();
+            p.nickname = u.preferredName || u.firstName || '';
+            p.email = u.email || '';
+            localStorage.setItem('flexscribe_profile', JSON.stringify(p));
+          }
+        } catch (e) {}
+        setTimeout(function () { window.location.href = 'loading.html'; }, 900);
+      } else {
+        btn.disabled = false; btn.textContent = 'Activate account';
+        msg.className = 'setup-msg err';
+        msg.textContent = res.error || 'Could not complete setup. Please try again.';
+      }
+    }).catch(function () {
+      btn.disabled = false; btn.textContent = 'Activate account';
+      msg.className = 'setup-msg err';
+      msg.textContent = 'Network error. Please try again.';
+    });
+  });
+})();
+</script>
+</body>
+</html>

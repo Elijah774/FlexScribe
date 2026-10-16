@@ -16,6 +16,26 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
+// ── Block public access to sensitive server-side files ──
+// The static handler below serves the whole project root, which would
+// otherwise expose secrets over HTTP (the dev email log with invitation
+// tokens, .env credentials, SQL migrations, the .git directory).
+//
+// IMPORTANT: the browser frontend legitimately loads client-side store
+// scripts from /backend/*.js (DependantsStore, WalletStore, etc.), so we do
+// NOT block the whole backend/ folder — only genuinely sensitive FILE TYPES
+// and the server source folder, by extension/name. Deny these BEFORE
+// express.static can serve them.
+const BLOCKED_PATH_RE = /(^\/server\/)|(^\/\.git(\/|$))|(\.env($|\.))|(\.log$)|(\.sql$)|(\.sqlite\d?$)/i;
+app.use((req, res, next) => {
+    // Never block the API itself.
+    if (req.path.startsWith('/api/')) return next();
+    if (BLOCKED_PATH_RE.test(req.path)) {
+        return res.status(404).send('Not found');
+    }
+    next();
+});
+
 // Serve static frontend files from project root
 app.use(express.static(path.join(__dirname, '..')));
 
@@ -25,6 +45,7 @@ app.use('/api/subscriptions', require('./routes/subscriptions'));
 app.use('/api/wallet', require('./routes/wallet'));
 app.use('/api/goals', require('./routes/goals'));
 app.use('/api/dependants', require('./routes/dependants'));
+app.use('/api/me', require('./routes/me'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/reports', require('./routes/reports'));
