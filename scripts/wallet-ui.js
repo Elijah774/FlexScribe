@@ -225,9 +225,10 @@ const WalletUI = (() => {
         } else {
             list.innerHTML = _historyRows.map(function (tx) {
                 const credit = _isCredit(tx.type);
-                const icon = credit ? '\u2193' : '\u2191';
+                // Money IN  → up arrow (↑), green, "+".
+                // Money OUT → down arrow (↓), red, "-".
+                const icon = credit ? '\u2191' : '\u2193';
                 const sign = credit ? '+' : '-';
-                // Money in = green ('credit'); money out = red ('debit').
                 const cls = credit ? 'credit' : 'debit';
                 const statusBadge = (tx.status && tx.status !== 'completed')
                     ? `<span class="wal2-txn-status ${tx.status}">${tx.status}</span>` : '';

@@ -3,11 +3,8 @@
 =========================================================== */
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const { query, getPool, sql } = require('../db');
 const { sql, getPool, query } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
-const notificationService = require('../services/notificationService');
-const { NOTIFICATION_TYPES, ENTITY_TYPES } = require('../constants/notificationTypes');
 const notificationService = require('../services/notificationService');
 const { NOTIFICATION_TYPES, ENTITY_TYPES } = require('../constants/notificationTypes');
 
