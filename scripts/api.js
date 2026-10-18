@@ -26,7 +26,7 @@ const API = (() => {
        DEV_HOST is the PC running the backend. On a phone-hotspot network the
        PC's IP changes each session — update DEV_HOST when it does (check with
        `ipconfig` on the PC). */
-    const DEV_HOST = 'http://172.20.10.3:3000';   // <-- PC's LAN IP:port
+    const DEV_HOST = 'http://localhost:3000';   // <-- backend host:port (only used for file:// opens)
 
     const BASE_URL = (location.protocol === 'file:' || !location.host)
         ? DEV_HOST + '/api'
@@ -384,6 +384,21 @@ const API = (() => {
                 '/auth/profile',
                 data
             );
+        },
+
+
+        // Validate a dependant account-setup token (public; token is the key).
+        async validateSetupToken(token) {
+            return _fetch('GET', '/auth/setup/validate?token=' + encodeURIComponent(token));
+        },
+
+        // Complete dependant account setup; stores the returned JWT on success.
+        async completeSetup(fields) {
+            const result = await _fetch('POST', '/auth/setup/complete', fields);
+            if (result.success && result.data && result.data.token) {
+                sessionStorage.setItem('flexscribe_token', result.data.token);
+            }
+            return result;
         }
     };
 
@@ -1034,6 +1049,49 @@ const API = (() => {
 
         async getActivity(depId) {
             return _fetch('GET', `/dependants/${depId}/activity`);
+        },
+
+        // Resend a secure setup invitation to a pending/expired dependant.
+        async resendInvitation(depId) {
+            return _fetch('POST', `/dependants/${depId}/resend-invitation`, {});
+        },
+
+        // Main member: list all incoming fund requests across dependants.
+        async getFundRequests() {
+            return _fetch('GET', '/dependants/fund-requests');
+        },
+
+        // Main member: approve (optionally with amount) or decline a request.
+        async respondToFundRequest(depId, reqId, action, amount) {
+            return _fetch('POST', `/dependants/${depId}/fund-requests/${reqId}/respond`, { action, amount });
+        }
+    };
+
+
+    /* ==========================================================
+       ME — dependant self-service (own tasks, request funds)
+    ========================================================== */
+
+    const Me = {
+
+        async getTasks() {
+            return _fetch('GET', '/me/tasks');
+        },
+
+        async completeTask(taskId) {
+            return _fetch('POST', `/me/tasks/${taskId}/complete`, {});
+        },
+
+        async requestFundsStatus() {
+            return _fetch('GET', '/me/request-funds/status');
+        },
+
+        async getFundRequests() {
+            return _fetch('GET', '/me/fund-requests');
+        },
+
+        async requestFunds(amount, reason) {
+            return _fetch('POST', '/me/fund-requests', { amount, reason });
         }
     };
 
@@ -1372,6 +1430,7 @@ const API = (() => {
         Wallet,
         Goals,
         Dependants,
+        Me,
         Notifications,
         Analytics,
         Support,

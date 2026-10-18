@@ -25,8 +25,13 @@ replay_pid*
 
 # Environment variables (secrets)
 .env
+**/.env
+server/.env
 backend/.env
 backend/.env.remote
+
+# Local dev email log (invitation links / addresses — never commit)
+server/_sent-emails.log
 
 # Node modules
 node_modules/

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -19,7 +19,7 @@
 <body>
 <div class="master-container">
 
-    <!-- â”€â”€ Logo â”€â”€ -->
+    <!-- ── Logo ── -->
     <div class="logo-area">
         <img src="../images/smallLogo.png" alt="FlexScribe Logo">
         <div class="logo-text-wrap">
@@ -28,7 +28,7 @@
         </div>
     </div>
 
-    <!-- â”€â”€ Top header â”€â”€ -->
+    <!-- ── Top header ── -->
     <header class="top-header" id="MH">
         <h1 class="page-title"></h1>
 
@@ -72,7 +72,7 @@
         </div>
     </header>
 
-    <!-- â”€â”€ Sidebar â”€â”€ -->
+    <!-- ── Sidebar ── -->
     <nav class="sidebar-nav">
         <ul>
             <li><a href="#" class="nav-item active" data-page="dashboard">  <i data-lucide="home"></i>            Dashboard</a></li>
@@ -81,6 +81,7 @@
             <li><a href="#" class="nav-item"         data-page="goals">     <i data-lucide="target"></i>           Goals</a></li>
             <li><a href="#" class="nav-item"         data-page="analytics"> <i data-lucide="line-chart"></i>       Analytics</a></li>
             <li><a href="#" class="nav-item"         data-page="timeline">  <i data-lucide="history"></i>          Timeline</a></li>
+            <li><a href="#" class="nav-item"         data-page="tasks">     <i data-lucide="check-square"></i>     Tasks</a></li>
             <li><a href="#" class="nav-item"         data-page="dependants"><i data-lucide="users"></i>            Dependants</a></li>
             <li><a href="#" class="nav-item"         data-page="notifications"><i data-lucide="bell"></i>          Notifications</a></li>
             <li><a href="#" class="nav-item"         data-page="reports">   <i data-lucide="file-text"></i>        Reports</a></li>
@@ -95,7 +96,7 @@
 
     <hr class="sidebar-divider">
 
-    <!-- â”€â”€ Main content â”€â”€ -->
+    <!-- ── Main content ── -->
     <main class="main-content" id="MC">
         <section class="page-heading">
             <h1 class="page-heading-title"></h1>
@@ -104,31 +105,34 @@
 
         <div class="page-body">
 
-            <!-- ═══════════════════ DASHBOARD PANEL ═══════════════════ -->
+            <!-- ------------------- DASHBOARD PANEL ------------------- -->
             <div id="panel-dashboard" class="page-panel" hidden></div>
 
-            <!-- ═══════════════════ SUBSCRIPTIONS PANEL ═══════════════════ -->
+            <!-- ------------------- SUBSCRIPTIONS PANEL ------------------- -->
             <div id="panel-subscription" class="page-panel" hidden></div>
 
-            <!-- ═══════════════════ WALLET PANEL ═══════════════════ -->
+            <!-- ------------------- WALLET PANEL ------------------- -->
             <div id="panel-wallet" class="page-panel" hidden></div>
 
-            <!-- ═══════════════════ WALLET DEPOSIT (TOP UP) PANEL ═══════════════════ -->
+            <!-- ------------------- WALLET DEPOSIT (TOP UP) PANEL ------------------- -->
             <div id="panel-wallet-deposit" class="page-panel" hidden></div>
 
-            <!-- ═══════════════════ WALLET WITHDRAW PANEL ═══════════════════ -->
+            <!-- ------------------- WALLET WITHDRAW PANEL ------------------- -->
             <div id="panel-wallet-withdraw" class="page-panel" hidden></div>
 
-            <!-- ═══════════════════ GOALS PANEL ═══════════════════ -->
+            <!-- ------------------- GOALS PANEL ------------------- -->
             <div id="panel-goals" class="page-panel" hidden></div>
 
-            <!-- ═══════════════════ ANALYTICS PANEL ═══════════════════ -->
+            <!-- ------------------- ANALYTICS PANEL ------------------- -->
             <div id="panel-analytics" class="page-panel" hidden></div>
 
-            <!-- ═══════════════════ TIMELINE PANEL ═══════════════════ -->
+            <!-- ------------------- TIMELINE PANEL ------------------- -->
             <div id="panel-timeline" class="page-panel" hidden></div>
 
-            <!-- ═══════════════════ DEPENDANTS PANEL ═══════════════════ -->
+            <!-- ------------------- TASKS PANEL (dependant) ------------------- -->
+            <div id="panel-tasks" class="page-panel" hidden></div>
+
+            <!-- ------------------- DEPENDANTS PANEL ------------------- -->
             <div id="panel-dependants" class="page-panel" hidden>
                 <!-- Dependant Card Grid -->
                 <div class="dep-grid">
@@ -136,13 +140,13 @@
                 </div>
             </div>
 
-            <!-- ═══════════════════ NOTIFICATIONS PANEL ═══════════════════ -->
+            <!-- ------------------- NOTIFICATIONS PANEL ------------------- -->
             <div id="panel-notifications" class="page-panel" hidden></div>
 
-            <!-- ═══════════════════ REPORTS PANEL ═══════════════════ -->
+            <!-- ------------------- REPORTS PANEL ------------------- -->
             <div id="panel-reports" class="page-panel" hidden></div>
 
-            <!-- ═══════════════════ SETTINGS PANEL ═══════════════════ -->
+            <!-- ------------------- SETTINGS PANEL ------------------- -->
             <div id="panel-settings" class="page-panel" hidden></div>
 
         </div><!-- /page-body -->
@@ -150,7 +154,7 @@
 
 </div><!-- /master-container -->
 
-<!-- ═══════════════ ADD / EDIT SUBSCRIPTION MODAL ═══════════════ -->
+<!-- --------------- ADD / EDIT SUBSCRIPTION MODAL --------------- -->
 <div id="sub-modal" class="sub-modal-backdrop" hidden aria-modal="true" role="dialog" aria-labelledby="sub-modal-title">
     <div class="sub-modal-box">
         <div class="sub-modal-header">
@@ -262,7 +266,7 @@
                                 <button type="button" class="sub-swatch" data-colour="#DDA0DD" style="background:#DDA0DD" aria-label="Plum"></button>
                                 <button type="button" class="sub-swatch" data-colour="#98D8C8" style="background:#98D8C8" aria-label="Mint"></button>
                                 <button type="button" class="sub-swatch" data-colour="#F7DC6F" style="background:#F7DC6F" aria-label="Gold"></button>
-                                <button type="button" class="sub-swatch sub-swatch--none" data-colour="" aria-label="No colour">âœ•</button>
+                                <button type="button" class="sub-swatch sub-swatch--none" data-colour="" aria-label="No colour">✕</button>
                             </div>
                         </div>
 
@@ -288,7 +292,7 @@
     </div>
 </div>
 
-<!-- ═══════════════ DETAIL DRAWER ═══════════════ -->
+<!-- --------------- DETAIL DRAWER --------------- -->
 <div id="sub-drawer-overlay" class="sub-drawer-overlay" hidden></div>
 <aside id="sub-drawer" class="sub-drawer" hidden aria-label="Subscription details">
     <div class="sub-drawer-header">
@@ -345,7 +349,7 @@
     </div>
 </aside>
 
-<!-- ═══════════════ PAUSE CONFIRMATION MODAL ═══════════════ -->
+<!-- --------------- PAUSE CONFIRMATION MODAL --------------- -->
 <div id="sub-pause-modal" class="sub-modal-backdrop" hidden aria-modal="true" role="dialog" aria-labelledby="pause-modal-title">
     <div class="sub-modal-box sub-modal-box--sm">
         <div class="sub-modal-header">
@@ -383,7 +387,7 @@
     </div>
 </div>
 
-<!-- ═══════════════ CONFIRM MODAL ═══════════════ -->
+<!-- --------------- CONFIRM MODAL --------------- -->
 <div id="sub-confirm-modal" class="sub-modal-backdrop" hidden aria-modal="true" role="dialog">
     <div class="sub-modal-box sub-modal-box--sm">
         <div class="sub-modal-header">
@@ -399,7 +403,7 @@
     </div>
 </div>
 
-<!-- ═══════════════ RECOMMENDATION ADD CONFIRMATION MODAL ═══════════════ -->
+<!-- --------------- RECOMMENDATION ADD CONFIRMATION MODAL --------------- -->
 <div id="rec-add-modal" class="sub-modal-backdrop" hidden aria-modal="true" role="dialog" aria-labelledby="rec-add-modal-title">
     <div class="sub-modal-box rec-add-modal-box">
         <div class="sub-modal-header">
@@ -471,7 +475,7 @@
     </div>
 </div>
 
-<!-- ═══════════════ RECOMMENDATION QUICK VIEW MODAL ═══════════════ -->
+<!-- --------------- RECOMMENDATION QUICK VIEW MODAL --------------- -->
 <div id="rec-quickview-modal" class="sub-modal-backdrop" hidden aria-modal="true" role="dialog" aria-labelledby="rec-qv-modal-title">
     <div class="sub-modal-box rec-qv-modal-box">
         <div class="sub-modal-header">
@@ -534,7 +538,7 @@
     </div>
 </div>
 
-<!-- ═══════════════ NEW / EDIT GOAL MODAL ═══════════════ -->
+<!-- --------------- NEW / EDIT GOAL MODAL --------------- -->
 <div id="goals-modal" class="goals-modal-backdrop" hidden aria-modal="true" role="dialog" aria-labelledby="goals-modal-title">
     <div class="goals-modal-box">
         <div class="goals-modal-header">
@@ -587,7 +591,7 @@
     </div>
 </div>
 
-<!-- ═══════════════ GOAL DELETE CONFIRMATION MODAL ═══════════════ -->
+<!-- --------------- GOAL DELETE CONFIRMATION MODAL --------------- -->
 <div id="goals-confirm-modal" class="goals-modal-backdrop" hidden aria-modal="true" role="dialog">
     <div class="goals-modal-box" style="max-width:400px">
         <div class="goals-modal-header">
@@ -606,7 +610,7 @@
     </div>
 </div>
 
-<!-- ═══════════════ GOAL DETAIL DRAWER ═══════════════ -->
+<!-- --------------- GOAL DETAIL DRAWER --------------- -->
 <div id="goals-drawer-overlay" class="goals-drawer-overlay" hidden></div>
 <aside id="goals-drawer" class="goals-drawer" hidden aria-label="Goal details">
     <div class="goals-drawer-header">
@@ -662,7 +666,7 @@
             <p class="goals-drawer-section-title">Goal complete</p>
             <p class="goals-wallet-balance-hint" id="goals-drawer-accept-hint">Accept your saved funds back into your wallet.</p>
             <button type="button" class="goals-accept-funds-btn" id="goals-drawer-accept-btn">Accept Funds</button>
-            <p class="goals-accepted-note" id="goals-drawer-accepted-note" hidden>Funds accepted ✓</p>
+            <p class="goals-accepted-note" id="goals-drawer-accepted-note" hidden>Funds accepted ?</p>
         </div>
 
         <!-- Contribution History -->
@@ -677,7 +681,7 @@
     </div>
 </aside>
 
-<!-- ═══════════════ DASHBOARD CUSTOMIZE DRAWER ═══════════════ -->
+<!-- --------------- DASHBOARD CUSTOMIZE DRAWER --------------- -->
 <div id="dash-customize-overlay" class="sub-drawer-overlay" hidden></div>
 <aside id="dash-customize" class="sub-drawer dash-customize" hidden aria-label="Customize dashboard">
     <div class="sub-drawer-header">
@@ -697,7 +701,7 @@
     </div>
 </aside>
 
-<!-- ═══════════════ ADD FUNDS MODAL ═══════════════ -->
+<!-- --------------- ADD FUNDS MODAL --------------- -->
 <div id="wallet-add-modal" class="wallet-modal-backdrop" hidden aria-modal="true" role="dialog" aria-labelledby="wallet-add-title">
     <div class="wallet-modal-box">
         <div class="wallet-modal-header">
@@ -770,7 +774,7 @@
         <div class="wallet-modal-body" data-step="review" hidden>
             <h3 class="wallet-review-heading">Review Top Up</h3>
             <ul class="wallet-review-lines">
-                <li><span>Funding Method</span><span id="wallet-topup-review-method">—</span></li>
+                <li><span>Funding Method</span><span id="wallet-topup-review-method">�</span></li>
                 <li><span>Amount</span><span id="wallet-topup-review-amount" class="num">R0.00</span></li>
                 <li><span>Processing Fee</span><span class="num">R0.00</span></li>
                 <li class="wallet-review-total"><span>Total</span><span id="wallet-topup-review-total" class="num">R0.00</span></li>
@@ -786,7 +790,7 @@
         <!-- STEP: processing -->
         <div class="wallet-modal-body wallet-processing" data-step="processing" hidden>
             <div class="wallet-spinner" aria-hidden="true"></div>
-            <p class="wallet-processing-msg">Processing your top up…</p>
+            <p class="wallet-processing-msg">Processing your top up�</p>
         </div>
 
         <!-- STEP 4: result (success) -->
@@ -795,8 +799,8 @@
                 <svg viewBox="0 0 24 24" fill="none" width="34" height="34"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
             <h3 class="wallet-result-title">Top Up Successful</h3>
-            <p class="wallet-result-msg" id="wallet-topup-result-msg">—</p>
-            <div class="wallet-result-ref" id="wallet-topup-result-ref">—</div>
+            <p class="wallet-result-msg" id="wallet-topup-result-msg">�</p>
+            <div class="wallet-result-ref" id="wallet-topup-result-ref">�</div>
             <p class="wallet-field-hint" id="wallet-topup-result-balance"></p>
         </div>
         <div class="wallet-modal-footer" data-step="result" hidden>
@@ -818,7 +822,7 @@
     </div>
 </div>
 
-<!-- ═══════════════ WITHDRAW MODAL ═══════════════ -->
+<!-- --------------- WITHDRAW MODAL --------------- -->
 <div id="wallet-withdraw-modal" class="wallet-modal-backdrop" hidden aria-modal="true" role="dialog" aria-labelledby="wallet-withdraw-title">
     <div class="wallet-modal-box">
         <div class="wallet-modal-header">
@@ -847,7 +851,7 @@
     </div>
 </div>
 
-<!-- ═══════════════ TRANSFER TO GOAL MODAL ═══════════════ -->
+<!-- --------------- TRANSFER TO GOAL MODAL --------------- -->
 <div id="wallet-transfer-modal" class="wallet-modal-backdrop" hidden aria-modal="true" role="dialog" aria-labelledby="wallet-transfer-title">
     <div class="wallet-modal-box">
         <div class="wallet-modal-header">
@@ -883,7 +887,7 @@
     </div>
 </div>
 
-<!-- ═══════════════ SEND TO DEPENDANT MODAL ═══════════════ -->
+<!-- --------------- SEND TO DEPENDANT MODAL --------------- -->
 <div id="wallet-send-modal" class="wallet-modal-backdrop" hidden aria-modal="true" role="dialog" aria-labelledby="wallet-send-title">
     <div class="wallet-modal-box">
         <div class="wallet-modal-header">
@@ -897,7 +901,7 @@
                 <div class="wallet-modal-field">
                     <label for="wallet-send-dependant">Dependant</label>
                     <select id="wallet-send-dependant">
-                        <option value="">Loading dependants…</option>
+                        <option value="">Loading dependants�</option>
                     </select>
                 </div>
                 <div class="wallet-modal-field">
@@ -915,7 +919,7 @@
     </div>
 </div>
 
-<!-- ═══════════════ TRANSFER TO USER MODAL (merchant) ═══════════════ -->
+<!-- --------------- TRANSFER TO USER MODAL (merchant) --------------- -->
 <div id="wallet-user-transfer-modal" class="wallet-modal-backdrop" hidden aria-modal="true" role="dialog" aria-labelledby="wallet-user-transfer-title">
     <div class="wallet-modal-box">
         <div class="wallet-modal-header">
@@ -984,11 +988,11 @@
         <div class="wallet-modal-body wallet-review" data-step="review" hidden>
             <div class="wallet-review-amount num" id="wallet-uxfer-review-amount">R0.00</div>
             <p class="wallet-review-sub">will be sent to</p>
-            <div class="wallet-review-recipient" id="wallet-uxfer-review-recipient">—</div>
+            <div class="wallet-review-recipient" id="wallet-uxfer-review-recipient">�</div>
             <ul class="wallet-review-lines">
                 <li><span>Fee</span><span class="num">R0.00</span></li>
-                <li><span>Message</span><span id="wallet-uxfer-review-note">—</span></li>
-                <li class="wallet-review-total"><span>Balance after transfer</span><span id="wallet-uxfer-review-newbal" class="num">—</span></li>
+                <li><span>Message</span><span id="wallet-uxfer-review-note">�</span></li>
+                <li class="wallet-review-total"><span>Balance after transfer</span><span id="wallet-uxfer-review-newbal" class="num">�</span></li>
             </ul>
             <span class="field-error" id="wallet-uxfer-review-error"></span>
         </div>
@@ -1000,7 +1004,7 @@
         <!-- STEP: processing -->
         <div class="wallet-modal-body wallet-processing" data-step="processing" hidden>
             <div class="wallet-spinner" aria-hidden="true"></div>
-            <p class="wallet-processing-msg">Sending your transfer…</p>
+            <p class="wallet-processing-msg">Sending your transfer�</p>
         </div>
 
         <!-- STEP 4: result (success) -->
@@ -1009,8 +1013,8 @@
                 <svg viewBox="0 0 24 24" fill="none" width="34" height="34"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
             <h3 class="wallet-result-title">Transfer Successful</h3>
-            <p class="wallet-result-msg" id="wallet-uxfer-result-msg">—</p>
-            <div class="wallet-result-ref" id="wallet-uxfer-result-ref">—</div>
+            <p class="wallet-result-msg" id="wallet-uxfer-result-msg">�</p>
+            <div class="wallet-result-ref" id="wallet-uxfer-result-ref">�</div>
             <p class="wallet-field-hint" id="wallet-uxfer-result-date"></p>
         </div>
         <div class="wallet-modal-footer" data-step="result" hidden>
@@ -1032,7 +1036,7 @@
     </div>
 </div>
 
-<!-- ═══════════════ WITHDRAW (merchant) MODAL ═══════════════ -->
+<!-- --------------- WITHDRAW (merchant) MODAL --------------- -->
 <div id="wallet-withdraw2-modal" class="wallet-modal-backdrop" hidden aria-modal="true" role="dialog" aria-labelledby="wallet-withdraw2-title">
     <div class="wallet-modal-box">
         <div class="wallet-modal-header">
@@ -1057,7 +1061,7 @@
         <div class="wallet-modal-body" data-step="details">
             <p class="wallet-review-heading">Select Bank Account</p>
             <div class="wallet-option-list" id="wallet-wdl-accounts">
-                <p class="wallet-field-hint">Loading accounts…</p>
+                <p class="wallet-field-hint">Loading accounts�</p>
             </div>
             <button type="button" class="wallet-add-account-btn" id="wallet-wdl-add-account">
                 <svg viewBox="0 0 24 24" fill="none" width="16" height="16"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -1098,11 +1102,11 @@
         <div class="wallet-modal-body" data-step="review" hidden>
             <h3 class="wallet-review-heading">Review Withdrawal</h3>
             <ul class="wallet-review-lines">
-                <li><span>Bank Account</span><span id="wallet-wdl-review-dest">—</span></li>
+                <li><span>Bank Account</span><span id="wallet-wdl-review-dest">�</span></li>
                 <li><span>Amount</span><span id="wallet-wdl-review-amount" class="num">R0.00</span></li>
                 <li><span>Fee</span><span class="num">R0.00</span></li>
                 <li class="wallet-review-total"><span>Total</span><span id="wallet-wdl-review-total" class="num">R0.00</span></li>
-                <li><span>Balance after</span><span id="wallet-wdl-review-newbal" class="num">—</span></li>
+                <li><span>Balance after</span><span id="wallet-wdl-review-newbal" class="num">�</span></li>
             </ul>
             <p class="wallet-modal-info">Withdrawals may take some time to complete.</p>
             <span class="field-error" id="wallet-wdl-review-error"></span>
@@ -1115,7 +1119,7 @@
         <!-- STEP: processing -->
         <div class="wallet-modal-body wallet-processing" data-step="processing" hidden>
             <div class="wallet-spinner" aria-hidden="true"></div>
-            <p class="wallet-processing-msg">Submitting your withdrawal…</p>
+            <p class="wallet-processing-msg">Submitting your withdrawal�</p>
         </div>
 
         <!-- STEP 4: result (submitted / pending) -->
@@ -1124,8 +1128,8 @@
                 <svg viewBox="0 0 24 24" fill="none" width="34" height="34"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
             </div>
             <h3 class="wallet-result-title">Withdrawal Submitted</h3>
-            <p class="wallet-result-msg" id="wallet-wdl-result-msg">—</p>
-            <div class="wallet-result-ref" id="wallet-wdl-result-ref">—</div>
+            <p class="wallet-result-msg" id="wallet-wdl-result-msg">�</p>
+            <div class="wallet-result-ref" id="wallet-wdl-result-ref">�</div>
             <p class="wallet-field-hint" id="wallet-wdl-result-dest"></p>
             <span class="wallet-status-pill pending">Pending</span>
         </div>
@@ -1148,7 +1152,7 @@
     </div>
 </div>
 
-<!-- ═══════════════ TRANSACTION DETAIL MODAL ═══════════════ -->
+<!-- --------------- TRANSACTION DETAIL MODAL --------------- -->
 <div id="wallet-tx-detail-modal" class="wallet-modal-backdrop" hidden aria-modal="true" role="dialog" aria-labelledby="wallet-tx-detail-title">
     <div class="wallet-modal-box">
         <div class="wallet-modal-header">
@@ -1159,7 +1163,7 @@
         </div>
         <div class="wallet-modal-body">
             <div class="wallet-detail-amount" id="wallet-detail-amount">R0.00</div>
-            <div class="wallet-detail-status" id="wallet-detail-status">—</div>
+            <div class="wallet-detail-status" id="wallet-detail-status">�</div>
             <ul class="wallet-detail-lines" id="wallet-detail-lines">
                 <!-- Rendered by WalletUI -->
             </ul>
@@ -1170,7 +1174,7 @@
     </div>
 </div>
 
-<!-- ═══════════════ ADD DEPENDANT MODAL ═══════════════ -->
+<!-- --------------- ADD DEPENDANT MODAL --------------- -->
 <div id="dep-add-modal" class="dep-modal-backdrop" hidden aria-modal="true" role="dialog" aria-labelledby="dep-add-title">
     <div class="dep-modal-box">
         <div class="dep-modal-header">
@@ -1250,7 +1254,7 @@
     </div>
 </div>
 
-<!-- ═══════════════ SEND ALLOWANCE MODAL ═══════════════ -->
+<!-- --------------- SEND ALLOWANCE MODAL --------------- -->
 <div id="dep-send-modal" class="dep-modal-backdrop" hidden aria-modal="true" role="dialog" aria-labelledby="dep-send-title">
     <div class="dep-modal-box">
         <div class="dep-modal-header">
@@ -1293,7 +1297,7 @@
     </div>
 </div>
 
-<!-- ═══════════════ EDIT DEPENDANT MODAL ═══════════════ -->
+<!-- --------------- EDIT DEPENDANT MODAL --------------- -->
 <div id="dep-edit-modal" class="dep-modal-backdrop" hidden aria-modal="true" role="dialog" aria-labelledby="dep-edit-title">
     <div class="dep-modal-box">
         <div class="dep-modal-header">
@@ -1372,7 +1376,7 @@
     </div>
 </div>
 
-<!-- ═══════════════ ADD / EDIT TASK MODAL ═══════════════ -->
+<!-- --------------- ADD / EDIT TASK MODAL --------------- -->
 <div id="dep-task-modal" class="dep-modal-backdrop" hidden aria-modal="true" role="dialog" aria-labelledby="dep-task-modal-title">
     <div class="dep-modal-box">
         <div class="dep-modal-header">
@@ -1427,7 +1431,7 @@
     </div>
 </div>
 
-<!-- ═══════════════ DEPENDANT CONFIRM DELETE MODAL ═══════════════ -->
+<!-- --------------- DEPENDANT CONFIRM DELETE MODAL --------------- -->
 <div id="dep-confirm-modal" class="dep-modal-backdrop" hidden aria-modal="true" role="dialog" aria-labelledby="dep-confirm-title">
     <div class="dep-modal-box dep-modal-box--sm">
         <div class="dep-modal-header">
@@ -1446,7 +1450,7 @@
     </div>
 </div>
 
-<!-- ═══════════════ DEPENDANT DETAIL DRAWER ═══════════════ -->
+<!-- --------------- DEPENDANT DETAIL DRAWER --------------- -->
 <div id="dep-drawer-overlay" class="dep-drawer-overlay" hidden></div>
 <aside id="dep-drawer" class="dep-drawer" hidden aria-label="Dependant details">
     <div class="dep-drawer-header">
@@ -1470,31 +1474,31 @@
         <div class="dep-info-card" id="dep-drawer-info">
             <div class="dep-info-row">
                 <span class="dep-info-label">Name</span>
-                <span class="dep-info-value" id="dep-info-name">—</span>
+                <span class="dep-info-value" id="dep-info-name">�</span>
             </div>
             <div class="dep-info-row">
                 <span class="dep-info-label">Email</span>
-                <span class="dep-info-value" id="dep-info-email">—</span>
+                <span class="dep-info-value" id="dep-info-email">�</span>
             </div>
             <div class="dep-info-row">
                 <span class="dep-info-label">Relationship</span>
-                <span class="dep-info-value" id="dep-info-relationship">—</span>
+                <span class="dep-info-value" id="dep-info-relationship">�</span>
             </div>
             <div class="dep-info-row">
                 <span class="dep-info-label">Date of Birth</span>
-                <span class="dep-info-value" id="dep-info-dob">—</span>
+                <span class="dep-info-value" id="dep-info-dob">�</span>
             </div>
             <div class="dep-info-row">
                 <span class="dep-info-label">Allowance</span>
-                <span class="dep-info-value" id="dep-info-allowance">—</span>
+                <span class="dep-info-value" id="dep-info-allowance">�</span>
             </div>
             <div class="dep-info-row">
                 <span class="dep-info-label">Spending Limit</span>
-                <span class="dep-info-value" id="dep-info-spending-limit">—</span>
+                <span class="dep-info-value" id="dep-info-spending-limit">�</span>
             </div>
             <div class="dep-info-row">
                 <span class="dep-info-label">Total Received</span>
-                <span class="dep-info-value" id="dep-info-received">—</span>
+                <span class="dep-info-value" id="dep-info-received">�</span>
             </div>
         </div>
 
@@ -1514,7 +1518,7 @@
         </div>
         <div class="dep-tasks-sort-bar">
             <span class="dep-tasks-sort-label">Sort by:</span>
-            <button class="dep-tasks-sort-btn dep-tasks-sort-btn--active" data-sort="dueDate">Due Date <span class="dep-sort-arrow">↑</span></button>
+            <button class="dep-tasks-sort-btn dep-tasks-sort-btn--active" data-sort="dueDate">Due Date <span class="dep-sort-arrow">?</span></button>
             <button class="dep-tasks-sort-btn" data-sort="reward">Reward</button>
             <button class="dep-tasks-sort-btn" data-sort="status">Status</button>
             <button class="dep-tasks-order-btn" id="dep-tasks-order-btn" title="Toggle sort order">
@@ -1553,7 +1557,7 @@
                 </label>
             </div>
             <div class="dep-permission-row">
-                <span class="dep-permission-label">Can request funds</span>
+                <span class="dep-permission-label">Allow this dependant to request funds</span>
                 <label class="dep-switch">
                     <input type="checkbox" id="dep-perm-request">
                     <span class="dep-switch-track"></span>
@@ -1568,7 +1572,7 @@
     </div>
 </aside>
 
-<!-- ═══════════════ PROFILE PANEL ═══════════════ -->
+<!-- --------------- PROFILE PANEL --------------- -->
 <div id="profile-panel-overlay" class="profile-panel-overlay" hidden></div>
 <aside id="profile-panel" class="profile-panel" hidden aria-label="Profile">
     <div class="profile-panel-header">
@@ -1670,7 +1674,7 @@
         </div>
     </div>
 
-    <!-- ═══════════════ EDIT PROFILE MODAL WINDOW ═══════════════ -->
+    <!-- --------------- EDIT PROFILE MODAL WINDOW --------------- -->
     <div id="pp-edit-modal" class="pp-edit-modal-backdrop" hidden aria-modal="true" role="dialog" aria-labelledby="pp-edit-modal-title">
         <div class="pp-edit-modal-box">
             <div class="pp-edit-modal-header">
@@ -1723,7 +1727,7 @@
 <script src="../scripts/validators.js?v=2"></script>
 <script src="../backend/auth-sql.js"></script>
 <script src="../backend/auth-db.js"></script>
-<script src="../scripts/api.js?v=2"></script>
+<script src="../scripts/api.js?v=3"></script>
 <script src="../backend/subscriptions.js"></script>
 <script src="../backend/dashboard.js"></script>
 <script src="../backend/wallet.js"></script>
@@ -1733,7 +1737,7 @@
 <script src="../backend/dependants.js?v=2"></script>
 <script src="../backend/analytics-sql.js"></script>
 <script src="../backend/analytics-db.js"></script>
-<script src="../scripts/dashboard-ui.js"></script>
+<script src="../scripts/dashboard-ui.js?v=4"></script>
 <script src="../scripts/subscriptions-ui.js"></script>
 <script src="../scripts/wallet-ui.js"></script>
 <script src="../scripts/goals-ui.js"></script>
@@ -1753,14 +1757,17 @@
 <script src="../scripts/wallet-flows.js"></script>
 <script src="../scripts/wallet-topup-overlay.js"></script>
 <script src="../scripts/subscription.page.js"></script>
-<script src="../scripts/dashboard.page.js"></script>
+<script src="../scripts/dashboard.page.js?v=3"></script>
 <script src="../scripts/analytics.page.js"></script>
 <script src="../scripts/reports.page.js"></script>
 <script src="../scripts/settings.page.js"></script>
+<script src="../scripts/tasks-ui.js?v=4"></script>
+<script src="../scripts/tasks.page.js?v=4"></script>
+<script src="../scripts/request-funds-ui.js?v=3"></script>
 <script src="../scripts/scribe-tips.js"></script>
-<script src="../scripts/layout.js"></script>
+<script src="../scripts/layout.js?v=5"></script>
 
-<!-- ═══════════════ SIGN OUT CONFIRMATION MODAL ═══════════════ -->
+<!-- --------------- SIGN OUT CONFIRMATION MODAL --------------- -->
 <div id="signout-confirm-modal" class="signout-confirm-backdrop" hidden aria-modal="true" role="dialog">
     <div class="signout-confirm-box">
         <div class="signout-confirm-icon">

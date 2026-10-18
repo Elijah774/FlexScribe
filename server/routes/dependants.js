@@ -4,12 +4,34 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const { sql, getPool, query } = require('../db');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, requireMainMember } = require('../middleware/auth');
 const notificationService = require('../services/notificationService');
 const { NOTIFICATION_TYPES, ENTITY_TYPES } = require('../constants/notificationTypes');
+const invitationService = require('../services/invitationService');
+const { sendDependantInvitation } = require('../services/emailService');
+
+// Exact message required when an email is already registered (any account).
+const EMAIL_TAKEN_MSG = 'This email address is already registered. Please use a different email address.';
+
+/** Normalise an email for storage + case-insensitive uniqueness. */
+function normaliseEmail(value) {
+    return String(value == null ? '' : value).trim().toLowerCase();
+}
+
+/** Human-facing reference like FS-REQ-000123 (shared format). */
+function makeReference(prefix, id) {
+    return `FS-${prefix}-${String(id).padStart(6, '0')}`;
+}
 
 const router = express.Router();
 router.use(authenticateToken);
+
+// Every route under /api/dependants is dependant-MANAGEMENT and belongs to
+// the main member. Dependants have their own, separate endpoints under
+// /api/me (see routes/me.js), so they are blocked here outright. This is a
+// hard backend gate: a dependant cannot reach these even by crafting the
+// request directly, regardless of any IDs they supply.
+router.use(requireMainMember);
 
 /* ===========================================================
    Task reward / wallet funding helpers
@@ -175,7 +197,21 @@ router.get('/', async (req, res) => {
             JOIN Subscriber s ON d.dependantID = s.subscriberID
             WHERE d.mainMemberID = @id
         `, { id: req.user.subscriberID });
-        res.json(result.recordset);
+
+        // Enrich each dependant with a human-readable invitation status so the
+        // management UI can show Pending / Expired / Sent / Activated and the
+        // Resend action where appropriate. Never exposes tokens or hashes.
+        const rows = result.recordset;
+        await Promise.all(rows.map(async (d) => {
+            try {
+                d.invitationStatus = await invitationService.getInvitationStatus(d.dependantID, d.status);
+            } catch (_) {
+                d.invitationStatus = d.status === 'active' ? 'Account Activated' : 'Invitation Pending';
+            }
+            d.canResendInvitation = d.status !== 'active';
+        }));
+
+        res.json(rows);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -190,7 +226,15 @@ router.post('/', async (req, res) => {
         // ── Server-side validation (cannot be bypassed by the UI) ──
         const emailResult = validateEmail(req.body.email);
         if (!emailResult.valid) return res.status(400).json({ error: emailResult.message });
-        const email = emailResult.value;
+        const email = normaliseEmail(emailResult.value);
+
+        // Pre-check uniqueness (case-insensitive) BEFORE creating anything, so
+        // we never leave a partial/duplicate account behind. The DB unique
+        // constraint is the final guard against a race (handled in catch).
+        const dupe = await query('SELECT subscriberID FROM Subscriber WHERE LOWER(email) = @email', { email });
+        if (dupe.recordset.length > 0) {
+            return res.status(409).json({ error: EMAIL_TAKEN_MSG });
+        }
 
         const dobResult = validateDateOfBirth(req.body.dateOfBirth);
         if (!dobResult.valid) return res.status(400).json({ error: dobResult.message });
@@ -218,20 +262,28 @@ router.post('/', async (req, res) => {
             if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) age--;
         }
 
-        // Create subscriber record for dependant
-        const passwordHash = await bcrypt.hash('temp_' + Date.now(), 10);
+        // Create subscriber record for the dependant.
+        // The account is provisioned with a random, unknowable temporary
+        // password hash (never shared with anyone — the main member can NOT
+        // retrieve it). The dependant sets their own password via the secure
+        // invitation link. mustChangePassword + onboardingComplete=0 gate the
+        // account until setup is completed.
+        const tempSecret = require('crypto').randomBytes(24).toString('base64url');
+        const passwordHash = await bcrypt.hash(tempSecret, 10);
         const sub = await query(`
-            INSERT INTO Subscriber (firstName, lastName, email, passwordHash, userType, dateOfBirth, scribeScore, marketingOptIn, twoFactorEnabled, theme, notifyPayments, notifyGoals, notifyWeekly, createdAt, updatedAt)
+            INSERT INTO Subscriber (firstName, lastName, email, passwordHash, userType, dateOfBirth, scribeScore, marketingOptIn, twoFactorEnabled, theme, notifyPayments, notifyGoals, notifyWeekly, mustChangePassword, onboardingComplete, createdAt, updatedAt)
             OUTPUT INSERTED.subscriberID
-            VALUES (@fn, @ln, @email, @hash, 'Dependant', @dob, 0, 0, 0, 'dark', 1, 1, 0, GETDATE(), GETDATE())
+            VALUES (@fn, @ln, @email, @hash, 'Dependant', @dob, 500, 0, 0, 'dark', 1, 1, 0, 1, 0, GETDATE(), GETDATE())
         `, { fn: firstName, ln: lastName || '', email, hash: passwordHash, dob: dateOfBirth || null });
 
         const depID = sub.recordset[0].subscriberID;
 
-        // Create dependant record with calculated age
+        // Create dependant record with calculated age.
+        // canRequestFunds defaults to 0 (feature OFF) per requirements — the
+        // main member must explicitly enable it per dependant.
         await query(`
             INSERT INTO Dependant (dependantID, mainMemberID, relationship, allowance, spendingLimit, age, status, canSpend, canViewWallet, canRequestFunds)
-            VALUES (@did, @mid, @rel, @allowance, @limit, @age, 'invited', 1, 0, 1)
+            VALUES (@did, @mid, @rel, @allowance, @limit, @age, 'invited', 1, 0, 0)
         `, { did: depID, mid: req.user.subscriberID, rel: String(relationship).trim().slice(0, 100), allowance: allowance || 0, limit: spendingLimit, age: age });
 
         // Give the dependant their own wallet so task rewards can be paid into
@@ -239,11 +291,126 @@ router.post('/', async (req, res) => {
         // wallet never causes a unique-constraint failure.
         await ensureDependantWallet(depID);
 
-        res.status(201).json({ message: 'Dependant added', dependantID: depID });
-    } catch (err) {
-        if (err.message.includes('UQ_Subscriber_Email')) {
-            return res.status(409).json({ error: 'Email already in use' });
+        // ── Issue a secure, single-use invitation and email the setup link ──
+        let invitationStatus = 'Invitation Pending';
+        let emailDelivery = { sent: false };
+        try {
+            const inv = await invitationService.issueInvitation(depID, req.user.subscriberID, email);
+            const setupUrl = invitationService.buildSetupUrl(inv.rawToken);
+
+            // Resolve a friendly main-member name for the email body.
+            let inviterName = 'Your main member';
+            try {
+                const mm = await query('SELECT firstName, lastName, preferredName FROM Subscriber WHERE subscriberID = @id', { id: req.user.subscriberID });
+                if (mm.recordset.length) {
+                    const r = mm.recordset[0];
+                    inviterName = r.preferredName || [r.firstName, r.lastName].filter(Boolean).join(' ') || inviterName;
+                }
+            } catch (_) { /* non-fatal */ }
+
+            emailDelivery = await sendDependantInvitation({
+                to: email,
+                dependantName: firstName,
+                mainMemberName: inviterName,
+                setupUrl,
+                expiresAt: inv.expiresAt
+            });
+            invitationStatus = emailDelivery.sent ? 'Invitation Sent' : 'Invitation Pending';
+        } catch (invErr) {
+            console.warn('Invitation issue/email failed:', invErr.message);
         }
+
+        // ── Activity: record the invitation event (non-fatal) ──
+        try {
+            await notificationService.createNotification({
+                subscriberID: req.user.subscriberID,
+                type: NOTIFICATION_TYPES.SYSTEM,
+                title: 'Dependant invited',
+                message: `${[firstName, lastName].filter(Boolean).join(' ').trim() || 'A dependant'} was invited to FlexScribe (${email}).`,
+                relatedEntityType: ENTITY_TYPES.DEPENDANT,
+                relatedEntityID: depID,
+                eventToken: 'dep-invite-' + depID,
+                metadata: { email, invitationStatus }
+            });
+        } catch (_) { /* non-fatal */ }
+
+        res.status(201).json({
+            message: 'Dependant added',
+            dependantID: depID,
+            invitationStatus,
+            emailSent: !!emailDelivery.sent,
+            emailError: emailDelivery.sent ? undefined : (emailDelivery.error || 'Email could not be sent. You can resend the invitation.')
+        });
+    } catch (err) {
+        // DB unique constraint is the final guard against a race between the
+        // pre-check and the insert.
+        if (err.message && (err.message.includes('UQ_Subscriber_Email') || err.message.includes('UNIQUE KEY'))) {
+            return res.status(409).json({ error: EMAIL_TAKEN_MSG });
+        }
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST /api/dependants/:id/resend-invitation
+//
+// Re-issues a fresh, single-use invitation for a PENDING/EXPIRED dependant
+// and emails the new setup link. The previous token is superseded (invalid).
+// Refuses for already-activated accounts so an active account can never be
+// reset or have its data overwritten. Does NOT create a duplicate account or
+// touch the dependant's tasks / wallet / subscriptions.
+router.post('/:id/resend-invitation', async (req, res) => {
+    try {
+        const depID = parseInt(req.params.id);
+        const mid = req.user.subscriberID;
+
+        const r = await query(`
+            SELECT d.status, s.firstName, s.lastName, s.preferredName, s.email
+            FROM Dependant d JOIN Subscriber s ON s.subscriberID = d.dependantID
+            WHERE d.dependantID = @did AND d.mainMemberID = @mid
+        `, { did: depID, mid });
+        if (r.recordset.length === 0) return res.status(404).json({ error: 'Dependant not found' });
+
+        const dep = r.recordset[0];
+        if (dep.status === 'active') {
+            return res.status(409).json({ error: 'This dependant has already activated their account. Invitations cannot be resent.' });
+        }
+
+        const email = normaliseEmail(dep.email);
+        const inv = await invitationService.issueInvitation(depID, mid, email);
+        const setupUrl = invitationService.buildSetupUrl(inv.rawToken);
+
+        let inviterName = 'Your main member';
+        try {
+            const mm = await query('SELECT firstName, lastName, preferredName FROM Subscriber WHERE subscriberID = @id', { id: mid });
+            if (mm.recordset.length) {
+                const m = mm.recordset[0];
+                inviterName = m.preferredName || [m.firstName, m.lastName].filter(Boolean).join(' ') || inviterName;
+            }
+        } catch (_) { /* non-fatal */ }
+
+        const delivery = await sendDependantInvitation({
+            to: email,
+            dependantName: dep.firstName,
+            mainMemberName: inviterName,
+            setupUrl,
+            expiresAt: inv.expiresAt
+        });
+
+        if (!delivery.sent) {
+            // The new token exists and old ones are already superseded; the
+            // main member can simply retry. Surface a clear error.
+            return res.status(502).json({
+                error: 'The invitation was regenerated but the email could not be sent. Please try again.',
+                invitationStatus: 'Invitation Pending'
+            });
+        }
+
+        res.json({
+            message: 'Invitation resent',
+            invitationStatus: 'Invitation Sent',
+            expiresAt: inv.expiresAt
+        });
+    } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
@@ -255,10 +422,27 @@ router.put('/:id', async (req, res) => {
         const did = parseInt(req.params.id);
         const mid = req.user.subscriberID;
 
+        // Ownership gate: the dependant MUST belong to this main member.
+        // Without this, the Subscriber UPDATE below (keyed only on dependantID)
+        // could edit another member's dependant. Never trust the path id alone.
+        const ownsDep = await query(
+            'SELECT 1 FROM Dependant WHERE dependantID = @did AND mainMemberID = @mid',
+            { did, mid }
+        );
+        if (ownsDep.recordset.length === 0) return res.status(404).json({ error: 'Dependant not found' });
+
         // ── Server-side validation for any provided fields ──
+        let normalisedEmail;
         if (email !== undefined && email !== null && email !== '') {
             const er = validateEmail(email);
             if (!er.valid) return res.status(400).json({ error: er.message });
+            normalisedEmail = normaliseEmail(er.value);
+            // Case-insensitive uniqueness, excluding this same account.
+            const dupe = await query(
+                'SELECT subscriberID FROM Subscriber WHERE LOWER(email) = @email AND subscriberID <> @did',
+                { email: normalisedEmail, did }
+            );
+            if (dupe.recordset.length > 0) return res.status(409).json({ error: EMAIL_TAKEN_MSG });
         }
 
         let validatedDob;
@@ -287,11 +471,18 @@ router.put('/:id', async (req, res) => {
         const subParams = { did };
         if (firstName !== undefined && firstName) { subSets.push('firstName = @fn'); subParams.fn = String(firstName).slice(0, 100); }
         if (lastName !== undefined && lastName) { subSets.push('lastName = @ln'); subParams.ln = String(lastName).slice(0, 100); }
-        if (email !== undefined && email) { subSets.push('email = @email'); subParams.email = String(email).trim().slice(0, 255); }
+        if (normalisedEmail) { subSets.push('email = @email'); subParams.email = normalisedEmail.slice(0, 255); }
         if (validatedDob !== undefined) { subSets.push('dateOfBirth = @dob'); subParams.dob = validatedDob; }
         if (subSets.length > 0) {
             subSets.push('updatedAt = GETDATE()');
-            await query(`UPDATE Subscriber SET ${subSets.join(', ')} WHERE subscriberID = @did`, subParams);
+            try {
+                await query(`UPDATE Subscriber SET ${subSets.join(', ')} WHERE subscriberID = @did`, subParams);
+            } catch (uErr) {
+                if (uErr.message && (uErr.message.includes('UQ_Subscriber_Email') || uErr.message.includes('UNIQUE KEY'))) {
+                    return res.status(409).json({ error: EMAIL_TAKEN_MSG });
+                }
+                throw uErr;
+            }
         }
 
         // Update Dependant table (relationship, allowance, spendingLimit, status, age, permissions)
@@ -339,11 +530,6 @@ router.delete('/:id', async (req, res) => {
 });
 
 // POST /api/dependants/:id/send-allowance
-// POST /api/dependants/:id/send-allowance
-//   Transfers funds FROM the main member's wallet TO a dependant, atomically:
-//     • amount must be > 0 and not exceed the wallet balance
-//     • debits the wallet and records a negative 'transfer_out' transaction
-//       tagged with the dependantID (so the dependant's totalReceived grows)
 router.post('/:id/send-allowance', async (req, res) => {
     try {
         const amtResult = validateAmount(req.body.amount, { required: true });
@@ -456,128 +642,6 @@ router.get('/:id/activity', async (req, res) => {
         res.json(result.recordset);
     } catch (err) {
         res.status(500).json({ error: err.message });
-    }
-});
-
-// GET /api/dependants/:id/activity
-// Returns wallet transactions tied to this dependant (e.g. allowances sent),
-// scoped to the signed-in main member's own wallet.
-router.get('/:id/activity', async (req, res) => {
-    try {
-        // Activity is the dependant's OWN wallet transaction history, so the
-        // signs reflect the dependant's perspective:
-        //   • Allowance received / task reward earned  → credit (+)
-        //   • Task reward reversed (un-marked)          → debit  (-)
-        // Reading the dependant's wallet (not the parent's) means the UI shows
-        // money as it moves for the dependant. Scoped to this main member's
-        // dependant so a parent only sees their own dependants' activity.
-        const depID = parseInt(req.params.id);
-        const mid = req.user.subscriberID;
-
-        const owns = await query(
-            'SELECT 1 FROM Dependant WHERE dependantID = @did AND mainMemberID = @mid',
-            { did: depID, mid }
-        );
-        if (owns.recordset.length === 0) return res.status(404).json({ error: 'Dependant not found' });
-
-        const result = await query(`
-            SELECT wt.transactionID, wt.transactionType, wt.transactionAmount,
-                   wt.description, wt.category, wt.transactionDate
-            FROM WalletTransaction wt
-            JOIN VirtualWallet vw ON wt.walletID = vw.walletID
-            WHERE vw.subscriberID = @did
-            ORDER BY wt.transactionDate ASC
-        `, { did: depID });
-        res.json(result.recordset);
-        const pool = await getPool();
-        transaction = new sql.Transaction(pool);
-        await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
-        const rq = () => new sql.Request(transaction);
-
-        // Confirm the dependant belongs to this member + get a display name.
-        const depRes = await rq()
-            .input('did', dependantID).input('mid', req.user.subscriberID)
-            .query(`SELECT d.dependantID, s.firstName, s.lastName
-                    FROM Dependant d JOIN Subscriber s ON d.dependantID = s.subscriberID
-                    WHERE d.dependantID = @did AND d.mainMemberID = @mid`);
-        if (depRes.recordset.length === 0) {
-            await transaction.rollback();
-            return res.status(404).json({ error: 'Dependant not found' });
-        }
-        const depName = [depRes.recordset[0].firstName, depRes.recordset[0].lastName].filter(Boolean).join(' ').trim() || 'Dependant';
-
-        // Lock + read the wallet.
-        const wRes = await rq()
-            .input('sid', req.user.subscriberID)
-            .query('SELECT walletID, balance FROM VirtualWallet WITH (UPDLOCK, HOLDLOCK) WHERE subscriberID = @sid');
-        if (wRes.recordset.length === 0) { await transaction.rollback(); return res.status(404).json({ error: 'Wallet not found' }); }
-
-        const w = wRes.recordset[0];
-        const before = parseFloat(w.balance) || 0;
-        if (before < amount) {
-            await transaction.rollback();
-            return res.status(400).json({ error: 'Insufficient balance' });
-        }
-        const after = Math.round((before - amount + Number.EPSILON) * 100) / 100;
-
-        // Debit the wallet.
-        await rq().input('bal', after).input('wid', w.walletID)
-            .query('UPDATE VirtualWallet SET balance = @bal WHERE walletID = @wid');
-
-        // Record the outgoing transfer (negative/'transfer_out'), tagged to the dependant.
-        const txIns = await rq()
-            .input('wid', w.walletID)
-            .input('did', dependantID)
-            .input('amt', amount)
-            .input('after', after)
-            .input('before', before)
-            .input('desc', 'Sent to ' + depName)
-            .input('rname', depName)
-            .query(`INSERT INTO WalletTransaction
-                (walletID, dependantID, transactionType, transactionAmount, runningBalance,
-                 balanceBefore, balanceAfter, status, description, category, recipientName, completedAt)
-                OUTPUT INSERTED.transactionID
-                VALUES (@wid, @did, 'transfer_out', @amt, @after, @before, @after, 'completed', @desc, 'dependant', @rname, GETDATE())`);
-        const txID = txIns.recordset[0].transactionID;
-        await rq().input('ref', makeReference('DEP', txID)).input('id', txID)
-            .query('UPDATE WalletTransaction SET reference = @ref WHERE transactionID = @id');
-
-        await transaction.commit();
-
-        res.json({ message: 'Transfer sent', balance: after, amount, dependant: depName });
-
-        // ── Notifications (post-commit; failures here don't undo the transfer) ──
-        try {
-            const ref = makeReference('DEP', txID);
-            // Notify the sender (main member) that the transfer went out.
-            await notificationService.createNotification({
-                subscriberID: req.user.subscriberID,
-                type: NOTIFICATION_TYPES.PAYMENT_SUCCESS,
-                title: 'Transfer sent',
-                message: `You sent R${amount.toFixed(2)} to ${depName}.`,
-                relatedEntityType: ENTITY_TYPES.DEPENDANT,
-                relatedEntityID: dependantID,
-                eventToken: ref,
-                metadata: { reference: ref, amount, dependant: depName }
-            });
-            // Notify the dependant that they received funds.
-            await notificationService.createNotification({
-                subscriberID: dependantID,
-                type: NOTIFICATION_TYPES.PAYMENT_SUCCESS,
-                title: 'Money received',
-                message: `You received R${amount.toFixed(2)}.`,
-                relatedEntityType: ENTITY_TYPES.DEPENDANT,
-                relatedEntityID: dependantID,
-                eventToken: ref,
-                metadata: { reference: ref, amount }
-            });
-        } catch (nErr) {
-            console.warn('Dependant transfer notification failed:', nErr.message);
-        }
-    } catch (err) {
-        if (transaction) { try { await transaction.rollback(); } catch (_) { /* already rolled back */ } }
-        console.error('POST /dependants/:id/send-allowance error:', err.message);
-        res.status(500).json({ error: 'Could not send transfer. No funds were moved.' });
     }
 });
 
@@ -923,17 +987,25 @@ async function completeTaskOccurrence(tid, mid, res) {
             //   • transactionDate    — set by the DB default (GETDATE()) at
             //                          the moment of completion
             //   • description        — the task name
+            // Shared reference links the debit (main member) and credit
+            // (dependant) legs of THIS occurrence's reward so history/ totals
+            // can treat them as one event. Occurrence id keeps each recurring
+            // occurrence's reward individually identifiable.
+            const rewardRef = makeReference('RWD', task.dependantTaskID);
             await new sql.Request(tx)
                 .input('wid', walletID)
                 .input('did', task.dependantID)
                 .input('amt', rewardAmount)
+                .input('before', balanceBefore)
                 .input('after', balanceAfter)
                 .input('desc', 'Task reward: ' + task.taskName)
+                .input('ref', rewardRef)
                 .query(`
                     INSERT INTO WalletTransaction
-                        (walletID, dependantID, transactionType, transactionAmount, runningBalance, description, category)
+                        (walletID, dependantID, transactionType, transactionAmount, runningBalance,
+                         balanceBefore, balanceAfter, status, reference, description, category)
                     VALUES
-                        (@wid, @did, 'debit', @amt, @after, @desc, 'task-reward')
+                        (@wid, @did, 'debit', @amt, @after, @before, @after, 'completed', @ref, @desc, 'task-reward')
                 `);
 
             // ── Credit leg: pay the reward INTO the dependant's own wallet ──
@@ -953,13 +1025,16 @@ async function completeTaskOccurrence(tid, mid, res) {
                 .input('wid', depWallet.walletID)
                 .input('did', task.dependantID)
                 .input('amt', rewardAmount)
+                .input('before', depBefore)
                 .input('after', depAfter)
                 .input('desc', 'Task reward earned: ' + task.taskName)
+                .input('ref', rewardRef)
                 .query(`
                     INSERT INTO WalletTransaction
-                        (walletID, dependantID, transactionType, transactionAmount, runningBalance, description, category)
+                        (walletID, dependantID, transactionType, transactionAmount, runningBalance,
+                         balanceBefore, balanceAfter, status, reference, description, category)
                     VALUES
-                        (@wid, @did, 'credit', @amt, @after, @desc, 'task-reward-earned')
+                        (@wid, @did, 'credit', @amt, @after, @before, @after, 'completed', @ref, @desc, 'task-reward-earned')
                 `);
         }
 
@@ -1045,6 +1120,27 @@ async function completeTaskOccurrence(tid, mid, res) {
         }
 
         await tx.commit();
+
+        // ── Post-commit activity: task completed (+ reward paid, if any) ──
+        // Deduped per occurrence via eventToken so retries/refreshes never
+        // create duplicate activity entries.
+        try {
+            const rewardText = (rewardAmount > 0)
+                ? ` A reward of R${rewardAmount.toFixed(2)} was paid.`
+                : '';
+            await notificationService.createNotification({
+                subscriberID: mid,
+                type: rewardAmount > 0 ? NOTIFICATION_TYPES.PAYMENT_SUCCESS : NOTIFICATION_TYPES.SYSTEM,
+                title: rewardAmount > 0 ? 'Task reward paid' : 'Task completed',
+                message: `Task "${task.taskName}" was completed.` + rewardText,
+                relatedEntityType: ENTITY_TYPES.DEPENDANT,
+                relatedEntityID: task.dependantID,
+                eventToken: 'task-complete-' + tid,
+                metadata: { taskID: tid, taskName: task.taskName, reward: rewardAmount > 0 ? rewardAmount : 0 }
+            });
+        } catch (nErr) {
+            console.warn('Task completion notification failed:', nErr.message);
+        }
 
         // ── Post-commit side effect: warn about an unfundable next occurrence ──
         if (nextFundingShort && newTaskId != null) {
@@ -1229,4 +1325,120 @@ router.delete('/:depId/tasks/:taskId', async (req, res) => {
     }
 });
 
+// ══════════════════════════════════════════════════════════════
+// FUND REQUESTS (main-member view + respond)
+// ══════════════════════════════════════════════════════════════
+
+// GET /api/dependants/fund-requests — all requests across this member's
+// dependants (newest first), with dependant name for display.
+router.get('/fund-requests', async (req, res) => {
+    try {
+        const r = await query(`
+            SELECT fr.fundRequestID, fr.dependantID, fr.amount, fr.reason, fr.status,
+                   fr.reference, fr.createdAt, fr.respondedAt,
+                   s.firstName, s.lastName, s.preferredName
+            FROM FundRequest fr
+            JOIN Subscriber s ON s.subscriberID = fr.dependantID
+            WHERE fr.mainMemberID = @mid
+            ORDER BY fr.createdAt DESC
+        `, { mid: req.user.subscriberID });
+        res.json(r.recordset);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST /api/dependants/:id/fund-requests/:reqId/respond
+// Body: { action: 'approve' | 'decline', amount? }
+// Approving optionally transfers funds using the SAME atomic engine as
+// send-allowance. Declining simply marks the request declined. A request can
+// only be acted on once (idempotent on status).
+router.post('/:id/fund-requests/:reqId/respond', async (req, res) => {
+    try {
+        const depID = parseInt(req.params.id);
+        const reqId = parseInt(req.params.reqId);
+        const mid = req.user.subscriberID;
+        const action = String(req.body.action || '').toLowerCase();
+        if (!['approve', 'decline'].includes(action)) {
+            return res.status(400).json({ error: 'Action must be approve or decline.' });
+        }
+
+        const fr = await query(`
+            SELECT fundRequestID, dependantID, amount, status
+            FROM FundRequest
+            WHERE fundRequestID = @rid AND dependantID = @did AND mainMemberID = @mid
+        `, { rid: reqId, did: depID, mid });
+        if (fr.recordset.length === 0) return res.status(404).json({ error: 'Fund request not found' });
+        if (fr.recordset[0].status !== 'pending') {
+            return res.status(409).json({ error: 'This request has already been handled.' });
+        }
+
+        if (action === 'decline') {
+            await query(`UPDATE FundRequest SET status = 'declined', respondedAt = GETDATE() WHERE fundRequestID = @rid`, { rid: reqId });
+            return res.json({ message: 'Request declined', status: 'declined' });
+        }
+
+        // Approve — optionally transfer the funds now (main member can adjust
+        // the amount they actually send). Reuses the atomic transfer logic.
+        const amtResult = validateAmount(req.body.amount != null ? req.body.amount : fr.recordset[0].amount, { required: true });
+        if (!amtResult.valid) return res.status(400).json({ error: amtResult.message });
+        const amount = money(amtResult.value);
+        if (!(amount > 0)) return res.status(400).json({ error: 'Amount must be greater than 0' });
+
+        const pool = await getPool();
+        const tx = new sql.Transaction(pool);
+        await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
+        try {
+            const srcRes = await new sql.Request(tx)
+                .input('mid', mid)
+                .query('SELECT walletID, balance FROM VirtualWallet WITH (UPDLOCK, HOLDLOCK) WHERE subscriberID = @mid');
+            if (srcRes.recordset.length === 0) { await tx.rollback(); return res.status(404).json({ error: 'Wallet not found' }); }
+            const srcWalletID = srcRes.recordset[0].walletID;
+            const srcBefore = parseFloat(srcRes.recordset[0].balance) || 0;
+            if (srcBefore < amount) { await tx.rollback(); return res.status(400).json({ error: 'Insufficient balance' }); }
+            const srcAfter = money(srcBefore - amount);
+
+            const depWallet = await ensureDependantWallet(depID, tx);
+            const depBefore = parseFloat(depWallet.balance) || 0;
+            const depAfter = money(depBefore + amount);
+
+            await new sql.Request(tx).input('bal', srcAfter).input('wid', srcWalletID)
+                .query('UPDATE VirtualWallet SET balance = @bal WHERE walletID = @wid');
+            await new sql.Request(tx)
+                .input('wid', srcWalletID).input('did', depID).input('amt', amount).input('bal', srcAfter)
+                .query(`INSERT INTO WalletTransaction (walletID, dependantID, transactionType, transactionAmount, runningBalance, description, category)
+                        VALUES (@wid, @did, 'debit', @amt, @bal, 'Fund request approved', 'dependant')`);
+
+            await new sql.Request(tx).input('bal', depAfter).input('wid', depWallet.walletID)
+                .query('UPDATE VirtualWallet SET balance = @bal WHERE walletID = @wid');
+            await new sql.Request(tx)
+                .input('wid', depWallet.walletID).input('did', depID).input('amt', amount).input('bal', depAfter)
+                .query(`INSERT INTO WalletTransaction (walletID, dependantID, transactionType, transactionAmount, runningBalance, description, category)
+                        VALUES (@wid, @did, 'credit', @amt, @bal, 'Fund request approved', 'allowance')`);
+
+            await new sql.Request(tx).input('rid', reqId)
+                .query(`UPDATE FundRequest SET status = 'approved', respondedAt = GETDATE() WHERE fundRequestID = @rid`);
+
+            await tx.commit();
+            res.json({ message: 'Request approved and funds sent', status: 'approved', balance: srcAfter, dependantBalance: depAfter });
+        } catch (txErr) {
+            try { await tx.rollback(); } catch (_) { /* ignore */ }
+            throw txErr;
+        }
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 module.exports = router;
+// Export the shared task-completion engine so the dependant self-service
+// route (/api/me) can reuse the exact same atomic logic (daily-date rule,
+// reward debit/credit, recurrence generation, idempotency).
+module.exports.completeTaskOccurrence = completeTaskOccurrence;
+module.exports.revertTaskCompletion = revertTaskCompletion;
+// Exported for unit testing (pure date arithmetic, no DB).
+module.exports.nextDueDate = nextDueDate;
+module.exports._validateAmount = validateAmount;
+module.exports._validateEmail = validateEmail;
+module.exports._validateDateOfBirth = validateDateOfBirth;
+module.exports._normaliseEmail = normaliseEmail;

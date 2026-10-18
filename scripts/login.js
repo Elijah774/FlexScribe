@@ -221,6 +221,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 var _admin = !!(result.data && (result.data.isAdmin || (result.data.user && result.data.user.userType === 'Admin')));
                 if (_admin) { try { sessionStorage.setItem('flexscribe_admin', '1'); } catch (e) {} }
+                // Cache the account role so the SPA can gate navigation before
+                // the profile API round-trips (the backend still enforces it).
+                try {
+                    var _u = (result.data && result.data.user) || {};
+                    if (_u.userType) {
+                        sessionStorage.setItem('flexscribe_role', _u.userType);
+                        var _p = JSON.parse(localStorage.getItem('flexscribe_profile') || '{}');
+                        _p.userType = _u.userType;
+                        _p.fullName = ((_u.firstName || '') + ' ' + (_u.lastName || '')).trim() || _p.fullName;
+                        _p.nickname = _u.preferredName || _u.firstName || _p.nickname || '';
+                        _p.email = _u.email || _p.email || '';
+                        localStorage.setItem('flexscribe_profile', JSON.stringify(_p));
+                    }
+                } catch (e) {}
                 if (window.UIUtils) UIUtils.toast('Welcome back!', 'success');
                 setTimeout(() => { window.location.href = _admin ? 'admin.html' : 'loading.html'; }, 1200);
             }

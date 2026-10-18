@@ -12,7 +12,7 @@
             "type": "msedge",
             "request": "launch",
             "name": "Open MASTER.html",
-            "file": "${workspaceFolder}/pages/MASTER.html"
+            "url": "http://localhost:3000/pages/MASTER.html"
         },
         {
             "type": "node",
