@@ -1,5 +1,3 @@
-FLEXSCRIBE
-> A virtual wallet system that manages subscriptions, automates payment simulation, forecasts financial outcomes, and helps users avoid running out of money.
 
 FlexScribe: User Functionality Description
 
@@ -315,5 +313,7 @@ System:
 44. User logs out securely.
 
 ---
+
+
 
 
